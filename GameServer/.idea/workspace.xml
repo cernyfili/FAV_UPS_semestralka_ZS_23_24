@@ -5,10 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="new project moving to GOlang">
-      <change afterPath="$PROJECT_DIR$/docs/UPS SP.vpd" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/UPS_state_diagram (1).jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/komunikacni_protokol.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/zadani.pdf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/GameClient.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/todo.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/data_structures.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/network.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/UPS SP.vpd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/UPS_state_diagram (1).jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/komunikacni_protokol.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/zadani.pdf" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,14 +37,14 @@
   </component>
   <component name="GOROOT" url="file://$USER_HOME$/sdk/go1.21.3" />
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "cernyfili"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;cernyfili&quot;
   }
-}]]></component>
+}</component>
   <component name="GithubPullRequestsUISettings">
     <option name="selectedUrlAndAccountId">
       <UrlAndAccount>
@@ -43,9 +56,9 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
   <component name="ProjectId" id="2WvZiKHfDTljAxxjfRs9hr4Fgy1" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
@@ -67,9 +80,17 @@
     "git-widget-placeholder": "master",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "C:/Users/Lenovo"
+    "last_opened_file_path": "C:/Users/Lenovo",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "settings.editor.selected.configurable": "preferences.editor"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal" />
+    </key>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
