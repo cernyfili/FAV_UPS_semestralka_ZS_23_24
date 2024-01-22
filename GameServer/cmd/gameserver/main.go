@@ -1,1 +1,5 @@
 package gameserver
+
+func main() {
+
+}

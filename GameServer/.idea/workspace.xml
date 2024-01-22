@@ -4,33 +4,35 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="new project moving to GOlang">
-      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/GameClient.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/todo.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/data_structures.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/network.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="progresss">
+      <change afterPath="$PROJECT_DIR$/internal/command_parser.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/data_structure/game.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/data_structure/game_list.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/data_structure/list_structure.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/go.mod" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/multithreads.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/network_response.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/parser.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/UPS SP.vpd" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/UPS_state_diagram (1).jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/komunikacni_protokol.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/zadani.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/gameserver/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/gameserver/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/todo.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/todo.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/data_structures.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/data_structure/data_structures.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="ChangesViewManager">
+    <option name="groupingKeys">
+      <option value="directory" />
+    </option>
+  </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="Go Application" />
         <option value="Go File" />
       </list>
     </option>
@@ -64,30 +66,39 @@
     <ConfirmationsSetting value="2" id="Add" />
   </component>
   <component name="ProjectViewState">
+    <option name="autoscrollToSource" value="true" />
     <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="openDirectoriesWithSingleClick" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultGoTemplateProperty": "Go File",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.automatic.dependencies.download": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "master",
-    "go.import.settings.migrated": "true",
-    "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "C:/Users/Lenovo",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "settings.editor.selected.configurable": "preferences.editor"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;Notification.DisplayName-DoNotAsk-ai.commits.notification.general&quot;: &quot;AI Commits general&quot;,
+    &quot;Notification.DoNotAsk-ai.commits.notification.general&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.automatic.dependencies.download&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;G:/Můj disk/0_MAIN/škola/FAV/3.rocnik_23_24/_FAV_ZS_23_24/UPS/semestralka/FAV_UPS_semestralka_ZS_23_24/GameServer/internal&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.scopes&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal\data_structures" />
       <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal" />
     </key>
   </component>
@@ -97,7 +108,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="new project moving to GOlang" />
-    <option name="LAST_COMMIT_MESSAGE" value="new project moving to GOlang" />
+    <MESSAGE value="progresss" />
+    <option name="LAST_COMMIT_MESSAGE" value="progresss" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
