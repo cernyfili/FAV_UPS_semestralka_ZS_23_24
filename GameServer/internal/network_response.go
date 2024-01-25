@@ -1,26 +1,27 @@
 package internal
 
-import "internal/data_structure"
+import "gameserver/internal/utils"
 
 func SendErrorToPlayer(i int, err error) {
 	//todo
 }
 
-func SendPlayerConnectResponse(playerID int, gameList data_structure.GameList) error {
+func SendPlayerConnectResponse(playerID int, gameList utils.GameList) error {
 	//todo
 	return nil
 }
 
-func SendCreateGameResponse(id int, game data_structure.Game) error {
+func SendCreateGameResponse(id int, game utils.Game) error {
 	//todo
 	return nil
 }
 
-func SendJoinGameResponse(id int, game data_structure.Game) error {
+func SendJoinGameResponse(id int, game utils.Game) error {
 	//todo
 	return nil
 }
 
-func SendStartGameResponse(id int, game data_structure.Game) error {
+func SendStartGameResponse(id int, game utils.Game) error {
 	//todo
+	return nil
 }

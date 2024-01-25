@@ -1,18 +1,32 @@
-package data_structure
+package utils
 
-import "errors"
+import (
+	"fmt"
+	"sync"
+)
 
 type GameList struct {
 	list *List
 }
 
-func CreateGameList() *GameList {
-	return &GameList{
-		list: CreateList(),
-	}
+var (
+	instanceGL *GameList
+	onceGL     sync.Once
+)
+
+func GetInstanceGameList() *GameList {
+	onceGL.Do(func() {
+		instanceGL = &GameList{
+			list: CreateList(),
+		}
+	})
+	return instanceGL
 }
 
 func (gl *GameList) AddItem(game *Game) (int, error) {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
 	key, err := gl.list.AddItem(game)
 	gameItem, err := gl.list.GetItem(key)
 	if err != nil {
@@ -25,18 +39,24 @@ func (gl *GameList) AddItem(game *Game) (int, error) {
 }
 
 func (gl *GameList) GetItem(key int) (*Game, error) {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
 	item, err := gl.list.GetItem(key)
 	if err != nil {
 		return nil, err
 	}
 	game, ok := item.(*Game)
 	if !ok {
-		return nil, errors.New("item is not a game")
+		return nil, fmt.Errorf("item is not a game")
 	}
 	return game, nil
 }
 
 // Has Item in list
 func (gl *GameList) HasValue(game *Game) bool {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
 	return gl.list.HasValue(game)
 }

@@ -2,13 +2,30 @@ package internal
 
 import (
 	"fmt"
+	"gameserver/internal/utils"
 	"net"
 	"os"
+	"time"
 )
+
+// region GLOBAL VARIABLES
+const (
+	connType = "tcp"
+	connHost = "0.0.0.0"
+	connPort = "10000"
+)
+const cTimeout = time.Second
+
+var gMessageList = utils.GetInstanceMessageList()
+var gResponseList = utils.GetInstanceMessageList()
+
+//endregion
+
+//todo handle network error client doesnt get message - array of history of responses
 
 // StartServer starts a TCP server that listens on the specified port.
 func StartServer(port string) {
-	ln, err := net.Listen("tcp", ":"+port)
+	ln, err := net.Listen(connType, connHost+":"+connPort)
 	if err != nil {
 		fmt.Println("Error listening:", err)
 		os.Exit(1)
@@ -26,105 +43,170 @@ func StartServer(port string) {
 	}
 }
 
+// region PRIVATE FUNCTIONS
 func handleConnection(conn net.Conn) {
-	buffer := make([]byte, 1024)
-	_, err := conn.Read(buffer)
+
+	message, err := connectionRead(conn)
 	if err != nil {
 		fmt.Println("Error reading:", err)
 		conn.Close()
 		return
 	}
-	message := string(buffer)
-	fmt.Println("Received: " + message)
 
-	// Respond to the client
-	_, err = conn.Write([]byte("Message received"))
+	/*var response string*/
+
+	err = ProcessMessage(message, conn)
 	if err != nil {
-		fmt.Println("Error writing:", err)
-	}
-
-	conn.Close()
-}
-
-/*package main
-
-import (
-	"fmt"
-	"net"
-	"os"
-)
-
-// CustomConnection represents a custom type that includes net.Conn and additional data.
-type CustomConnection struct {
-	net.Conn
-	// Add any additional data fields you need
-	UserID int
-}
-
-// StartServer starts a TCP server that listens on the specified port.
-func StartServer(port string) {
-	ln, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		fmt.Println("Error listening:", err)
-		os.Exit(1)
-	}
-	defer ln.Close()
-	fmt.Println("Server is listening on port " + port)
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			fmt.Println("Error accepting connection:", err)
-			continue
-		}
-
-		// Create a CustomConnection with additional data
-		customConn := CustomConnection{
-			Conn:   conn,
-			UserID: 123, // Add any data you want to associate with the connection
-		}
-
-		go handleConnection(customConn)
-	}
-}
-
-func handleConnection(customConn CustomConnection) {
-	buffer := make([]byte, 1024)
-	_, err := customConn.Read(buffer)
-	if err != nil {
-		fmt.Println("Error reading:", err)
-		customConn.Close()
+		/*response = err.Error()*/
 		return
 	}
-	message := string(buffer)
-	fmt.Printf("Received from UserID %d: %s\n", customConn.UserID, message)
+	/*
+		response = cSuccesMessage
 
-	// Process the received message and generate a response
-	response := processMessage(message)
+		// Respond to the client
+		_, err = conn.Write([]byte(response))
+		if err != nil {
+			fmt.Println("Error writing:", err)
+		}
 
-	// Respond to the client with the generated response
-	_, err = customConn.Write([]byte(response))
+		conn.Close()*/
+}
+
+func connectionReadTimeout(connection net.Conn, timeout time.Duration) (utils.Message, error) {
+	// Set the timeout
+	deadline := time.Now().Add(timeout)
+	err := connection.SetReadDeadline(deadline)
 	if err != nil {
-		fmt.Println("Error writing:", err)
+		return utils.Message{}, fmt.Errorf("error setting read deadline: %w", err)
 	}
 
-	customConn.Close()
-}
-
-func processMessage(message string) string {
-	// Your logic for processing the received message and generating a response
-	// For example, you can switch on the message content and determine the response.
-	switch message {
-	case "Hello":
-		return "Hi there!"
-	case "How are you?":
-		return "I'm doing well, thank you!"
-	default:
-		return "Unknown message"
+	buffer := make([]byte, 1024)
+	_, err = connection.Read(buffer)
+	if err != nil {
+		return utils.Message{}, fmt.Errorf("error reading", err)
 	}
+	messageStr := string(buffer)
+
+	message, err := ParseMessage(messageStr)
+	if err != nil {
+		return utils.Message{}, fmt.Errorf("Error parsing message:", err)
+	}
+
+	//Save to logger
+	err = gMessageList.AddItem(message)
+	if err != nil {
+		return utils.Message{}, err
+	}
+
+	return message, nil
 }
 
-func main() {
-	StartServer("8080")
+func connectionRead(connection net.Conn) (utils.Message, error) {
+
+	buffer := make([]byte, 1024)
+	_, err := connection.Read(buffer)
+	if err != nil {
+		return utils.Message{}, fmt.Errorf("error reading", err)
+	}
+	messageStr := string(buffer)
+
+	message, err := ParseMessage(messageStr)
+	if err != nil {
+		return utils.Message{}, fmt.Errorf("Error parsing message:", err)
+	}
+
+	//Save to logger
+	err = gMessageList.AddItem(message)
+	if err != nil {
+		return utils.Message{}, err
+	}
+
+	return message, nil
 }
-*/
+
+func connectionWrite(connection net.Conn, message utils.Message) error {
+	messageStr, err := ConvertMessageToNetworkString(message)
+	if err != nil {
+		return err
+	}
+
+	_, err = connection.Write([]byte(messageStr))
+	if err != nil {
+		return fmt.Errorf("error writing", err)
+	}
+
+	err = gResponseList.AddItem(message)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func isClientResponseSuccess(clientResponse utils.Message, originalInfo utils.NetworkResponseInfo) bool {
+	if clientResponse.PlayerNickname != originalInfo.PlayerNickname {
+		return false
+	}
+
+	if clientResponse.TimeStamp != originalInfo.ConnectionInfo.TimeStamp {
+		return false
+	}
+
+	if clientResponse.CommandID != cCommands.ResponseServerSuccess.CommandID {
+		return false
+	}
+
+	return true
+}
+
+//endregion
+
+//region SEND RESPONSE FUNCTIONS
+
+func SendResponseSuccess(responseInfo utils.NetworkResponseInfo) error {
+	//convert to message
+	message := utils.CreateResponseMessage(responseInfo, cCommands.ResponseServerSuccess.CommandID, utils.CNetoworkEmptyParams)
+
+	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
+	if err != nil {
+		return fmt.Errorf("error writing %s", err)
+	}
+
+	return nil
+}
+
+func SendResponseDuplicitNickname(responseInfo utils.NetworkResponseInfo) error {
+	//convert to message
+	message := utils.CreateResponseMessage(responseInfo, cCommands.ResponseServerErrDuplicitNickname.CommandID, utils.CNetoworkEmptyParams)
+
+	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
+	if err != nil {
+		return fmt.Errorf("error writing %s", err)
+	}
+
+	//wait for client response
+	connection := responseInfo.ConnectionInfo.Connection
+	timeout := cTimeout
+	clientResponse, err := connectionReadTimeout(connection, timeout)
+	if err != nil {
+		//if client doesnt respond
+		err := connection.Close()
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("error reading %s", err)
+	}
+
+	//check if client responded with success
+	if !isClientResponseSuccess(clientResponse, responseInfo) {
+		err := connection.Close()
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("client didnt respond with same nickname")
+	}
+
+	return nil
+}
+
+//endregion

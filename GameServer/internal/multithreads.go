@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 )
@@ -33,7 +32,7 @@ func addWorker(workerID int) error {
 	numWorkersCounter++
 	_, ok := workerChannels[workerID]
 	if ok {
-		return errors.New("worker ID already exists")
+		return fmt.Errorf("worker ID already exists")
 	}
 	workerChannels[workerID] = make(chan Task)
 	wg.Add(1)
@@ -46,7 +45,7 @@ func sendTasks(task Task, workerID int) error {
 	numTasksCounter++
 	channel, ok := workerChannels[workerID]
 	if !ok {
-		return errors.New("worker ID not found")
+		return fmt.Errorf("worker ID not found")
 	}
 	channel <- task
 
@@ -65,12 +64,12 @@ func closeWorkerChannels() {
 
 func getResultForWorker(workerID int) (int, error) {
 	if numTasksCounter == 0 {
-		return -1, errors.New("no tasks found")
+		return -1, fmt.Errorf("no tasks found")
 	}
 	for result := range results {
 		if result%numWorkersCounter == workerID {
 			return result, nil
 		}
 	}
-	return -1, errors.New("no result found for worker") // Worker ID not found
+	return -1, fmt.Errorf("no result found for worker") // Worker ID not found
 }

@@ -1,7 +1,8 @@
-package data_structure
+package utils
 
 import (
-	"errors"
+	"fmt"
+	"sync"
 )
 
 // enum for game state
@@ -27,13 +28,14 @@ type Game struct {
 	MaxPlayers         int
 	TurnNum            int
 	GameStateValue     GameState
+	mutex              sync.Mutex
 }
 
 // CreateGame creates a new game with a unique ID and initializes player and turn slices.
 func CreateGame(name string, maxPlayers int) (*Game, error) {
 	//Check if the arguments are valid
 	if name == "" || maxPlayers <= 1 {
-		return nil, errors.New("invalid arguments")
+		return nil, fmt.Errorf("invalid arguments")
 	}
 
 	return &Game{
@@ -47,8 +49,11 @@ func CreateGame(name string, maxPlayers int) (*Game, error) {
 
 // AddPlayer adds a new player to the game.
 func (g *Game) AddPlayer(pPlayer *Player) error {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
 	if len(g.PlayersGameDataArr) >= g.MaxPlayers {
-		return errors.New("game is full")
+		return fmt.Errorf("game is full")
 	}
 
 	playerGameData := PlayerGameData{
@@ -64,11 +69,14 @@ func (g *Game) AddPlayer(pPlayer *Player) error {
 
 // NextTurn returns the next player in turn.
 func (g *Game) NextTurn() (*Player, error) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
 	if len(g.PlayersGameDataArr) == 0 {
-		return nil, errors.New("no players in the game")
+		return nil, fmt.Errorf("no players in the game")
 	}
 	if g.GameStateValue != Running {
-		return nil, errors.New("game is not running")
+		return nil, fmt.Errorf("game is not running")
 	}
 
 	currentPlayerIndex := g.TurnNum % len(g.PlayersGameDataArr)
@@ -80,6 +88,9 @@ func (g *Game) NextTurn() (*Player, error) {
 }
 
 func (g *Game) HasPlayer(player *Player) bool {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
 	for _, p := range g.PlayersGameDataArr {
 		if p.Player == player {
 			return true
@@ -89,6 +100,9 @@ func (g *Game) HasPlayer(player *Player) bool {
 }
 
 func (g *Game) RemovePlayer(player *Player) error {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
 	for i, p := range g.PlayersGameDataArr {
 		if p.Player == player {
 			player.Game = nil
@@ -96,4 +110,5 @@ func (g *Game) RemovePlayer(player *Player) error {
 			break
 		}
 	}
+	return nil
 }

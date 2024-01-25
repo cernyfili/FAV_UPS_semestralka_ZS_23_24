@@ -1,15 +1,19 @@
-package data_structure
+package utils
 
-import "errors"
+import (
+	"fmt"
+	"sync"
+)
 
 type List struct {
-	data  map[int]interface{}
+	data  map[interface{}]interface{}
 	Count int
+	mutex sync.Mutex
 }
 
 func CreateList() *List {
 	return &List{
-		data:  make(map[int]interface{}),
+		data:  make(map[interface{}]interface{}),
 		Count: 0,
 	}
 }
@@ -20,7 +24,7 @@ func (gm *List) AddItem(item interface{}) (int, error) {
 
 	// Check if the key already exists
 	if _, ok := gm.data[key]; ok {
-		return -1, errors.New("key already exists")
+		return -1, fmt.Errorf("key already exists")
 	}
 
 	// Add the item to the map with the key
@@ -30,10 +34,23 @@ func (gm *List) AddItem(item interface{}) (int, error) {
 	return key, nil
 }
 
-func (gm *List) GetItem(key int) (interface{}, error) {
+func (gm *List) AddItemKey(key interface{}, item interface{}) error {
+	// Check if the key already exists
+	if _, ok := gm.data[key]; ok {
+		return fmt.Errorf("key already exists")
+	}
+
+	// Add the item to the map with the key
+	gm.data[key] = item
+	gm.Count++
+
+	return nil
+}
+
+func (gm *List) GetItem(key interface{}) (interface{}, error) {
 	// Check if the key exists
 	if _, ok := gm.data[key]; !ok {
-		return nil, errors.New("key does not exist")
+		return nil, fmt.Errorf("key does not exist")
 	}
 
 	// Return the item

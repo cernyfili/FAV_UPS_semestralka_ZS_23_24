@@ -1,0 +1,13 @@
+- Mám změnit playerID na nickname na základě zadání - ANO
+- Jak bude fungovat odpovídání serveru
+  - Data o hře klientům
+
+    - Klient udělá tah -> server
+    - server -> (one player) potvrzení
+    - server ->(all players) aktualni stav hry
+    - (all players) -> potvrzení
+      - player neodpoví
+        - WHILE vsichni neodpoví
+          - server -> players nedostupný
+          - (all players) -> potvrzení
+  - Klient není dostupný

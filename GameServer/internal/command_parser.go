@@ -1,74 +1,194 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
-	"internal/data_structure"
-	"strconv"
+	"gameserver/internal/utils"
+	"net"
+	"regexp"
 )
 
 //region GLOBAL VARIABLES
 
-var gPlayerlist = data_structure.CreateList() //todo multithread safe mutex - singleton
+var gPlayerlist = utils.GetInstancePlayerList()
 
-var gGamelist = data_structure.CreateGameList() //todo multithread safe mutex - singleton
+var gGamelist = utils.GetInstanceGameList()
+
+var cCommands = CommandType{
+
+	//CLIENT->SERVER
+	ClientLogin:      Command{1},
+	ClientCreateGame: Command{2},
+	ClientJoinGame:   Command{3},
+	ClientStartGame:  Command{4},
+	ClientRollDice:   Command{5},
+	ClientLogout:     Command{7},
+
+	//RESPONSES SERVER->CLIENT
+	ResponseServerSuccess:             Command{30},
+	ResponseServerErrDuplicitNickname: Command{31},
+
+	ResponseServerDiceNext:     Command{32},
+	ResponseServerDiceEndTurn:  Command{33},
+	ResponseServerDiceEndScore: Command{34},
+
+	//SERVER->CLIENT
+	ServerPlayerStartGame: Command{41},
+	ServerPlayerEndScore:  Command{42},
+
+	ServerUpdateGameData:   Command{43},
+	ServerUpdateGameList:   Command{44},
+	ServerUpdatePlayerList: Command{45},
+
+	ServerReconnectGameList:   Command{46},
+	ServerReconnectGameData:   Command{47},
+	ServerReconnectPlayerList: Command{48},
+
+	ServerStartTurn:  Command{49},
+	ServerPingPlayer: Command{50},
+
+	//RESPONSES CLIENT->SERVER
+	ResponseClientSuccess: Command{60},
+
+	ResponseClientNextDice: Command{61},
+	ResponseClientEndTurn:  Command{62},
+}
+
+// CommandsHandlers is a map of valid commands and their information.
+var CommandsHandlers = map[int]CommandInfo{
+	//1: {"PLAYER_LOGIN", processPlayerLogin},
+	cCommands.ClientCreateGame.CommandID: {processCreateGame},
+	cCommands.ClientJoinGame.CommandID:   {processJoinGame},
+	cCommands.ClientStartGame.CommandID:  {processStartGame},
+	cCommands.ClientRollDice.CommandID:   {processRollDice}, //todo make start player turn and end player turn
+	cCommands.ClientEndGame.CommandID:    {processEndGame},
+	cCommands.ClientLogout.CommandID:     {processPlayerLogout},
+}
 
 //endregion
 
+//region STRUCTURES
+
 // CommandInfo represents information about a command.
 type CommandInfo struct {
-	CommandText string
-	Handler     func([]string)
+	Handler func(player utils.Player, args string) error //todo should all return network message format
 }
 
-// Commands is a map of valid commands and their information.
-var Commands = map[int]CommandInfo{
-	1: {"PLAYER_LOGIN", processPlayerLogin},
-	2: {"CREATE_GAME", processCreateGame},
-	3: {"JOIN_GAME", processJoinGame},
-	4: {"START_GAME", processStartGame},
-	5: {"ROLL_DICE", processRollDice}, //todo make start player turn and end player turn
-	6: {"END_GAME", processEndGame},
-	7: {"PLAYER_LOGOUT", processPlayerLogout},
+type Command struct {
+	CommandID int
 }
 
-func main() {
-	command, arguments := ReadCommand()
+type CommandType struct {
+	ClientCreateGame Command
+	ClientJoinGame   Command
+	ClientLogin      Command
+	ClientLogout     Command
+	ClientRollDice   Command
+	ClientStartGame  Command
 
-	commandNum, err := strconv.Atoi(command)
+	ErrorPlayerUnreachable Command
+
+	ResponseClientEndTurn  Command
+	ResponseClientNextDice Command
+
+	ResponseServerDiceEndScore Command
+	ResponseServerDiceEndTurn  Command
+	ResponseServerDiceNext     Command
+
+	ServerPingPlayer Command
+
+	ServerPlayerEndScore  Command
+	ServerPlayerStartGame Command
+
+	ServerReconnectGameData   Command
+	ServerReconnectGameList   Command
+	ServerReconnectPlayerList Command
+
+	ServerStartTurn Command
+
+	ServerUpdateGameData              Command
+	ServerUpdateGameList              Command
+	ServerUpdatePlayerList            Command
+	ResponseServerSuccess             Command
+	ResponseServerErrDuplicitNickname Command
+	ResponseClientSuccess             Command
+}
+
+//endregion
+
+func ProcessMessage(message utils.Message, conn net.Conn) error {
+
+	//Check if valid signature
+	if message.Signature != utils.CMessageSignature {
+		return fmt.Errorf("invalid signature")
+	}
+
+	commandID := message.CommandID
+	playerNickname := message.PlayerNickname
+	timeStamp := message.TimeStamp
+	params := message.Parameters
+
+	//check if values valid
+	if !isValidCommand(commandID) {
+		return fmt.Errorf("invalid command or incorrect number of arguments")
+	}
+	if !isValidNickname(playerNickname) {
+		return fmt.Errorf("invalid nickname")
+	}
+
+	connectionInfo := utils.ConnectionInfo{
+		Connection: conn,
+		TimeStamp:  timeStamp,
+	}
+
+	//If player_login
+	if commandID == 1 {
+		err := processPlayerLogin(playerNickname, connectionInfo)
+		if err != nil {
+			return err
+		}
+	}
+
+	//Get player
+	player, err := gPlayerlist.GetItem(playerNickname)
 	if err != nil {
-		fmt.Println("Error converting string to int:", err)
-		return
+		return err
 	}
-	//list where first element is string arguments
-	// Create a list where the first element is a string argument
-	argsArr := []string{arguments}
 
-	if isValidCommand(commandNum) {
-		fmt.Println("Valid command with appropriate arguments:", command, arguments)
-		ProcessCommand(commandNum, argsArr) //todo add as first argument player pointer
-	} else {
-		fmt.Println("Invalid command or incorrect number of arguments:", command, arguments)
-		// You can also return an error here if needed.
-		// For example: return errors.New("Invalid command or incorrect number of arguments")
-	}
-}
-
-// region Command functions
-
-func ProcessCommand(command int, args []string) {
-	info, exists := Commands[command]
-	if !exists {
-		fmt.Println("Unsupported command:", command)
-		return
-	}
+	//Set connection to player
+	player.ConnectionInfo = connectionInfo
 
 	// Call the corresponding handler function
-	info.Handler(args)
+	info := CommandsHandlers[commandID]
+	err = info.Handler(*player, params)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func isValidNickname(nickname string) bool {
+	//Check base on regex [A-Za-z0-9_\\-]+
+
+	// Define the regular expression pattern to match the args
+	pattern := "[A-Za-z0-9_\\-]+"
+
+	// Compile the regular expression
+	regex := regexp.MustCompile(pattern)
+
+	// Find the matches in the string
+	matches := regex.FindStringSubmatch(nickname)
+
+	// Check if there is a match and extract the nickname
+	if len(matches) != 1 || nickname == "" {
+		return false
+	}
+
+	return true
 }
 
 func isValidCommand(command int) bool {
-	_, exists := Commands[command]
+	_, exists := CommandsHandlers[command]
 	if !exists {
 		// The command is not valid.
 		return false
@@ -78,56 +198,47 @@ func isValidCommand(command int) bool {
 	return true
 }
 
-func ReadCommand() (string, string) {
-	command := "0"
-	args := "test"
-	// Now you can process the command and its arguments.
-	return command, args
-}
-
 //endregion
 
 //region Processing functions
 
-func processPlayerLogin(args []string) {
-	//todo check if already player in some game -> connect to that game
-	//todo if error send to player error
-	//check arguments
-	if len(args) != 1 {
-		fmt.Println("Invalid number of arguments:", len(args))
-		return
+func processPlayerLogin(playerNickname string, connectionInfo utils.ConnectionInfo) error {
+	responseInfo := utils.NetworkResponseInfo{
+		ConnectionInfo: connectionInfo,
+		PlayerNickname: playerNickname,
 	}
 
-	// Parse the arguments
-	argsStr := args[0]
-	nickname, err := ParsePlayerLoginArgs(argsStr)
+	//Check if playerNickname in list
+	_, err := gPlayerlist.GetItem(playerNickname)
 	if err != nil {
-		fmt.Println("Error parsing command arguments:", err)
-		return
+		err = SendResponseDuplicitNickname(responseInfo)
+		return fmt.Errorf("playerNickname already in game %s", err)
 	}
 
 	// Add the player to the playerData
-	player := data_structure.Player{
-		Nickname:    nickname,
-		IsConnected: true,
-		Game:        nil,
+	player := utils.Player{
+		Nickname:       playerNickname,
+		IsConnected:    true,
+		Game:           nil,
+		ConnectionInfo: connectionInfo,
 	}
 
-	playerID, err := gPlayerlist.AddItem(player)
+	err = gPlayerlist.AddItem(playerNickname, &player)
 	if err != nil {
-		fmt.Println("Error adding player:", err)
-		return
+		return fmt.Errorf("Error adding player: %s", err)
 	}
 
 	// Send the response
-	err = SendPlayerConnectResponse(playerID, *gGamelist)
+	err = SendResponseSuccess(responseInfo)
 	if err != nil {
-		fmt.Println("Error sending response:", err)
-		return
+		return fmt.Errorf("Error sending response: %s", err)
 	}
+
+	return nil
 }
 
-func processCreateGame(args []string) {
+/*
+func processCreateGame(player utils.Player, args string) error {
 	//todo check if already player in some game -> throw error
 	//todo send error to player
 	//todo get player id
@@ -149,7 +260,7 @@ func processCreateGame(args []string) {
 	}
 
 	// Create the game
-	game, err := data_structure.CreateGame(name, maxPlayers)
+	game, err := utils.ClientCreateGame(name, maxPlayers)
 	if err != nil {
 		fmt.Println("Error creating game:", err)
 		return
@@ -176,7 +287,7 @@ func processCreateGame(args []string) {
 	}
 }
 
-func processJoinGame(args []string) {
+func processJoinGame(player utils.Player, args string) error {
 	//todo check if already player in some game -> throw error
 	//todo send error to player
 	//todo send error if game is full
@@ -212,7 +323,7 @@ func processJoinGame(args []string) {
 		return
 	}
 
-	player := playerItem.(*data_structure.Player)
+	player := playerItem.(*utils.Player)
 
 	err = game.AddPlayer(player)
 	if err != nil {
@@ -228,11 +339,11 @@ func processJoinGame(args []string) {
 	}
 }
 
-func processStartGame(args []string) {
+func processStartGame(player utils.Player, args string) error {
 	//check arguments
 	if len(args) != 1 {
 		fmt.Println("Invalid number of arguments:", len(args))
-		SendErrorToPlayer(0, errors.New("Invalid number of arguments")) //todo get response IP
+		SendErrorToPlayer(0, fmt.Errorf("Invalid number of arguments")) //todo get response IP
 		return
 	}
 
@@ -252,7 +363,7 @@ func processStartGame(args []string) {
 		SendErrorToPlayer(playerID, err)
 		return
 	}
-	player := playerItem.(*data_structure.Player)
+	player := playerItem.(*utils.Player)
 
 	//ERROR: game doesn't exist
 	game, err := gGamelist.GetItem(gameID)
@@ -263,7 +374,7 @@ func processStartGame(args []string) {
 	}
 
 	//ERROR: game already started
-	if game.GameStateValue != data_structure.Created {
+	if game.GameStateValue != utils.Created {
 		fmt.Println("Error starting game:", err)
 		SendErrorToPlayer(playerID, err)
 		return
@@ -277,7 +388,7 @@ func processStartGame(args []string) {
 	}
 
 	// Change the game state
-	game.GameStateValue = data_structure.Running
+	game.GameStateValue = utils.Running
 
 	// Send the response
 	err = SendStartGameResponse(gameID, *game) //todo send to all players in game
@@ -287,12 +398,12 @@ func processStartGame(args []string) {
 	}
 }
 
-func processRollDice(args []string) {
+func processRollDice(player utils.Player, args string) error {
 	//todo make it game based
 	//check arguments
 	if len(args) != 1 {
 		fmt.Println("Invalid number of arguments:", len(args))
-		SendErrorToPlayer(0, errors.New("Invalid number of arguments")) //todo get response IP
+		SendErrorToPlayer(0, fmt.Errorf("Invalid number of arguments")) //todo get response IP
 		return
 	}
 
@@ -312,7 +423,7 @@ func processRollDice(args []string) {
 		SendErrorToPlayer(playerID, err)
 		return
 	}
-	player := playerItem.(*data_structure.Player)
+	player := playerItem.(*utils.Player)
 
 	//ERROR: player doesn't have a game
 	game := player.Game
@@ -324,7 +435,7 @@ func processRollDice(args []string) {
 	}
 
 	//ERROR: game is not running
-	if game.GameStateValue != data_structure.Running {
+	if game.GameStateValue != utils.Running {
 		fmt.Println("Error starting game:", err)
 		SendErrorToPlayer(playerID, err)
 		return
@@ -348,11 +459,11 @@ func rollDice() int {
 	return 0
 }
 
-func processPlayerLogout(args []string) {
+func processPlayerLogout(player utils.Player, args string) error {
 	//check arguments
 	if len(args) != 1 {
 		fmt.Println("Invalid number of arguments:", len(args))
-		SendErrorToPlayer(0, errors.New("Invalid number of arguments")) //todo get response IP
+		SendErrorToPlayer(0, fmt.Errorf("Invalid number of arguments")) //todo get response IP
 		return
 	}
 
@@ -372,7 +483,7 @@ func processPlayerLogout(args []string) {
 		SendErrorToPlayer(playerID, err)
 		return
 	}
-	player := playerItem.(*data_structure.Player)
+	player := playerItem.(*utils.Player)
 	game := player.Game
 
 	//ERROR: game doesn't exist
@@ -390,7 +501,7 @@ func processPlayerLogout(args []string) {
 	}
 
 	//ERROR: game is not running
-	if game.GameStateValue != data_structure.Running {
+	if game.GameStateValue != utils.Running {
 		fmt.Println("Error starting game:", err)
 		SendErrorToPlayer(playerID, err)
 		return
@@ -406,11 +517,11 @@ func processPlayerLogout(args []string) {
 	}
 }
 
-func processEndGame(args []string) {
+func processEndGame(player utils.Player, args string) error {
 	//check arguments
 	if len(args) != 1 {
 		fmt.Println("Invalid number of arguments:", len(args))
-		SendErrorToPlayer(0, errors.New("Invalid number of arguments")) //todo get response IP
+		SendErrorToPlayer(0, fmt.Errorf("Invalid number of arguments")) //todo get response IP
 		return
 	}
 
@@ -430,7 +541,7 @@ func processEndGame(args []string) {
 		SendErrorToPlayer(playerID, err)
 		return
 	}
-	player := playerItem.(*data_structure.Player)
+	player := playerItem.(*utils.Player)
 	game := player.Game
 
 	//ERROR: game doesn't exist
@@ -448,13 +559,13 @@ func processEndGame(args []string) {
 	}
 
 	//ERROR: game is not running
-	if game.GameStateValue != data_structure.Running {
+	if game.GameStateValue != utils.Running {
 		fmt.Println("Error starting game:", err)
 		SendErrorToPlayer(playerID, err)
 		return
 	}
 
-	game.GameStateValue = data_structure.Ended
+	game.GameStateValue = utils.Ended
 
 	// Send the response
 	err = SendEndGameResponse(gameID, *game) //todo send to all players in game
@@ -465,3 +576,4 @@ func processEndGame(args []string) {
 }
 
 //endregion
+*/
