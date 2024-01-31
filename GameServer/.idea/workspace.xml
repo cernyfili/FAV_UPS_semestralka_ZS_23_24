@@ -4,28 +4,52 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="before statemachine">
-      <change afterPath="$PROJECT_DIR$/internal/utils/player.go" afterDir="false" />
+    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="done development&#10;before testing">
+      <change afterPath="$PROJECT_DIR$/../GameClient/GUI.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/command_parser.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/constants.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/doc/helpfile.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/PKG-INFO" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/pyproject.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/callbacks.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/contrib/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/contrib/diagram.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/dispatcher.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/event.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/event_data.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/events.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/exceptions.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/factory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/graph.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/i18n.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/locale/en/LC_MESSAGES/statemachine.mo" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/locale/en/LC_MESSAGES/statemachine.po" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/locale/pt_BR/LC_MESSAGES/statemachine.mo" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/locale/pt_BR/LC_MESSAGES/statemachine.po" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/mixins.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/model.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/registry.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/signature.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/state.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/statemachine.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/states.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/transition.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/transition_list.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/lib/python_statemachine-2.1.2/statemachine/utils.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/network.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/parser.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../GameClient/state_machine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/gameserver/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/gameserver/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/helpfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/docs/helpfile.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/server_stavy.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/server_stavy.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/command_parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_parser.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/multithreads.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/archive/multithreads.go.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/network_response.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/parser.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/test.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/utils/constants.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/constants.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/utils/data_structures.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/data_structures.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/game.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/game_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/game_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/list_structure.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/list_structure.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/player_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/player_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/state_machine.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/state_machine.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/stateless/example_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/stateless/example_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/stateless/statemachine.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/stateless/statemachine.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/stateless/statemachine_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/stateless/statemachine_test.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -102,7 +126,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "preferences.keymap"
+    "settings.editor.selected.configurable": "reference.settingsdialog.IDE.editor.colors"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -170,7 +194,8 @@
     <MESSAGE value="progresss" />
     <MESSAGE value="&#10;command_parser.go - partly done" />
     <MESSAGE value="before statemachine" />
-    <option name="LAST_COMMIT_MESSAGE" value="before statemachine" />
+    <MESSAGE value="done development&#10;before testing" />
+    <option name="LAST_COMMIT_MESSAGE" value="done development&#10;before testing" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

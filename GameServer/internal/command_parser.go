@@ -309,7 +309,7 @@ func processPlayerLogin(playerNickname string, connectionInfo utils.ConnectionIn
 
 	//Check if playerNickname in list
 	if gPlayerlist.HasItem(playerNickname) {
-		err := CommunicationResponseServerErrDuplicitNickname(responseInfo)
+		err := SendResponseServerErrDuplicitNickname(responseInfo)
 		if err != nil {
 			return fmt.Errorf("Error sending response: %w", err)
 		}
@@ -317,7 +317,7 @@ func processPlayerLogin(playerNickname string, connectionInfo utils.ConnectionIn
 	}
 
 	//Send response
-	isSuccess, err := CommunicationResponseServerGameList(responseInfo, gGamelist.GetValuesArray())
+	isSuccess, err := SendResponseServerGameList(responseInfo, gGamelist.GetValuesArray())
 	if err != nil {
 		return fmt.Errorf("Error sending response: %w", err)
 	}
@@ -448,7 +448,7 @@ func processClientJoinGame(player *utils.Player, params []utils.Params, command 
 
 	// Check if the game is full
 	if game.IsFull() {
-		err = SendResponseServerError(responseInfo, fmt.Errorf("game is full"))
+		err = dissconectPlayer(player, responseInfo)
 		if err != nil {
 			return fmt.Errorf("Error sending response: %w", err)
 		}
@@ -457,7 +457,7 @@ func processClientJoinGame(player *utils.Player, params []utils.Params, command 
 
 	// Check if the game has already started
 	if game.GetState() != utils.Created {
-		err = SendResponseServerError(responseInfo, fmt.Errorf("game has already started"))
+		err = dissconectPlayer(player, responseInfo)
 		if err != nil {
 			return fmt.Errorf("Error sending response: %w", err)
 		}

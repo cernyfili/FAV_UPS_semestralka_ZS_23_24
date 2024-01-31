@@ -200,33 +200,33 @@ stateDiagram
 
 ```mermaid
 stateDiagram
-    Start --> Lobby : CLIENT->SERVER ClientLogin (nickname)\n SERVER-CLIENT games_list --\n CLIENT-SERVER success
-    Lobby --> End : CLIENT->SERVER ClientLogout \n SERVER->CLIENT success
-    Lobby --> Lobby : SERVER->CLIENT ServerUpdateGameList (game_list (game_name, max_players, connected_players_num)) \n CLIENT->SERVER success
-    Lobby --> Game : CLIENT->SERVER ClientJoinGame (game_id) \n SERVER->CLIENT success  \n ERROR player_disconnect --\n SERVER->PLAYERS_IN_GAME ServerUpdatePlayerList (player_list (active/inactive))
-    Lobby --> Game : CLIENT->SERVER ClientCreateGame (game_name, max_players) \n SERVER->CLIENT success - -  \n SERVER->PLAYERS_IN_LOBBY ServerUpdateGameList(gameList (game_name, max_players, connected_players_num))
+    Start --> Lobby : CLIENT->SERVER ClientLogin (nickname)\n -- SERVER-CLIENT ResponseServerGameList\n -or- SERVER->CLIENT ResponseServerError \n -or- SERVER->CLIENT ResponseServerErrDuplicitNickname
+    Lobby --> End : CLIENT->SERVER ClientLogout \n -- SERVER->CLIENT ResponseServerSuccess \n -or- SERVER->CLIENT ResponseServerError
+    Lobby --> Lobby : SERVER->CLIENT ServerUpdateGameList (game_list (game_name, max_players, connected_players_num)) \n CLIENT->SERVER ResponseServerSuccess
+    Lobby --> Game : CLIENT->SERVER ClientJoinGame (game_id) \n -- SERVER->CLIENT ResponseServerSuccess  \n -or- SERVER->CLIENT ResponseServerError \n SERVER->PLAYERS_IN_GAME ServerUpdatePlayerList (player_list (active/inactive))
+    Lobby --> Game : CLIENT->SERVER ClientCreateGame (game_name, max_players) \n -- SERVER->CLIENT ResponseServerSuccess \n -or- SERVER->CLIENT ResponseServerError  \n SERVER->PLAYERS_IN_LOBBY ServerUpdateGameList(gameList (game_name, max_players, connected_players_num))
     Lobby --> Error_lobby : ErrorPlayerUnreachable
     
     Error_lobby --> Lobby : SERVER->CLIENT ServerReconnectGameList (game_list (game_name, max_players, connected_players_num)) \n CLIENT->SERVER success
     
-    Game --> Running_Game : CLIENT->SERVER ClientStartGame \n SERVER->CLIENT success --\n SERVER->PLAYERS_IN_GAME ServerGameUpdates(player_list (active/inactive), turn_player, score)
-    Game --> Running_Game : Somebody_started_game\n \n SERVER->CLIENT ServerUpdateStartGame \n CLIENT->SERVER success
-    Game --> Game : SERVER->CLIENT ServerUpdatePlayerList (player_list (active/inactive)) \n CLIENT->SERVER success
+    Game --> Running_Game : CLIENT->SERVER ClientStartGame \n -- SERVER->CLIENT  ResponseServerSuccess \n -or- SERVER->CLIENT ResponseServerError\n SERVER->PLAYERS_IN_GAME ServerUpdateStartGame(player_list (active/inactive), turn_player, score)
+    Game --> Running_Game : Somebody_started_game\n \n SERVER->CLIENT ServerUpdateStartGame \n CLIENT->SERVER ResponseServerSuccess
+    Game --> Game : SERVER->CLIENT ServerUpdatePlayerList (player_list (active/inactive)) \n CLIENT->SERVER ResponseServerSuccess
     Game --> Error_game : ErrorPlayerUnreachable
     
-    Error_game --> Game : SERVER->CLIENT ServerReconnectPlayerList (player_list (active/inactive)) \n CLIENT->SERVER success
-    Error_game --> Error_running_Game : SERVER->CLIENT ServerUpdateStartGame \n CLIENT->SERVER success
+    Error_game --> Game : SERVER->CLIENT ServerReconnectPlayerList (player_list (active/inactive)) \n CLIENT->SERVER ResponseServerSuccess
+    Error_game --> Error_running_Game : SERVER->CLIENT ServerUpdateStartGame \n CLIENT->SERVER ResponseServerSuccess
     
-    Running_Game --> Lobby : SERVER->CLIENT ServerUpdateEndScore (winner_player_nickname, game_list) \n CLIENT->SERVER success
-    Running_Game --> My_turn : SERVER->CLIENT ServerStartTurn \n CLIENT->SERVER success
-    Running_Game --> Running_Game : SERVER->CLIENT ServerUpdateGameData(player_list (active/inactive), turn_player, score) \n CLIENT->SERVER success
+    Running_Game --> Lobby : SERVER->CLIENT ServerUpdateEndScore (winner_player_nickname, game_list) \n CLIENT->SERVER ResponseServerSuccess
+    Running_Game --> My_turn : SERVER->CLIENT ServerStartTurn \n CLIENT->SERVER ResponseServerSuccess
+    Running_Game --> Running_Game : SERVER->CLIENT ServerUpdateGameData(player_list (active/inactive), turn_player, score) \n CLIENT->SERVER ResponseServerSuccess
     Running_Game --> Error_running_Game : ErrorPlayerUnreachable
     
-    Error_running_Game --> Running_Game : SERVER->CLIENT ServerReconnectGameData(player_list (active/inactive), turn_player, score) \n CLIENT->SERVER success
-    Error_running_Game --> Error_game : SERVER->CLIENT ServerUpdateEndScore (winner_player_nickname, game_list) \n CLIENT->SERVER success
+    Error_running_Game --> Running_Game : SERVER->CLIENT ServerReconnectGameData(player_list (active/inactive), turn_player, score) \n CLIENT->SERVER ResponseServerSuccess
+    Error_running_Game --> Error_game : SERVER->CLIENT ServerUpdateEndScore (winner_player_nickname, game_list) \n CLIENT->SERVER ResponseServerSuccess
     
     My_turn --> fork_my_turn : CLIENT->SERVER ClientRollDice
-    My_turn --> My_turn : SERVER->CLIENT ServerPingPlayer \n CLIENT->SERVER success
+    My_turn --> My_turn : SERVER->CLIENT ServerPingPlayer \n CLIENT->SERVER ResponseServerSuccess
     My_turn --> Error_running_Game : ErrorPlayerUnreachable
     
     fork_my_turn --> Running_Game : SERVER->CLIENT ResponseServerDiceEndTurn(cubes_values, score) \n SERVER->PLAYERS_IN_GAME ServerGameUpdates(player_list (active/inactive), turn_player, score)
@@ -235,7 +235,7 @@ stateDiagram
     
     Next_dice --> Running_Game : CLIENT->SERVER ClientEndTurn() \n SERVER->CLIENT endTurn(score) \n SERVER->PLAYERS_IN_GAME ServerGameUpdates(player_list (active/inactive), turn_player, score)
     Next_dice --> Fork_next_dice : CLIENT->SERVER ClientNextDice(selected_cubes)
-    Next_dice --> Next_dice : SERVER->CLIENT ServerPingPlayer \n CLIENT->SERVER success
+    Next_dice --> Next_dice : SERVER->CLIENT ServerPingPlayer \n CLIENT->SERVER ResponseServerSuccess
     
     Fork_next_dice --> My_turn : SERVER->CLIENT ResponseServerNextDiceSuccess()
     Fork_next_dice --> Lobby : SERVER->CLIENT ResponseServerNextDiceEndScore() \n SERVER->PLAYERS_IN_GAME ServerUpdateEndScore (winner_player_nickname, game_list)

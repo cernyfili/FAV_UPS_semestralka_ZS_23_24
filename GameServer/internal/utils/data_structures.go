@@ -22,7 +22,7 @@ type NetworkResponseInfo struct {
 
 type MessageHeader struct {
 	Signature      [6]byte
-	CommandID      byte
+	CommandID      [2]byte
 	TimeStamp      [32]byte
 	PlayerNickname string // {karel_1}
 }

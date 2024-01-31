@@ -253,7 +253,7 @@ func SendResponseServerSuccess(responseInfo utils.NetworkResponseInfo) error {
 	return nil
 }
 
-func CommunicationResponseServerErrDuplicitNickname(responseInfo utils.NetworkResponseInfo) error {
+func SendResponseServerErrDuplicitNickname(responseInfo utils.NetworkResponseInfo) error {
 	//convert to message
 	message := utils.CreateResponseMessage(responseInfo, utils.CGCommands.ResponseServerErrDuplicitNickname.CommandID, utils.CGNetworkEmptyParams)
 
@@ -262,33 +262,7 @@ func CommunicationResponseServerErrDuplicitNickname(responseInfo utils.NetworkRe
 		return fmt.Errorf("error writing %w", err)
 	}
 
-	//wait for client response
 	connection := responseInfo.ConnectionInfo.Connection
-	timeout := cTimeout
-	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
-	if err != nil {
-		return fmt.Errorf("error reading %w", err)
-	}
-	if isTimeout {
-		//if client doesnt respond
-		err := connection.Close()
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("error reading %w", err)
-	}
-
-	//check if client responded with success
-	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
-		err := connection.Close()
-		if err != nil {
-			return err
-		}
-		return nil
-	}
 
 	err = connection.Close()
 	if err != nil {
@@ -322,7 +296,7 @@ func SendResponseServerError(responseInfo utils.NetworkResponseInfo, paramsValue
 
 	return nil
 }
-func CommunicationResponseServerGameList(responseInfo utils.NetworkResponseInfo, paramsValues []*utils.Game) (bool, error) {
+func SendResponseServerGameList(responseInfo utils.NetworkResponseInfo, paramsValues []*utils.Game) (bool, error) {
 	command := utils.CGCommands.ResponseServerGameList
 
 	value := ConvertGameListToNetworkString(paramsValues)
@@ -339,33 +313,6 @@ func CommunicationResponseServerGameList(responseInfo utils.NetworkResponseInfo,
 	err = connectionWrite(connection, message)
 	if err != nil {
 		return false, fmt.Errorf("error writing %w", err)
-	}
-
-	//wait for client response
-	timeout := cTimeout
-	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
-	if err != nil {
-		return false, fmt.Errorf("error reading %w", err)
-	}
-	if isTimeout {
-		//if client doesnt respond
-		err := connection.Close()
-		if err != nil {
-			return false, err
-		}
-		return false, nil
-	}
-	if err != nil {
-		return false, fmt.Errorf("error reading %w", err)
-	}
-
-	//check if client responded with success
-	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
-		err := connection.Close()
-		if err != nil {
-			return false, err
-		}
-		return false, nil
 	}
 
 	return true, nil

@@ -38,7 +38,7 @@ var CGCommands = CommandType{
 	//RESPONSES SERVER->CLIENT
 	ResponseServerSuccess:             Command{30, nil, []string{""}},
 	ResponseServerErrDuplicitNickname: Command{31, nil, []string{""}},
-	ResponseServerError:               Command{32, nil, []string{"errorMessage"}},
+	ResponseServerError:               Command{32, nil, []string{"message"}},
 	ResponseServerGameList:            Command{33, nil, []string{"gameList"}},
 
 	ResponseServerDiceNext:    Command{34, stateless.Trigger("ResponseServerDiceNext"), []string{""}},
