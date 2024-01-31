@@ -33,7 +33,7 @@ func (gl *GameList) AddItem(game *Game) (int, error) {
 		return -1, err
 	}
 	game = gameItem.(*Game)
-	game.GameID = key
+	game.gameID = key
 
 	return key, nil
 }
@@ -59,4 +59,17 @@ func (gl *GameList) HasValue(game *Game) bool {
 	defer gl.list.mutex.Unlock()
 
 	return gl.list.HasValue(game)
+}
+
+// GetValuesArray
+func (gl *GameList) GetValuesArray() []*Game {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
+	var values []*Game
+	for _, v := range gl.list.data {
+		values = append(values, v.(*Game))
+	}
+
+	return values
 }

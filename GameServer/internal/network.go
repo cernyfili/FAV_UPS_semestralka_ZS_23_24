@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"gameserver/internal/utils"
 	"net"
@@ -21,17 +22,25 @@ var gResponseList = utils.GetInstanceMessageList()
 
 //endregion
 
-//todo handle network error client doesnt get message - array of history of responses
+// enum
+type ResponseResult int
+
+const (
+	Succes ResponseResult = iota
+	Timeout
+	WrongResponse
+	Error
+)
 
 // StartServer starts a TCP server that listens on the specified port.
-func StartServer(port string) {
+func StartServer() {
 	ln, err := net.Listen(connType, connHost+":"+connPort)
 	if err != nil {
 		fmt.Println("Error listening:", err)
 		os.Exit(1)
 	}
 	defer ln.Close()
-	fmt.Println("Server is listening on port " + port)
+	fmt.Println("Server is listening on port " + connPort)
 
 	for {
 		conn, err := ln.Accept()
@@ -49,7 +58,11 @@ func handleConnection(conn net.Conn) {
 	message, err := connectionRead(conn)
 	if err != nil {
 		fmt.Println("Error reading:", err)
-		conn.Close()
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("Error closing:", err)
+			return
+		}
 		return
 	}
 
@@ -57,48 +70,44 @@ func handleConnection(conn net.Conn) {
 
 	err = ProcessMessage(message, conn)
 	if err != nil {
-		/*response = err.Error()*/
+		fmt.Println("Error processing message:", err)
 		return
 	}
-	/*
-		response = cSuccesMessage
-
-		// Respond to the client
-		_, err = conn.Write([]byte(response))
-		if err != nil {
-			fmt.Println("Error writing:", err)
-		}
-
-		conn.Close()*/
 }
 
-func connectionReadTimeout(connection net.Conn, timeout time.Duration) (utils.Message, error) {
+func connectionReadTimeout(connection net.Conn, timeout time.Duration) (utils.Message, bool, error) {
+	isTimeout := false
+
 	// Set the timeout
 	deadline := time.Now().Add(timeout)
 	err := connection.SetReadDeadline(deadline)
 	if err != nil {
-		return utils.Message{}, fmt.Errorf("error setting read deadline: %w", err)
+		return utils.Message{}, isTimeout, fmt.Errorf("error setting read deadline: %w", err)
 	}
 
 	buffer := make([]byte, 1024)
 	_, err = connection.Read(buffer)
 	if err != nil {
-		return utils.Message{}, fmt.Errorf("error reading", err)
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			isTimeout = true
+		}
+		return utils.Message{}, isTimeout, nil
 	}
 	messageStr := string(buffer)
 
 	message, err := ParseMessage(messageStr)
 	if err != nil {
-		return utils.Message{}, fmt.Errorf("Error parsing message:", err)
+		return utils.Message{}, isTimeout, fmt.Errorf("Error parsing message: %w", err)
 	}
 
 	//Save to logger
 	err = gMessageList.AddItem(message)
 	if err != nil {
-		return utils.Message{}, err
+		return utils.Message{}, isTimeout, err
 	}
 
-	return message, nil
+	return message, isTimeout, nil
 }
 
 func connectionRead(connection net.Conn) (utils.Message, error) {
@@ -143,7 +152,7 @@ func connectionWrite(connection net.Conn, message utils.Message) error {
 	return nil
 }
 
-func isClientResponseSuccess(clientResponse utils.Message, originalInfo utils.NetworkResponseInfo) bool {
+func isClientResponseCommand(clientResponse utils.Message, originalInfo utils.NetworkResponseInfo, command utils.Command) bool {
 	if clientResponse.PlayerNickname != originalInfo.PlayerNickname {
 		return false
 	}
@@ -152,60 +161,591 @@ func isClientResponseSuccess(clientResponse utils.Message, originalInfo utils.Ne
 		return false
 	}
 
-	if clientResponse.CommandID != cCommands.ResponseServerSuccess.CommandID {
+	if clientResponse.CommandID != command.CommandID {
 		return false
 	}
 
 	return true
 }
 
-//endregion
+func sendUpdateList(player *utils.Player, command utils.Command, params []utils.Params) error {
 
-//region SEND RESPONSE FUNCTIONS
-
-func SendResponseSuccess(responseInfo utils.NetworkResponseInfo) error {
-	//convert to message
-	message := utils.CreateResponseMessage(responseInfo, cCommands.ResponseServerSuccess.CommandID, utils.CNetoworkEmptyParams)
-
-	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
+	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
 	if err != nil {
-		return fmt.Errorf("error writing %s", err)
+		return fmt.Errorf("error checking if can fire %w", err)
+	}
+	if !canFire {
+		return nil
+	}
+
+	connection := player.GetConnectionInfo().Connection
+	responseInfo := utils.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	err = sendResponse(responseInfo, command, params)
+	if err != nil {
+		return fmt.Errorf("error sending response %w", err)
+	}
+
+	//wait for client response
+	timeout := cTimeout
+	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
+	if err != nil {
+		return fmt.Errorf("error reading %w", err)
+	}
+	if isTimeout {
+		err := handleTimeout(player)
+		if err != nil {
+			return fmt.Errorf("error handling timeout %w", err)
+		}
+		return nil
+	}
+
+	//check if client responded with success
+	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
+		err := RemovePlayerFromGame(player)
+		if err != nil {
+			return fmt.Errorf("error removing player from lists %w", err)
+		}
+
+		err = connection.Close()
+		if err != nil {
+			return fmt.Errorf("error closing connection %w", err)
+		}
+		return nil
+	}
+
+	err = player.FireStateMachine(command.Trigger)
+	if err != nil {
+		return fmt.Errorf("error firing state machine %w", err)
 	}
 
 	return nil
 }
 
-func SendResponseDuplicitNickname(responseInfo utils.NetworkResponseInfo) error {
+func handleTimeout(player *utils.Player) error {
+	commandError := utils.CGCommands.ErrorPlayerUnreachable
+	err := player.FireStateMachine(commandError.Trigger)
+	if err != nil {
+		return fmt.Errorf("error firing state machine %w", err)
+	}
+
+	player.SetConnected(false)
+
+	return nil
+}
+
+//endregion
+
+//region SEND RESPONSE FUNCTIONS
+
+func SendResponseServerSuccess(responseInfo utils.NetworkResponseInfo) error {
 	//convert to message
-	message := utils.CreateResponseMessage(responseInfo, cCommands.ResponseServerErrDuplicitNickname.CommandID, utils.CNetoworkEmptyParams)
+	message := utils.CreateResponseMessage(responseInfo, utils.CGCommands.ResponseServerSuccess.CommandID, utils.CGNetworkEmptyParams)
 
 	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
 	if err != nil {
-		return fmt.Errorf("error writing %s", err)
+		return fmt.Errorf("error writing %w", err)
+	}
+
+	return nil
+}
+
+func CommunicationResponseServerErrDuplicitNickname(responseInfo utils.NetworkResponseInfo) error {
+	//convert to message
+	message := utils.CreateResponseMessage(responseInfo, utils.CGCommands.ResponseServerErrDuplicitNickname.CommandID, utils.CGNetworkEmptyParams)
+
+	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
+	if err != nil {
+		return fmt.Errorf("error writing %w", err)
 	}
 
 	//wait for client response
 	connection := responseInfo.ConnectionInfo.Connection
 	timeout := cTimeout
-	clientResponse, err := connectionReadTimeout(connection, timeout)
+	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
 	if err != nil {
+		return fmt.Errorf("error reading %w", err)
+	}
+	if isTimeout {
 		//if client doesnt respond
 		err := connection.Close()
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("error reading %s", err)
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("error reading %w", err)
 	}
 
 	//check if client responded with success
-	if !isClientResponseSuccess(clientResponse, responseInfo) {
+	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
 		err := connection.Close()
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("client didnt respond with same nickname")
+		return nil
 	}
 
+	err = connection.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func SendResponseServerError(responseInfo utils.NetworkResponseInfo, paramsValues error) error {
+	command := utils.CGCommands.ResponseServerError
+
+	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValues.Error()})
+	if err != nil {
+		return err
+	}
+	connection := responseInfo.ConnectionInfo.Connection
+
+	//convert to message
+	message := utils.CreateResponseMessage(responseInfo, command.CommandID, params)
+
+	paramsValues = connectionWrite(connection, message)
+	if paramsValues != nil {
+		return fmt.Errorf("error writing %w", paramsValues)
+	}
+
+	//disconnect player
+	err = connection.Close()
+	if err != nil {
+		return fmt.Errorf("error closing connection %w", err)
+	}
+
+	return nil
+}
+func CommunicationResponseServerGameList(responseInfo utils.NetworkResponseInfo, paramsValues []*utils.Game) (bool, error) {
+	command := utils.CGCommands.ResponseServerGameList
+
+	value := ConvertGameListToNetworkString(paramsValues)
+
+	params, err := utils.CreateParams(command.ParamsNames, []string{value})
+	if err != nil {
+		return false, fmt.Errorf("error creating params %w", err)
+	}
+	connection := responseInfo.ConnectionInfo.Connection
+
+	//convert to message
+	message := utils.CreateResponseMessage(responseInfo, command.CommandID, params)
+
+	err = connectionWrite(connection, message)
+	if err != nil {
+		return false, fmt.Errorf("error writing %w", err)
+	}
+
+	//wait for client response
+	timeout := cTimeout
+	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
+	if err != nil {
+		return false, fmt.Errorf("error reading %w", err)
+	}
+	if isTimeout {
+		//if client doesnt respond
+		err := connection.Close()
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("error reading %w", err)
+	}
+
+	//check if client responded with success
+	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
+		err := connection.Close()
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// CommunicationServerReconnectGameList
+func CommunicationServerReconnectGameList(player *utils.Player, paramsValues []*utils.Game) (bool, error) {
+	command := utils.CGCommands.ServerReconnectGameList
+
+	value := ConvertGameListToNetworkString(paramsValues)
+
+	params, err := utils.CreateParams(command.ParamsNames, []string{value})
+	if err != nil {
+		return false, fmt.Errorf("error creating params %w", err)
+	}
+
+	isSuccess, err := sendMessageWithSuccessResponse(player, command, params)
+	if err != nil {
+		return false, fmt.Errorf("error sending ping player %w", err)
+	}
+
+	return isSuccess, err
+}
+
+// CommunicationServerReconnectGameData
+func CommunicationServerReconnectGameData(player *utils.Player, paramsValues utils.GameData) (bool, error) {
+	command := utils.CGCommands.ServerReconnectGameData
+
+	value := ConvertGameDataToNetworkString(paramsValues)
+
+	params, err := utils.CreateParams(command.ParamsNames, []string{value})
+	if err != nil {
+		return false, fmt.Errorf("error creating params %w", err)
+	}
+
+	isSuccess, err := sendMessageWithSuccessResponse(player, command, params)
+	if err != nil {
+		return false, fmt.Errorf("error sending ping player %w", err)
+	}
+
+	return isSuccess, err
+}
+
+// CommunicationServerReconnectPlayerList
+func CommunicationServerReconnectPlayerList(player *utils.Player, paramsValues []*utils.Player) (bool, error) {
+	command := utils.CGCommands.ServerReconnectPlayerList
+
+	value := ConvertPlayerListToNetworkString(paramsValues)
+
+	params, err := utils.CreateParams(command.ParamsNames, []string{value})
+	if err != nil {
+		return false, fmt.Errorf("error creating params %w", err)
+	}
+
+	isSuccess, err := sendMessageWithSuccessResponse(player, command, params)
+	if err != nil {
+		return false, fmt.Errorf("error sending ping player %w", err)
+	}
+
+	return isSuccess, err
+}
+
+func CommunicationServerUpdateGameList(playerList []*utils.Player, paramsValues []*utils.Game) error {
+	command := utils.CGCommands.ServerUpdateGameList
+	paramsValue := ConvertGameListToNetworkString(paramsValues)
+	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValue})
+	if err != nil {
+		return err
+	}
+
+	for _, player := range playerList {
+		err := sendUpdateList(player, command, params)
+		if err != nil {
+			return fmt.Errorf("error sending update list %w", err)
+		}
+	}
+
+	return nil
+
+}
+
+func CommunicationServerUpdatePlayerList(playerList []*utils.Player) error {
+	command := utils.CGCommands.ServerUpdatePlayerList
+
+	paramsValue := ConvertPlayerListToNetworkString(playerList)
+	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValue})
+	if err != nil {
+		return err
+	}
+
+	for _, player := range playerList {
+		err := sendUpdateList(player, command, params)
+		if err != nil {
+			return fmt.Errorf("error sending update list %w", err)
+		}
+	}
+
+	return nil
+}
+
+func CommunicationServerUpdateStartGame(playerList []*utils.Player) error {
+	command := utils.CGCommands.ServerUpdateStartGame
+	params := utils.CGNetworkEmptyParams
+
+	for _, player := range playerList {
+		err := sendUpdateList(player, command, params)
+		if err != nil {
+			return fmt.Errorf("error sending update list %w", err)
+		}
+	}
+
+	return nil
+}
+
+func CommunicationServerUpdateGameData(gameData utils.GameData, playerList []*utils.Player) error {
+	command := utils.CGCommands.ServerUpdateGameData
+	paramsValue := ConvertGameDataToNetworkString(gameData)
+	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValue})
+	if err != nil {
+		return err
+	}
+
+	for _, player := range playerList {
+		err := sendUpdateList(player, command, params)
+		if err != nil {
+			return fmt.Errorf("error sending update list %w", err)
+		}
+	}
+
+	return nil
+}
+
+// CommunicationServerUpdateGameData
+func CommunicationServerStartTurn(player *utils.Player) (bool, error) {
+	command := utils.CGCommands.ServerStartTurn
+
+	isSuccess, err := sendMessageWithSuccessResponse(player, command, utils.CGNetworkEmptyParams)
+	if err != nil {
+		return isSuccess, fmt.Errorf("error sending ping player %w", err)
+	}
+	return isSuccess, err
+}
+
+// CommunicationReadClientRollDice
+// Return: bool isSuccess - if communication was successful
+
+func CommunicationServerPingPlayer(player *utils.Player) (bool, error) {
+	command := utils.CGCommands.ServerPingPlayer
+
+	isSuccess, err := sendMessageWithSuccessResponse(player, command, utils.CGNetworkEmptyParams)
+	if err != nil {
+		return isSuccess, fmt.Errorf("error sending ping player %w", err)
+	}
+	return isSuccess, err
+}
+
+func SendResponseServerDiceNext(values []int, player *utils.Player, message utils.Message) error {
+	command := utils.CGCommands.ResponseServerDiceNext
+
+	err := sendResponseServerDice(command, values, player, message)
+	if err != nil {
+		return fmt.Errorf("error sending response %w", err)
+	}
+	return nil
+}
+
+func SendResponseServerDiceEndTurn(values []int, player *utils.Player, message utils.Message) error {
+	command := utils.CGCommands.ResponseServerDiceEndTurn
+
+	err := sendResponseServerDice(command, values, player, message)
+	if err != nil {
+		return fmt.Errorf("error sending response %w", err)
+	}
+	return nil
+}
+
+func CommunicationReadClientRollDice(player *utils.Player) (utils.Message, bool, error) {
+	command := utils.CGCommands.ClientRollDice
+
+	connection := player.GetConnectionInfo().Connection
+
+	clientResponse, message, err := communicationRead(player, connection)
+	if err != nil {
+		return message, false, fmt.Errorf("error reading %w", err)
+	}
+
+	//check if client send ClientRollDice
+	if clientResponse.CommandID != command.CommandID {
+		err := RemovePlayerFromGame(player)
+		if err != nil {
+			return utils.Message{}, false, fmt.Errorf("error removing player from lists %w", err)
+		}
+
+		err = connection.Close()
+		if err != nil {
+			return utils.Message{}, false, fmt.Errorf("error closing connection %w", err)
+		}
+		return utils.Message{}, false, nil
+	}
+
+	return clientResponse, true, nil
+}
+
+func CommunicationReadClient(player *utils.Player) (utils.Message, bool, error) {
+
+	connection := player.GetConnectionInfo().Connection
+
+	clientResponse, message, err := communicationRead(player, connection)
+	if err != nil {
+		return message, false, fmt.Errorf("error reading %w", err)
+	}
+
+	clientEndTurn := utils.CGCommands.ClientEndTurn.CommandID
+	clientNextDice := utils.CGCommands.ClientNextDice.CommandID
+
+	//check if client send ClientRollDice
+	if clientResponse.CommandID != clientEndTurn && clientResponse.CommandID != clientNextDice {
+		err := RemovePlayerFromGame(player)
+		if err != nil {
+			return utils.Message{}, false, fmt.Errorf("error removing player from lists %w", err)
+		}
+
+		err = connection.Close()
+		if err != nil {
+			return utils.Message{}, false, fmt.Errorf("error closing connection %w", err)
+		}
+		return utils.Message{}, false, nil
+	}
+
+	return clientResponse, true, nil
+}
+
+func communicationRead(player *utils.Player, connection net.Conn) (utils.Message, utils.Message, error) {
+	timeout := cTimeout
+
+	var clientResponse utils.Message
+	var isTimeout bool
+	var err error
+	doesRespond := true
+	for doesRespond {
+		//reading clientRollDice
+		clientResponse, isTimeout, err = connectionReadTimeout(connection, timeout)
+		if err != nil {
+			return utils.Message{}, utils.Message{}, fmt.Errorf("error reading %w", err)
+		}
+		if isTimeout {
+			isSuccess, err := CommunicationServerPingPlayer(player)
+			if err != nil {
+				return utils.Message{}, utils.Message{}, fmt.Errorf("error sending ping player %w", err)
+			}
+			if !isSuccess {
+				doesRespond = false
+				break
+			}
+		}
+	}
+	return clientResponse, utils.Message{}, nil
+}
+
+// SendResponseServerNextDiceEndScore
+func SendResponseServerNextDiceEndScore(player *utils.Player) error {
+	command := utils.CGCommands.ResponseServerNextDiceEndScore
+
+	responseInfo := utils.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	err := sendResponse(responseInfo, command, utils.CGNetworkEmptyParams)
+	if err != nil {
+		return fmt.Errorf("error sending response %w", err)
+	}
+
+	return nil
+}
+
+// SendResponseServerNextDiceSuccess
+func SendResponseServerNextDiceSuccess(player *utils.Player) error {
+	command := utils.CGCommands.ResponseServerNextDiceSuccess
+
+	responseInfo := utils.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	err := sendResponse(responseInfo, command, utils.CGNetworkEmptyParams)
+	if err != nil {
+		return fmt.Errorf("error sending response %w", err)
+	}
+
+	return nil
+}
+
+func sendResponseServerDice(command utils.Command, values []int, player *utils.Player, message utils.Message) error {
+	paramsValue := ConvertCubeValuesToNetworkString(values)
+	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValue})
+	if err != nil {
+		return err
+	}
+	responseInfo := utils.NetworkResponseInfo{
+		ConnectionInfo: utils.ConnectionInfo{
+			Connection: player.GetConnectionInfo().Connection,
+			TimeStamp:  message.TimeStamp,
+		},
+		PlayerNickname: message.PlayerNickname,
+	}
+
+	err = sendResponse(responseInfo, command, params)
+	if err != nil {
+		return fmt.Errorf("error sending response %w", err)
+	}
+
+	return nil
+}
+
+func sendResponse(responseInfo utils.NetworkResponseInfo, command utils.Command, params []utils.Params) error { //todo refactor where used
+	connection := responseInfo.ConnectionInfo.Connection
+
+	//convert to message
+	message := utils.CreateResponseMessage(responseInfo, command.CommandID, params)
+
+	err := connectionWrite(connection, message)
+	if err != nil {
+		return fmt.Errorf("error writing %w", err)
+	}
+	return nil
+}
+
+// sendMessageWithSuccessResponse
+// Return: bool isSuccess - if communication was successful
+func sendMessageWithSuccessResponse(player *utils.Player, command utils.Command, params []utils.Params) (bool, error) {
+	responseInfo := utils.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	err := sendResponse(responseInfo, command, params)
+	if err != nil {
+		return false, fmt.Errorf("error sending response %w", err)
+	}
+
+	connection := responseInfo.ConnectionInfo.Connection
+
+	//wait for client response
+	timeout := cTimeout
+	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
+	if err != nil {
+		return false, fmt.Errorf("error reading %w", err)
+	}
+	if isTimeout {
+		err = handleTimeout(player)
+		if err != nil {
+			return false, fmt.Errorf("error handling timeout %w", err)
+		}
+		return false, nil
+	}
+
+	//check if client responded with success
+	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
+		err := RemovePlayerFromGame(player)
+		if err != nil {
+			return false, fmt.Errorf("error removing player from lists %w", err)
+		}
+
+		err = connection.Close()
+		if err != nil {
+			return false, fmt.Errorf("error closing connection %w", err)
+		}
+
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func handlePlayerTimeOut(connection net.Conn) error {
+	err := connection.Close()
+	if err != nil {
+		return fmt.Errorf("error closing connection %w", err)
+	}
 	return nil
 }
 

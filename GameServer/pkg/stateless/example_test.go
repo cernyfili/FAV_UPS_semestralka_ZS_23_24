@@ -81,7 +81,7 @@ func Example() {
 	phoneCall.Fire(triggerSetVolume, 11)
 	phoneCall.Fire(triggerPlacedOnHold)
 	phoneCall.Fire(triggerPhoneHurledAgainstWall)
-	fmt.Printf("State is %v\n", phoneCall.MustState())
+	fmt.Printf("Trigger is %v\n", phoneCall.MustState())
 
 	// Output:
 	// [Phone Call] placed for : [qmuntal]
@@ -91,7 +91,7 @@ func Example() {
 	// Microphone unmuted!
 	// Volume set to 11!
 	// [Timer:] Call ended at 11:30am
-	// State is PhoneDestroyed
+	// Trigger is PhoneDestroyed
 
 }
 

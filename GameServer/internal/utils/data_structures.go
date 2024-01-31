@@ -1,21 +1,13 @@
 package utils
 
 import (
+	"fmt"
 	"net"
 )
 
-type PlayerState int
-
-/*const (
-	Running PlayerState = iota
-	Created
-	Ended
-)*/
-
-// Turn represents a player's turn with their ID and score.
-type Turn struct {
-	PlayerID int
-	Score    int
+type Params struct {
+	Name  string
+	Value string
 }
 
 type ConnectionInfo struct {
@@ -28,15 +20,7 @@ type NetworkResponseInfo struct {
 	PlayerNickname string
 }
 
-// Player represents a player with a unique ID and nickname.
-type Player struct {
-	Nickname       string
-	Game           *Game
-	IsConnected    bool
-	ConnectionInfo ConnectionInfo
-}
-
-type MessageHeader struct { //todo add timestemp for error when client doesnt get response
+type MessageHeader struct {
 	Signature      [6]byte
 	CommandID      byte
 	TimeStamp      [32]byte
@@ -48,10 +32,10 @@ type Message struct {
 	CommandID      int
 	TimeStamp      string
 	PlayerNickname string
-	Parameters     string
+	Parameters     []Params
 }
 
-func CreateResponseMessage(responseInfo NetworkResponseInfo, commandID int, params string) Message {
+func CreateResponseMessage(responseInfo NetworkResponseInfo, commandID int, params []Params) Message {
 	return Message{
 		Signature:      CMessageSignature,
 		CommandID:      commandID,
@@ -59,4 +43,21 @@ func CreateResponseMessage(responseInfo NetworkResponseInfo, commandID int, para
 		PlayerNickname: responseInfo.PlayerNickname,
 		Parameters:     params,
 	}
+}
+
+func CreateParams(names []string, values []string) ([]Params, error) {
+	var params []Params
+	if len(names) != len(values) {
+		return params, fmt.Errorf("error creating params")
+	}
+
+	for i := 0; i < len(names); i++ {
+		param := Params{
+			Name:  names[i],
+			Value: values[i],
+		}
+		params = append(params, param)
+	}
+
+	return params, nil
 }

@@ -57,6 +57,20 @@ func (gm *List) GetItem(key interface{}) (interface{}, error) {
 	return gm.data[key], nil
 }
 
+// RemoveItem removes an item from the list
+func (gm *List) RemoveItem(key interface{}) error {
+	// Check if the key exists
+	if _, ok := gm.data[key]; !ok {
+		return fmt.Errorf("key does not exist")
+	}
+
+	// Remove the item from the map
+	delete(gm.data, key)
+	gm.Count--
+
+	return nil
+}
+
 func (gm *List) HasValue(value interface{}) bool {
 	for _, v := range gm.data {
 		if v == value {
@@ -64,4 +78,13 @@ func (gm *List) HasValue(value interface{}) bool {
 		}
 	}
 	return false
+}
+
+// GetValuesArray returns an array of all the values in the list
+func (gm *List) GetValuesArray() []interface{} {
+	var values []interface{}
+	for _, v := range gm.data {
+		values = append(values, v)
+	}
+	return values
 }

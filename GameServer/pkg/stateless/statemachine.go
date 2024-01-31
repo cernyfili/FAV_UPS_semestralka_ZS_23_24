@@ -288,7 +288,7 @@ func (sm *StateMachine) String() string {
 
 	// PermittedTriggers only returns an error if state accessor returns one, and it has already been checked.
 	triggers, _ := sm.PermittedTriggers()
-	return fmt.Sprintf("StateMachine {{ State = %v, PermittedTriggers = %v }}", state, triggers)
+	return fmt.Sprintf("stateMachine {{ Trigger = %v, PermittedTriggers = %v }}", state, triggers)
 }
 
 func (sm *StateMachine) setState(ctx context.Context, state State) error {

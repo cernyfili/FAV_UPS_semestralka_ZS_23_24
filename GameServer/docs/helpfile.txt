@@ -1,30 +1,6 @@
- ClientCreateGame Command
- ClientJoinGame Command
- ClientLogin Command
- ClientLogout Command
- ClientRollDice Command
- ClientStartGame Command
- 
- ErrorPlayerUnreachable Command
- 
- ResponseClientEndTurn Command
- ResponseClientNextDice Command
- 
- ResponseServerDiceEndScore Command
- ResponseServerDiceEndTurn Command
- ResponseServerDiceNext Command
- 
- ServerPingPlayer Command
- 
- ServerPlayerEndScore Command
- ServerPlayerStartGame Command
- 
- ServerReconnectGameData Command
- ServerReconnectGameList Command
- ServerReconnectPlayerList Command
- 
- ServerStartTurn Command
- 
- ServerUpdateGameData Command
- ServerUpdateGameList Command
- ServerUpdatePlayerList Command
+CCommands.ClientLogin.CommandID: 
+CCommands.ClientCreateGame.CommandID: 
+CCommands.ClientJoinGame.CommandID: 
+CCommands.ClientStartGame.CommandID: 
+CCommands.ClientRollDice.CommandID: 
+CCommands.ClientLogout.CommandID: 

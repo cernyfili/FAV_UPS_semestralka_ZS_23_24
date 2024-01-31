@@ -1497,17 +1497,17 @@ func TestStateMachine_String(t *testing.T) {
 		sm   *StateMachine
 		want string
 	}{
-		{"noTriggers", NewStateMachine(stateA), "StateMachine {{ State = A, PermittedTriggers = [] }}"},
+		{"noTriggers", NewStateMachine(stateA), "stateMachine {{ Trigger = A, PermittedTriggers = [] }}"},
 		{"error state", NewStateMachineWithExternalStorage(func(_ context.Context) (State, error) {
 			return nil, errors.New("status error")
 		}, func(_ context.Context, s State) error { return nil }, FiringImmediate), ""},
 		{"triggers", NewStateMachine(stateB).Configure(stateB).Permit(triggerX, stateA).Machine(),
-			"StateMachine {{ State = B, PermittedTriggers = [X] }}"},
+			"stateMachine {{ Trigger = B, PermittedTriggers = [X] }}"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.sm.String(); got != tt.want {
-				t.Errorf("StateMachine.String() = %v, want %v", got, tt.want)
+				t.Errorf("stateMachine.String() = %v, want %v", got, tt.want)
 			}
 		})
 	}
