@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"gameserver/internal/utils/errorHandeling"
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -28,6 +29,7 @@ func InitLogger(config LoggerConfig) error {
 	// Set log level
 	level, err := logrus.ParseLevel(config.LogLevel)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	Log.SetLevel(level)
@@ -61,6 +63,7 @@ func InitLogger(config LoggerConfig) error {
 	if config.LogToFile && config.FilePath != "" {
 		file, err := os.OpenFile(config.FilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return err
 		}
 

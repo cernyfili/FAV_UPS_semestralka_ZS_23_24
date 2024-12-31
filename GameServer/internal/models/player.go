@@ -1,6 +1,8 @@
 package models
 
 import (
+	"gameserver/internal/logger"
+	"gameserver/internal/utils/errorHandeling"
 	"gameserver/pkg/stateless"
 	"sync"
 )
@@ -103,10 +105,15 @@ func (p *Player) FireStateMachine(state stateless.State) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
+	beforeState := p.stateMachine.MustState()
+
 	err := p.stateMachine.Fire(state)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
+
+	logger.Log.Infof("Player %s changed state from %s to %s", p.GetNickname(), beforeState, state)
 	return nil
 }
 

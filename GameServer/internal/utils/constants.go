@@ -6,10 +6,12 @@ import (
 
 // region CONSTANTS
 const (
-	CMessageSignature string = "KIVUPS"
+	CMessageSignature    string = "KIVUPS"
+	CMessageEndDelimiter        = '\n'
+	CMaxMessageSize      int    = 1024
 )
 
-const LogFilePath string = "logs/app.log"
+const CLogFilePath string = "logs/app.log"
 
 var (
 	CGScoreCubeValues = []ScoreCube{

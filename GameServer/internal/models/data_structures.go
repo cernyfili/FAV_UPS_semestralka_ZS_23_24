@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gameserver/internal/utils"
 	"net"
+	"strings"
 )
 
 type ConnectionInfo struct {
@@ -17,9 +18,9 @@ type NetworkResponseInfo struct {
 }
 
 type MessageHeader struct {
-	Signature      [6]byte
+	Signature      [len(utils.CMessageSignature)]byte
 	CommandID      [2]byte
-	TimeStamp      [32]byte
+	TimeStamp      [20]byte
 	PlayerNickname string // {karel_1}
 }
 
@@ -59,6 +60,15 @@ func CreateParams(names []string, values []string) ([]utils.Params, error) {
 	}
 
 	return params, nil
+}
+
+func (m *Message) String() string {
+	paramsStringList := make([]string, 0)
+	for _, param := range m.Parameters {
+		paramsStringList = append(paramsStringList, param.Name+": "+param.Value)
+	}
+	return fmt.Sprintf("Signature: %s\nCommandID: %d\nTimeStamp: %s\nPlayerNickname: %s\nParameters: %s",
+		m.Signature, m.CommandID, m.TimeStamp, m.PlayerNickname, strings.Join(paramsStringList, ", "))
 }
 
 //endregion

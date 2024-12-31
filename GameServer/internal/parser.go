@@ -2,20 +2,22 @@ package internal
 
 import (
 	"fmt"
+	"gameserver/internal/logger"
 	"gameserver/internal/models"
 	"gameserver/internal/utils"
+	"gameserver/internal/utils/errorHandeling"
 	"strconv"
 	"strings"
 	"unsafe"
 ) //todo predelat bez pouziti regex
 
 // region CONSTANTS
-var gRegexPatterns = map[string]string{
+/*var gRegexPatterns = map[string]string{
 	"parseGameIDPlayerID":  `^\{"gameID":"(\d+)","playerID":"(\d+)"\}$`,
 	"parsePlayerLoginArgs": `^\{"nickname":"([A-Za-z0-9_\\-]+)"\}$`,
 	"parseCreateGameArgs":  `^\{"name":"([A-Za-z0-9_\\-]+)","maxPlayers":"(\d+)"\}$`,
 	"parsePlayerID":        `^\{"playerID":"(\d+)"\}$`,
-}
+}*/
 
 //endregion
 
@@ -37,6 +39,13 @@ var (
 
 // region FUNCTIONS PARSE
 func ParseMessage(input string) (models.Message, error) {
+	logger.Log.Debug("Parsing message: %v", input)
+
+	//remove end delimiter
+	if len(input) > 0 && input[len(input)-1] == utils.CMessageEndDelimiter {
+		input = input[:len(input)-1]
+	}
+
 	messageData := models.MessageHeader{}
 	signatureSize := int(unsafe.Sizeof(messageData.Signature))
 	commandIDSize := int(unsafe.Sizeof(messageData.CommandID))
@@ -52,37 +61,36 @@ func ParseMessage(input string) (models.Message, error) {
 	//Read Signature
 	signature := input[start : start+signatureSize]
 	start += signatureSize
-	start++
 
 	//Read Command ID
 	commandID := input[start : start+commandIDSize]
 	start += commandIDSize
-	start++
 
 	//Read TimeStemp
 	timeStamp := input[start : start+timeStempSize]
 	start += timeStempSize
-	start++
 
 	//Read nickname
 	playerNickname, playerNicknameSize, err := parseMessagePlayerID(input[start:])
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return models.Message{}, fmt.Errorf("error parsing player ID: %v", err)
 	}
 	start += playerNicknameSize
-	start++
 
 	//Read Parameters
 	parametersStr := input[start:]
 
 	params, err := parseParamsStr(parametersStr)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return models.Message{}, fmt.Errorf("error parsing params: %v", err)
 	}
 
 	//convert values
 	commandIDint, err := strconv.ParseUint(commandID, 10, commandIDSize)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return models.Message{}, fmt.Errorf("error parsing command ID: %v", err)
 	}
 
@@ -143,6 +151,7 @@ func parseParamsStr(paramsString string) ([]utils.Params, error) {
 	for _, paramStr := range paramsStr {
 		parameter, err := parseParam(paramStr)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return paramArray, fmt.Errorf("invalid paramArray format")
 		}
 		paramArray = append(paramArray, parameter)
@@ -199,6 +208,7 @@ func parseMessagePlayerID(input string) (string, int, error) {
 
 	playerNickname, err := extractSubstring(input, opening, closing)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return playerNickname, playerNicknameSize, fmt.Errorf("invalid player ID format")
 	}
 
@@ -263,6 +273,7 @@ func ConvertMessageToNetworkString(message models.Message) (string, error) {
 	//Parameters
 	paramsStr, err := convertParamsToNetworkString(message.Parameters)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return networkString, err
 	}
 	networkString += paramsStr

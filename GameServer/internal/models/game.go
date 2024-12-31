@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"gameserver/internal/utils"
+	"gameserver/internal/utils/errorHandeling"
 	"math/rand"
 	"sync"
 )
@@ -236,6 +237,7 @@ func (g *Game) GetGameData() (GameData, error) {
 	gameData.PlayerGameDataArr = g.playersGameDataArr
 	turnPlayer, err := g.NextTurn()
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return GameData{}, err
 	}
 
@@ -250,6 +252,7 @@ func (g *Game) GetScoreIncrease(cubeIndexes []int, player *Player) (int, error) 
 
 	cubeValues, err := g.getLastThrowCubeValues(player)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return 0, fmt.Errorf("failed to get last throw")
 	}
 
@@ -290,6 +293,7 @@ func (g *Game) GetPlayerScore(player *Player) (int, error) {
 
 	playerGameData, err := g.getPlayerGameData(player)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return 0, fmt.Errorf("player not found")
 	}
 
@@ -326,6 +330,7 @@ func (g *Game) getLastThrowCubeValues(player *Player) ([]int, error) {
 
 	playerGameData, err := g.getPlayerGameData(player)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, fmt.Errorf("player not found")
 	}
 
@@ -360,6 +365,7 @@ func (g *Game) NewThrow(player *Player) ([]int, error) {
 
 	turnPlayer, err := g.getTurnPlayer()
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, fmt.Errorf("not your turn")
 	}
 	if player != turnPlayer {
@@ -368,6 +374,7 @@ func (g *Game) NewThrow(player *Player) ([]int, error) {
 
 	turnPlayerGameData, err := g.getPlayerGameData(turnPlayer)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, fmt.Errorf("player not found")
 	}
 
@@ -383,6 +390,7 @@ func (g *Game) NewThrow(player *Player) ([]int, error) {
 
 	cubeValues, err := g.addThrow(turnPlayer, cubeCount)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, fmt.Errorf("failed to add throw")
 	}
 
@@ -393,6 +401,7 @@ func (g *Game) addThrow(player *Player, count int) ([]int, error) {
 
 	turnPlayerGameData, err := g.getPlayerGameData(player)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, fmt.Errorf("player not found")
 	}
 
@@ -427,6 +436,7 @@ func (g *Game) SetPlayerScore(player *Player, score int) error {
 
 	playerGameData, err := g.getPlayerGameData(player)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("player not found")
 	}
 

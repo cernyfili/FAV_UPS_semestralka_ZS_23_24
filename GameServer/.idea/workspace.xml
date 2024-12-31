@@ -4,27 +4,38 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="done development&#10;before testing">
-      <change afterPath="$PROJECT_DIR$/internal/logger/logger.go" afterDir="false" />
+    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="small changes">
+      <change afterPath="$PROJECT_DIR$/../GameClient/scripts/basic_connection_test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/utils/errorHandeling/utils.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/error.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/error_handeling.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/.idea/GameClient.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/.idea/GameClient.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/GUI.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/GUI.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/GUI.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/GUI.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/command_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/command_parser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/constants.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/network.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/network.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/parser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/state_machine.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/state_machine.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/gameserver/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/gameserver/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/Links.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/server_stavy.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/server_stavy.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/command_parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/logger/logger.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logger/logger.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/data_structures.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/data_structures.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/game_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game_list.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/message_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/message_list.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/player.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/player.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/player_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/player_list.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/parser.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/utils/constants.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/constants.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/data_structures.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/data_structures.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/game_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/list_structure.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/list_structure.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/message_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/message_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/player.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/player.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/player_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/player_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/state_machine.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/state_machine.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/stateless/graph_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/stateless/graph_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/stateless/modes.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/stateless/modes.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/stateless/statemachine.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/stateless/statemachine.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,14 +65,12 @@
     &quot;assignee&quot;: &quot;cernyfili&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">
-    <option name="selectedUrlAndAccountId">
-      <UrlAndAccount>
-        <option name="accountId" value="3a43e7ba-eaed-4030-ad07-0135b7d59bc5" />
-        <option name="url" value="https://github.com/cernyfili/FAV_UPS_semestralka_ZS_23_24.git" />
-      </UrlAndAccount>
-    </option>
-  </component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/cernyfili/FAV_UPS_semestralka_ZS_23_24.git&quot;,
+    &quot;accountId&quot;: &quot;3251c05d-9c55-41a5-b563-a2efeca7f777&quot;
+  }
+}</component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
@@ -80,31 +89,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
-    &quot;Go Build.go build gameserver/cmd/gameserver.executor&quot;: &quot;Run&quot;,
-    &quot;Notification.DisplayName-DoNotAsk-ai.commits.notification.general&quot;: &quot;AI Commits general&quot;,
-    &quot;Notification.DoNotAsk-ai.commits.notification.general&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.modules.automatic.dependencies.download&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
-    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;G:/Můj disk/00_MAIN/0_škola/FAV/3.rocnik_23_24/FAV_ZS_23_24/UPS/semestralka/FAV_UPS_semestralka_ZS_23_24/GameServer&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultGoTemplateProperty": "Go File",
+    "Go Build.go build gameserver/cmd/gameserver.executor": "Debug",
+    "Go Build.go build gameserver/scripts.executor": "Debug",
+    "Notification.DisplayName-DoNotAsk-ai.commits.notification.general": "AI Commits general",
+    "Notification.DoNotAsk-ai.commits.notification.general": "true",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.go.modules.automatic.dependencies.download": "true",
+    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "master",
+    "go.import.settings.migrated": "true",
+    "go.sdk.automatically.set": "true",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/filda/Documents/_github/FAV_UPS_semestralka_ZS_23_24/GameServer/cmd/gameserver",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="GoMoveDeclarationDialog.RECENT_KEY">
       <recent name="$PROJECT_DIR$/internal/utils" />
@@ -112,20 +122,30 @@
       <recent name="$PROJECT_DIR$/internal/data_structure" />
     </key>
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\filda\Documents\_github\FAV_UPS_semestralka_ZS_23_24\GameServer\cmd\gameserver" />
       <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal\archive" />
       <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer" />
       <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\pkg" />
       <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\filda\Documents\_github\FAV_UPS_semestralka_ZS_23_24\GameServer\internal\utils\error" />
       <recent name="G:\Můj disk\00_MAIN\0_škola\FAV\3.rocnik_23_24\FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal" />
       <recent name="G:\Můj disk\00_MAIN\0_škola\FAV\3.rocnik_23_24\FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal\models" />
       <recent name="G:\Můj disk\00_MAIN\0_škola\FAV\3.rocnik_23_24\FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal\utils\logger" />
       <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal\data_structures" />
-      <recent name="G:\Můj disk\0_MAIN\škola\FAV\3.rocnik_23_24\_FAV_ZS_23_24\UPS\semestralka\FAV_UPS_semestralka_ZS_23_24\GameServer\internal" />
     </key>
   </component>
   <component name="RunManager" selected="Go Build.go build gameserver/cmd/gameserver">
+    <configuration name="go build GameServer error_handeling.go" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
+      <module name="FAV_UPS_semestralka_ZS_23_24" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <package value="gameserver" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/../GameServer|$PROJECT_DIR$/scripts/error_handeling.go" />
+      <method v="2" />
+    </configuration>
     <configuration name="go build gameserver/cmd/gameserver" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="FAV_UPS_semestralka_ZS_23_24" />
       <working_directory value="$PROJECT_DIR$" />
@@ -133,6 +153,15 @@
       <package value="gameserver/cmd/gameserver" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$/cmd/gameserver/main.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build gameserver/scripts" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="FAV_UPS_semestralka_ZS_23_24" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="gameserver/scripts" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/scripts/error_handeling.go" />
       <method v="2" />
     </configuration>
     <configuration name="Example in github.com/qmuntal/stateless" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
@@ -146,9 +175,16 @@
       <pattern value="^\QExample\E$" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Go Build.go build GameServer error_handeling.go" />
+      <item itemvalue="Go Build.go build gameserver/scripts" />
+      <item itemvalue="Go Build.go build gameserver/cmd/gameserver" />
+      <item itemvalue="Go Test.Example in github.com/qmuntal/stateless" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Go Build.go build gameserver/cmd/gameserver" />
+        <item itemvalue="Go Build.go build gameserver/scripts" />
         <item itemvalue="Go Test.Example in github.com/qmuntal/stateless" />
       </list>
     </recent_temporary>
@@ -187,14 +223,23 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
+    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
     <MESSAGE value="new project moving to GOlang" />
     <MESSAGE value="progresss" />
     <MESSAGE value="&#10;command_parser.go - partly done" />
     <MESSAGE value="before statemachine" />
     <MESSAGE value="done development&#10;before testing" />
-    <option name="LAST_COMMIT_MESSAGE" value="done development&#10;before testing" />
+    <MESSAGE value="small changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="small changes" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
+  </component>
+  <component name="XDebuggerManager">
+    <watches-manager>
+      <configuration name="GoApplicationRunConfiguration">
+        <watch expression="gResponseList" />
+      </configuration>
+    </watches-manager>
   </component>
 </project>

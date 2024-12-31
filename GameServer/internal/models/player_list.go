@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"gameserver/internal/utils/errorHandeling"
 	"sync"
 )
 
@@ -31,6 +32,7 @@ func (pl *PlayerList) AddItem(player *Player) error {
 
 	err := pl.list.AddItemKey(key, player)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	return nil
@@ -42,6 +44,7 @@ func (pl *PlayerList) GetItem(key string) (*Player, error) {
 
 	item, err := pl.list.GetItem(key)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, err
 	}
 	player, ok := item.(*Player)
@@ -79,6 +82,7 @@ func (pl *PlayerList) RemoveItem(player *Player) error {
 
 	err := pl.list.RemoveItem(key)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	return nil

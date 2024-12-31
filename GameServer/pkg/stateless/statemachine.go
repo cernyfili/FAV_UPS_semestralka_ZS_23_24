@@ -3,6 +3,7 @@ package stateless
 import (
 	"context"
 	"fmt"
+	"gameserver/internal/utils/errorHandeling"
 	"reflect"
 	"sync"
 )
@@ -139,6 +140,7 @@ func (sm *StateMachine) State(ctx context.Context) (State, error) {
 func (sm *StateMachine) MustState() State {
 	st, err := sm.State(context.Background())
 	if err != nil {
+		errorHandeling.PrintError(err)
 		panic(err)
 	}
 	return st
@@ -153,6 +155,7 @@ func (sm *StateMachine) PermittedTriggers(args ...any) ([]Trigger, error) {
 func (sm *StateMachine) PermittedTriggersCtx(ctx context.Context, args ...any) ([]Trigger, error) {
 	sr, err := sm.currentState(ctx)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, err
 	}
 	return sr.PermittedTriggers(ctx, args...), nil
@@ -169,6 +172,7 @@ func (sm *StateMachine) Activate() error {
 func (sm *StateMachine) ActivateCtx(ctx context.Context) error {
 	sr, err := sm.currentState(ctx)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	return sr.Activate(ctx)
@@ -185,6 +189,7 @@ func (sm *StateMachine) Deactivate() error {
 func (sm *StateMachine) DeactivateCtx(ctx context.Context) error {
 	sr, err := sm.currentState(ctx)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	return sr.Deactivate(ctx)
@@ -200,6 +205,7 @@ func (sm *StateMachine) IsInState(state State) (bool, error) {
 func (sm *StateMachine) IsInStateCtx(ctx context.Context, state State) (bool, error) {
 	sr, err := sm.currentState(ctx)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, err
 	}
 	return sr.IsIncludedInState(state), nil
@@ -214,6 +220,7 @@ func (sm *StateMachine) CanFire(trigger Trigger, args ...any) (bool, error) {
 func (sm *StateMachine) CanFireCtx(ctx context.Context, trigger Trigger, args ...any) (bool, error) {
 	sr, err := sm.currentState(ctx)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, err
 	}
 	return sr.CanHandle(ctx, trigger, args...), nil
@@ -283,6 +290,7 @@ func (sm *StateMachine) Firing() bool {
 func (sm *StateMachine) String() string {
 	state, err := sm.State(context.Background())
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return ""
 	}
 
@@ -298,6 +306,7 @@ func (sm *StateMachine) setState(ctx context.Context, state State) error {
 func (sm *StateMachine) currentState(ctx context.Context) (*stateRepresentation, error) {
 	state, err := sm.State(ctx)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, err
 	}
 	return sm.stateRepresentation(state), nil
@@ -333,6 +342,7 @@ func (sm *StateMachine) internalFireOne(ctx context.Context, trigger Trigger, ar
 	}
 	source, err := sm.State(ctx)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	representativeState := sm.stateRepresentation(source)
@@ -381,6 +391,7 @@ func (sm *StateMachine) handleReentryTrigger(ctx context.Context, sr *stateRepre
 	callEvents(sm.onTransitioningEvents, ctx, transition)
 	rep, err := sm.enterState(ctx, newSr, transition, args...)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	if err := sm.setState(ctx, rep.State); err != nil {
@@ -401,6 +412,7 @@ func (sm *StateMachine) handleTransitioningTrigger(ctx context.Context, sr *stat
 	newSr := sm.stateRepresentation(transition.Destination)
 	rep, err := sm.enterState(ctx, newSr, transition, args...)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	// Check if state has changed by entering new state (by firing triggers in OnEntry or such)
@@ -417,6 +429,7 @@ func (sm *StateMachine) enterState(ctx context.Context, sr *stateRepresentation,
 	// Enter the new state
 	err := sr.Enter(ctx, transition, args...)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, err
 	}
 	// Recursively enter substates that have an initial transition

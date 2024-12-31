@@ -1,10 +1,13 @@
 package internal
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"gameserver/internal/logger"
 	"gameserver/internal/models"
 	"gameserver/internal/utils"
+	"gameserver/internal/utils/errorHandeling"
 	"net"
 	"os"
 	"time"
@@ -18,8 +21,8 @@ const (
 )
 const cTimeout = time.Second
 
-var gMessageList = models.GetInstanceMessageList()
-var gResponseList = models.GetInstanceMessageList()
+var gReceivedMessageList = models.CreateMessageList(models.Received)
+var gSendMessageList = models.CreateMessageList(models.Send)
 
 //endregion
 
@@ -37,6 +40,7 @@ const (
 func StartServer() {
 	ln, err := net.Listen(connType, connHost+":"+connPort)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		fmt.Println("Error listening:", err)
 		os.Exit(1)
 	}
@@ -46,6 +50,7 @@ func StartServer() {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
+			errorHandeling.PrintError(err)
 			fmt.Println("Error accepting connection:", err)
 			continue
 		}
@@ -56,11 +61,17 @@ func StartServer() {
 // region PRIVATE FUNCTIONS
 func handleConnection(conn net.Conn) {
 
+	logger.Log.Info("New connection from " + conn.RemoteAddr().String())
 	message, err := connectionRead(conn)
 	if err != nil {
+		errorHandeling.PrintError(err)
+
 		fmt.Println("Error reading:", err)
+		//errorHandeling.PrintError("Error reading:", err)
 		err := conn.Close()
 		if err != nil {
+			errorHandeling.PrintError(err)
+			//errorHandeling.PrintError("Error closing:", err)
 			fmt.Println("Error closing:", err)
 			return
 		}
@@ -71,6 +82,7 @@ func handleConnection(conn net.Conn) {
 
 	err = ProcessMessage(message, conn)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		fmt.Println("Error processing message:", err)
 		return
 	}
@@ -83,12 +95,14 @@ func connectionReadTimeout(connection net.Conn, timeout time.Duration) (models.M
 	deadline := time.Now().Add(timeout)
 	err := connection.SetReadDeadline(deadline)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return models.Message{}, isTimeout, fmt.Errorf("error setting read deadline: %w", err)
 	}
 
 	buffer := make([]byte, 1024)
 	_, err = connection.Read(buffer)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		var netErr net.Error
 		if errors.As(err, &netErr) && netErr.Timeout() {
 			isTimeout = true
@@ -99,12 +113,14 @@ func connectionReadTimeout(connection net.Conn, timeout time.Duration) (models.M
 
 	message, err := ParseMessage(messageStr)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return models.Message{}, isTimeout, fmt.Errorf("Error parsing message: %w", err)
 	}
 
 	//Save to logger
-	err = gMessageList.AddItem(message)
+	err = gReceivedMessageList.AddItem(message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return models.Message{}, isTimeout, err
 	}
 
@@ -113,21 +129,38 @@ func connectionReadTimeout(connection net.Conn, timeout time.Duration) (models.M
 
 func connectionRead(connection net.Conn) (models.Message, error) {
 
-	buffer := make([]byte, 1024)
-	_, err := connection.Read(buffer)
-	if err != nil {
-		return models.Message{}, fmt.Errorf("error reading", err)
+	reader := bufio.NewReader(connection)
+	var messageStr string
+
+	for {
+
+		line, err := reader.ReadString(utils.CMessageEndDelimiter)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return models.Message{}, fmt.Errorf("error reading: %w", err)
+		}
+		messageStr += line
+
+		// Check if the message ends with a newline character
+		if len(line) > 0 && line[len(line)-1] == '\n' {
+			break
+		}
+		if len(messageStr) > utils.CMaxMessageSize {
+			return models.Message{}, fmt.Errorf("message is too long")
+		}
 	}
-	messageStr := string(buffer)
+
+	//logger.Log.Info("Received message: " + messageStr)
 
 	message, err := ParseMessage(messageStr)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return models.Message{}, fmt.Errorf("Error parsing message:", err)
 	}
 
-	//Save to logger
-	err = gMessageList.AddItem(message)
+	err = gReceivedMessageList.AddItem(message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return models.Message{}, err
 	}
 
@@ -137,16 +170,19 @@ func connectionRead(connection net.Conn) (models.Message, error) {
 func connectionWrite(connection net.Conn, message models.Message) error {
 	messageStr, err := ConvertMessageToNetworkString(message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 
 	_, err = connection.Write([]byte(messageStr))
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error writing", err)
 	}
 
-	err = gResponseList.AddItem(message)
+	err = gSendMessageList.AddItem(message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 
@@ -173,6 +209,7 @@ func sendUpdateList(player *models.Player, command utils.Command, params []utils
 
 	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error checking if can fire %w", err)
 	}
 	if !canFire {
@@ -187,6 +224,7 @@ func sendUpdateList(player *models.Player, command utils.Command, params []utils
 
 	err = sendResponse(responseInfo, command, params)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error sending response %w", err)
 	}
 
@@ -194,11 +232,13 @@ func sendUpdateList(player *models.Player, command utils.Command, params []utils
 	timeout := cTimeout
 	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error reading %w", err)
 	}
 	if isTimeout {
 		err := handleTimeout(player)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return fmt.Errorf("error handling timeout %w", err)
 		}
 		return nil
@@ -208,11 +248,13 @@ func sendUpdateList(player *models.Player, command utils.Command, params []utils
 	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
 		err := RemovePlayerFromGame(player)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return fmt.Errorf("error removing player from lists %w", err)
 		}
 
 		err = connection.Close()
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return fmt.Errorf("error closing connection %w", err)
 		}
 		return nil
@@ -220,6 +262,7 @@ func sendUpdateList(player *models.Player, command utils.Command, params []utils
 
 	err = player.FireStateMachine(command.Trigger)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error firing state machine %w", err)
 	}
 
@@ -230,6 +273,7 @@ func handleTimeout(player *models.Player) error {
 	commandError := utils.CGCommands.ErrorPlayerUnreachable
 	err := player.FireStateMachine(commandError.Trigger)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error firing state machine %w", err)
 	}
 
@@ -248,6 +292,7 @@ func SendResponseServerSuccess(responseInfo models.NetworkResponseInfo) error {
 
 	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error writing %w", err)
 	}
 
@@ -260,6 +305,7 @@ func SendResponseServerErrDuplicitNickname(responseInfo models.NetworkResponseIn
 
 	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error writing %w", err)
 	}
 
@@ -267,6 +313,7 @@ func SendResponseServerErrDuplicitNickname(responseInfo models.NetworkResponseIn
 
 	err = connection.Close()
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	return nil
@@ -277,6 +324,7 @@ func SendResponseServerError(responseInfo models.NetworkResponseInfo, paramsValu
 
 	params, err := models.CreateParams(command.ParamsNames, []string{paramsValues.Error()})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	connection := responseInfo.ConnectionInfo.Connection
@@ -292,6 +340,7 @@ func SendResponseServerError(responseInfo models.NetworkResponseInfo, paramsValu
 	//disconnect player
 	err = connection.Close()
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error closing connection %w", err)
 	}
 
@@ -304,6 +353,7 @@ func SendResponseServerGameList(responseInfo models.NetworkResponseInfo, paramsV
 
 	params, err := models.CreateParams(command.ParamsNames, []string{value})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error creating params %w", err)
 	}
 	connection := responseInfo.ConnectionInfo.Connection
@@ -313,6 +363,7 @@ func SendResponseServerGameList(responseInfo models.NetworkResponseInfo, paramsV
 
 	err = connectionWrite(connection, message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error writing %w", err)
 	}
 
@@ -327,11 +378,13 @@ func CommunicationServerReconnectGameList(player *models.Player, paramsValues []
 
 	params, err := models.CreateParams(command.ParamsNames, []string{value})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error creating params %w", err)
 	}
 
 	isSuccess, err := sendMessageWithSuccessResponse(player, command, params)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error sending ping player %w", err)
 	}
 
@@ -346,11 +399,13 @@ func CommunicationServerReconnectGameData(player *models.Player, paramsValues mo
 
 	params, err := models.CreateParams(command.ParamsNames, []string{value})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error creating params %w", err)
 	}
 
 	isSuccess, err := sendMessageWithSuccessResponse(player, command, params)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error sending ping player %w", err)
 	}
 
@@ -365,11 +420,13 @@ func CommunicationServerReconnectPlayerList(player *models.Player, paramsValues 
 
 	params, err := models.CreateParams(command.ParamsNames, []string{value})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error creating params %w", err)
 	}
 
 	isSuccess, err := sendMessageWithSuccessResponse(player, command, params)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error sending ping player %w", err)
 	}
 
@@ -381,12 +438,14 @@ func CommunicationServerUpdateGameList(playerList []*models.Player, paramsValues
 	paramsValue := ConvertGameListToNetworkString(paramsValues)
 	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 
 	for _, player := range playerList {
 		err := sendUpdateList(player, command, params)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return fmt.Errorf("error sending update list %w", err)
 		}
 	}
@@ -401,12 +460,14 @@ func CommunicationServerUpdatePlayerList(playerList []*models.Player) error {
 	paramsValue := ConvertPlayerListToNetworkString(playerList)
 	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 
 	for _, player := range playerList {
 		err := sendUpdateList(player, command, params)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return fmt.Errorf("error sending update list %w", err)
 		}
 	}
@@ -421,6 +482,7 @@ func CommunicationServerUpdateStartGame(playerList []*models.Player) error {
 	for _, player := range playerList {
 		err := sendUpdateList(player, command, params)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return fmt.Errorf("error sending update list %w", err)
 		}
 	}
@@ -433,12 +495,14 @@ func CommunicationServerUpdateGameData(gameData models.GameData, playerList []*m
 	paramsValue := ConvertGameDataToNetworkString(gameData)
 	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 
 	for _, player := range playerList {
 		err := sendUpdateList(player, command, params)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return fmt.Errorf("error sending update list %w", err)
 		}
 	}
@@ -452,6 +516,7 @@ func CommunicationServerStartTurn(player *models.Player) (bool, error) {
 
 	isSuccess, err := sendMessageWithSuccessResponse(player, command, utils.CGNetworkEmptyParams)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return isSuccess, fmt.Errorf("error sending ping player %w", err)
 	}
 	return isSuccess, err
@@ -465,6 +530,7 @@ func CommunicationServerPingPlayer(player *models.Player) (bool, error) {
 
 	isSuccess, err := sendMessageWithSuccessResponse(player, command, utils.CGNetworkEmptyParams)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return isSuccess, fmt.Errorf("error sending ping player %w", err)
 	}
 	return isSuccess, err
@@ -475,6 +541,7 @@ func SendResponseServerDiceNext(values []int, player *models.Player, message mod
 
 	err := sendResponseServerDice(command, values, player, message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error sending response %w", err)
 	}
 	return nil
@@ -485,6 +552,7 @@ func SendResponseServerDiceEndTurn(values []int, player *models.Player, message 
 
 	err := sendResponseServerDice(command, values, player, message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error sending response %w", err)
 	}
 	return nil
@@ -497,6 +565,7 @@ func CommunicationReadClientRollDice(player *models.Player) (models.Message, boo
 
 	clientResponse, message, err := communicationRead(player, connection)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return message, false, fmt.Errorf("error reading %w", err)
 	}
 
@@ -504,11 +573,13 @@ func CommunicationReadClientRollDice(player *models.Player) (models.Message, boo
 	if clientResponse.CommandID != command.CommandID {
 		err := RemovePlayerFromGame(player)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return models.Message{}, false, fmt.Errorf("error removing player from lists %w", err)
 		}
 
 		err = connection.Close()
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return models.Message{}, false, fmt.Errorf("error closing connection %w", err)
 		}
 		return models.Message{}, false, nil
@@ -523,6 +594,7 @@ func CommunicationReadClient(player *models.Player) (models.Message, bool, error
 
 	clientResponse, message, err := communicationRead(player, connection)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return message, false, fmt.Errorf("error reading %w", err)
 	}
 
@@ -533,11 +605,13 @@ func CommunicationReadClient(player *models.Player) (models.Message, bool, error
 	if clientResponse.CommandID != clientEndTurn && clientResponse.CommandID != clientNextDice {
 		err := RemovePlayerFromGame(player)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return models.Message{}, false, fmt.Errorf("error removing player from lists %w", err)
 		}
 
 		err = connection.Close()
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return models.Message{}, false, fmt.Errorf("error closing connection %w", err)
 		}
 		return models.Message{}, false, nil
@@ -557,11 +631,13 @@ func communicationRead(player *models.Player, connection net.Conn) (models.Messa
 		//reading clientRollDice
 		clientResponse, isTimeout, err = connectionReadTimeout(connection, timeout)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return models.Message{}, models.Message{}, fmt.Errorf("error reading %w", err)
 		}
 		if isTimeout {
 			isSuccess, err := CommunicationServerPingPlayer(player)
 			if err != nil {
+				errorHandeling.PrintError(err)
 				return models.Message{}, models.Message{}, fmt.Errorf("error sending ping player %w", err)
 			}
 			if !isSuccess {
@@ -584,6 +660,7 @@ func SendResponseServerNextDiceEndScore(player *models.Player) error {
 
 	err := sendResponse(responseInfo, command, utils.CGNetworkEmptyParams)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error sending response %w", err)
 	}
 
@@ -601,6 +678,7 @@ func SendResponseServerNextDiceSuccess(player *models.Player) error {
 
 	err := sendResponse(responseInfo, command, utils.CGNetworkEmptyParams)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error sending response %w", err)
 	}
 
@@ -611,6 +689,7 @@ func sendResponseServerDice(command utils.Command, values []int, player *models.
 	paramsValue := ConvertCubeValuesToNetworkString(values)
 	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	responseInfo := models.NetworkResponseInfo{
@@ -623,6 +702,7 @@ func sendResponseServerDice(command utils.Command, values []int, player *models.
 
 	err = sendResponse(responseInfo, command, params)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error sending response %w", err)
 	}
 
@@ -637,6 +717,7 @@ func sendResponse(responseInfo models.NetworkResponseInfo, command utils.Command
 
 	err := connectionWrite(connection, message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error writing %w", err)
 	}
 	return nil
@@ -652,6 +733,7 @@ func sendMessageWithSuccessResponse(player *models.Player, command utils.Command
 
 	err := sendResponse(responseInfo, command, params)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error sending response %w", err)
 	}
 
@@ -661,11 +743,13 @@ func sendMessageWithSuccessResponse(player *models.Player, command utils.Command
 	timeout := cTimeout
 	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("error reading %w", err)
 	}
 	if isTimeout {
 		err = handleTimeout(player)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("error handling timeout %w", err)
 		}
 		return false, nil
@@ -675,11 +759,13 @@ func sendMessageWithSuccessResponse(player *models.Player, command utils.Command
 	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
 		err := RemovePlayerFromGame(player)
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("error removing player from lists %w", err)
 		}
 
 		err = connection.Close()
 		if err != nil {
+			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("error closing connection %w", err)
 		}
 
@@ -692,6 +778,7 @@ func sendMessageWithSuccessResponse(player *models.Player, command utils.Command
 func handlePlayerTimeOut(connection net.Conn) error {
 	err := connection.Close()
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return fmt.Errorf("error closing connection %w", err)
 	}
 	return nil

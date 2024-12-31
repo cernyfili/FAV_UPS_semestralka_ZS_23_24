@@ -2,34 +2,40 @@ package models
 
 import (
 	"fmt"
-	"sync"
+	"gameserver/internal/logger"
+	"gameserver/internal/utils/errorHandeling"
+)
+
+type MessageType int
+
+// enum which is send or received
+const (
+	Send MessageType = iota
+	Received
 )
 
 type MessageList struct {
-	list *List
+	list     *List
+	typeMess MessageType
 }
 
-var (
-	instanceML *MessageList
-	onceML     sync.Once
-)
-
-func GetInstanceMessageList() *MessageList {
-	onceML.Do(func() {
-		instanceML = &MessageList{
-			list: CreateList(),
-		}
-	})
-	return instanceML
+func CreateMessageList(typeMess MessageType) *MessageList {
+	return &MessageList{
+		list:     CreateList(),
+		typeMess: typeMess,
+	}
 }
 
 func (pl *MessageList) AddItem(message Message) error {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
 
+	logger.Log.Infof("Message type %v -> %s", pl.typeMess, message.String())
+
 	key := message.PlayerNickname + message.TimeStamp
 	err := pl.list.AddItemKey(key, message)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return err
 	}
 	return nil
@@ -42,6 +48,7 @@ func (pl *MessageList) GetItem(nickname string, timestamp string) (Message, erro
 	key := nickname + timestamp
 	item, err := pl.list.GetItem(key)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return Message{}, err
 	}
 	message, ok := item.(Message)

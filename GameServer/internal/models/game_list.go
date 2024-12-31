@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"gameserver/internal/utils/errorHandeling"
 	"sync"
 )
 
@@ -35,6 +36,7 @@ func (gl *GameList) AddItem(game *Game) (int, error) {
 	key, err := gl.list.AddItem(game)
 	gameItem, err := gl.list.GetItem(key)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return -1, err
 	}
 	game = gameItem.(*Game)
@@ -49,6 +51,7 @@ func (gl *GameList) GetItem(key int) (*Game, error) {
 
 	item, err := gl.list.GetItem(key)
 	if err != nil {
+		errorHandeling.PrintError(err)
 		return nil, err
 	}
 	game, ok := item.(*Game)

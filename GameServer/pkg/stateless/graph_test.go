@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"flag"
+	"gameserver/internal/utils/errorHandeling"
 	"os"
 	"reflect"
 	"runtime"
@@ -141,6 +142,7 @@ func TestStateMachine_ToGraph(t *testing.T) {
 				}
 			} else {
 				if err != nil {
+					errorHandeling.PrintError(err)
 					t.Fatal(err)
 				}
 			}
