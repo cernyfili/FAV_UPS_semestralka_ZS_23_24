@@ -1,9 +1,11 @@
-package utils
+package models
 
 import (
 	"gameserver/pkg/stateless"
 	"sync"
 )
+
+//region DATA STRUCTURES
 
 // Player represents a Player with a unique ID and nickname.
 type Player struct {
@@ -15,6 +17,8 @@ type Player struct {
 	mutex          sync.Mutex
 }
 
+//endregion
+
 // CreatePlayer creates a new Player with a unique ID and nickname.
 func CreatePlayer(nickname string, game *Game, isConnected bool, connectionInfo ConnectionInfo) *Player {
 	return &Player{
@@ -25,6 +29,8 @@ func CreatePlayer(nickname string, game *Game, isConnected bool, connectionInfo 
 		stateMachine:   CreateStateMachine(),
 	}
 }
+
+//region GETTERS
 
 // GetStateMachine returns the state machine of the Player
 func (p *Player) GetStateMachine() *stateless.StateMachine {
@@ -50,12 +56,46 @@ func (p *Player) GetConnectionInfo() ConnectionInfo {
 	return p.connectionInfo
 }
 
+func (p *Player) GetGame() *Game {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	return p.game
+}
+
+// IsConnected returns the connection status of the Player
+func (p *Player) IsConnected() bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	return p.isConnected
+}
+
+//endregion
+
+//region SETTERS
+
 // SetConnectionInfo sets the connection info of the Player
 func (p *Player) SetConnectionInfo(connectionInfo ConnectionInfo) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
 	p.connectionInfo = connectionInfo
+}
+
+func (p *Player) SetGame(game *Game) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	p.game = game
+}
+
+// SetConnected sets the connection status of the Player
+func (p *Player) SetConnected(isConnected bool) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	p.isConnected = isConnected
 }
 
 // Fires the state machine
@@ -70,34 +110,4 @@ func (p *Player) FireStateMachine(state stateless.State) error {
 	return nil
 }
 
-func (p *Player) SetGame(game *Game) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	p.game = game
-}
-
-func (p *Player) GetGame() *Game {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	return p.game
-}
-
-// SetConnected sets the connection status of the Player
-func (p *Player) SetConnected(isConnected bool) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	p.isConnected = isConnected
-}
-
-// IsConnected returns the connection status of the Player
-func (p *Player) IsConnected() bool {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	return p.isConnected
-}
-
-//SetCo
+//endregion

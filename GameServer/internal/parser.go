@@ -2,12 +2,14 @@ package internal
 
 import (
 	"fmt"
+	"gameserver/internal/models"
 	"gameserver/internal/utils"
 	"strconv"
 	"strings"
 	"unsafe"
 ) //todo predelat bez pouziti regex
 
+// region CONSTANTS
 var gRegexPatterns = map[string]string{
 	"parseGameIDPlayerID":  `^\{"gameID":"(\d+)","playerID":"(\d+)"\}$`,
 	"parsePlayerLoginArgs": `^\{"nickname":"([A-Za-z0-9_\\-]+)"\}$`,
@@ -15,6 +17,9 @@ var gRegexPatterns = map[string]string{
 	"parsePlayerID":        `^\{"playerID":"(\d+)"\}$`,
 }
 
+//endregion
+
+// region DATA STRUCTURES
 type Brackets struct {
 	Opening string
 	Closing string
@@ -28,15 +33,18 @@ var (
 	cParamsWrapper           = "\""
 )
 
-func ParseMessage(input string) (utils.Message, error) {
-	messageData := utils.MessageHeader{}
+//endregion
+
+// region FUNCTIONS PARSE
+func ParseMessage(input string) (models.Message, error) {
+	messageData := models.MessageHeader{}
 	signatureSize := int(unsafe.Sizeof(messageData.Signature))
 	commandIDSize := int(unsafe.Sizeof(messageData.CommandID))
 	timeStempSize := int(unsafe.Sizeof(messageData.TimeStamp))
 	minSizeMessage := signatureSize + commandIDSize + timeStempSize
 
 	if len(input) < minSizeMessage {
-		return utils.Message{}, fmt.Errorf("invalid input format")
+		return models.Message{}, fmt.Errorf("invalid input format")
 	}
 
 	start := 0
@@ -59,7 +67,7 @@ func ParseMessage(input string) (utils.Message, error) {
 	//Read nickname
 	playerNickname, playerNicknameSize, err := parseMessagePlayerID(input[start:])
 	if err != nil {
-		return utils.Message{}, fmt.Errorf("error parsing player ID: %v", err)
+		return models.Message{}, fmt.Errorf("error parsing player ID: %v", err)
 	}
 	start += playerNicknameSize
 	start++
@@ -69,22 +77,48 @@ func ParseMessage(input string) (utils.Message, error) {
 
 	params, err := parseParamsStr(parametersStr)
 	if err != nil {
-		return utils.Message{}, fmt.Errorf("error parsing params: %v", err)
+		return models.Message{}, fmt.Errorf("error parsing params: %v", err)
 	}
 
 	//convert values
 	commandIDint, err := strconv.ParseUint(commandID, 10, commandIDSize)
 	if err != nil {
-		return utils.Message{}, fmt.Errorf("error parsing command ID: %v", err)
+		return models.Message{}, fmt.Errorf("error parsing command ID: %v", err)
 	}
 
-	return utils.Message{
+	return models.Message{
 		Signature:      signature, // You can populate this with the actual signature values
 		CommandID:      int(commandIDint),
 		TimeStamp:      timeStamp,
 		PlayerNickname: playerNickname,
 		Parameters:     params,
 	}, nil
+}
+
+func ParseParamValueArray(value string) ([]string, error) {
+	var valueArray []string
+
+	if len(value) == 0 {
+		return valueArray, nil
+	}
+
+	if value[0] != cArrayBrackets.Opening[0] {
+		return valueArray, fmt.Errorf("invalid valueArray format")
+	}
+
+	if value[len(value)-1] != cArrayBrackets.Closing[0] {
+		return valueArray, fmt.Errorf("invalid valueArray format")
+	}
+
+	value = value[1 : len(value)-1]
+
+	valuesStr := strings.Split(value, cParamsDelimiter)
+
+	for _, valueStr := range valuesStr {
+		valueArray = append(valueArray, valueStr)
+	}
+
+	return valueArray, nil
 }
 
 func parseParamsStr(paramsString string) ([]utils.Params, error) {
@@ -173,6 +207,9 @@ func parseMessagePlayerID(input string) (string, int, error) {
 	return playerNickname, playerNicknameSize, nil
 }
 
+//endregion
+
+// region FUNCTIONS UTILS
 func extractSubstring(input, opening, closing string) (string, error) {
 	startIndex := strings.Index(input, opening)
 	if startIndex == -1 {
@@ -185,40 +222,18 @@ func extractSubstring(input, opening, closing string) (string, error) {
 	return input[startIndex+len(opening) : startIndex+endIndex], nil
 }
 
-// region PRIVATE FUNCTIONS
+func getArrayElementStr(name string, value string) string {
+	returnStr := cParamsWrapper + name + cParamsWrapper + cParamsKeyValueDelimiter + cParamsWrapper + value + cParamsWrapper + cParamsDelimiter
+	return returnStr
+}
 
 //endregion
 
-func ParseParamValueArray(value string) ([]string, error) {
-	var valueArray []string
-
-	if len(value) == 0 {
-		return valueArray, nil
-	}
-
-	if value[0] != cArrayBrackets.Opening[0] {
-		return valueArray, fmt.Errorf("invalid valueArray format")
-	}
-
-	if value[len(value)-1] != cArrayBrackets.Closing[0] {
-		return valueArray, fmt.Errorf("invalid valueArray format")
-	}
-
-	value = value[1 : len(value)-1]
-
-	valuesStr := strings.Split(value, cParamsDelimiter)
-
-	for _, valueStr := range valuesStr {
-		valueArray = append(valueArray, valueStr)
-	}
-
-	return valueArray, nil
-}
-
-func ConvertMessageToNetworkString(message utils.Message) (string, error) {
+// region FUNCTIONS CONVERT
+func ConvertMessageToNetworkString(message models.Message) (string, error) {
 	networkString := ""
 
-	messageData := utils.MessageHeader{}
+	messageData := models.MessageHeader{}
 	signatureSize := int(unsafe.Sizeof(messageData.Signature))
 	commandIDSize := int(unsafe.Sizeof(messageData.CommandID))
 	timeStempSize := int(unsafe.Sizeof(messageData.TimeStamp))
@@ -255,29 +270,7 @@ func ConvertMessageToNetworkString(message utils.Message) (string, error) {
 	return networkString, nil
 }
 
-func convertPlayerNicknameToNetworkString(nickname string) string {
-	networkStr := ""
-	networkStr += cParamsBrackets.Opening
-	networkStr += nickname
-	networkStr += cParamsBrackets.Closing
-
-	return networkStr
-}
-
-func convertParamsToNetworkString(params []utils.Params) (string, error) {
-	length := len(params)
-
-	paramsStr := ""
-	paramsStr += cParamsBrackets.Opening
-	for i := 0; i < length; i++ {
-		paramsStr += cParamsWrapper + params[i].Name + cParamsWrapper + cParamsKeyValueDelimiter + cParamsWrapper + params[i].Value + cParamsWrapper + cParamsDelimiter
-	}
-	paramsStr += cParamsBrackets.Closing
-
-	return paramsStr, nil
-}
-
-func ConvertGameListToNetworkString(array []*utils.Game) string {
+func ConvertGameListToNetworkString(array []*models.Game) string {
 	arrayStr := ""
 
 	arrayStr += cArrayBrackets.Opening
@@ -300,7 +293,7 @@ func ConvertGameListToNetworkString(array []*utils.Game) string {
 	return arrayStr
 }
 
-func ConvertPlayerListToNetworkString(array []*utils.Player) string {
+func ConvertPlayerListToNetworkString(array []*models.Player) string {
 	arrayStr := ""
 
 	arrayStr += cArrayBrackets.Opening
@@ -319,7 +312,7 @@ func ConvertPlayerListToNetworkString(array []*utils.Player) string {
 	return arrayStr
 }
 
-func ConvertGameDataToNetworkString(data utils.GameData) string {
+func ConvertGameDataToNetworkString(data models.GameData) string {
 	arrayStr := ""
 
 	arrayStr += cArrayBrackets.Opening
@@ -365,7 +358,26 @@ func ConvertCubeValuesToNetworkString(values []int) string {
 	return arrayStr
 }
 
-func getArrayElementStr(name string, value string) string {
-	returnStr := cParamsWrapper + name + cParamsWrapper + cParamsKeyValueDelimiter + cParamsWrapper + value + cParamsWrapper + cParamsDelimiter
-	return returnStr
+func convertPlayerNicknameToNetworkString(nickname string) string {
+	networkStr := ""
+	networkStr += cParamsBrackets.Opening
+	networkStr += nickname
+	networkStr += cParamsBrackets.Closing
+
+	return networkStr
 }
+
+func convertParamsToNetworkString(params []utils.Params) (string, error) {
+	length := len(params)
+
+	paramsStr := ""
+	paramsStr += cParamsBrackets.Opening
+	for i := 0; i < length; i++ {
+		paramsStr += cParamsWrapper + params[i].Name + cParamsWrapper + cParamsKeyValueDelimiter + cParamsWrapper + params[i].Value + cParamsWrapper + cParamsDelimiter
+	}
+	paramsStr += cParamsBrackets.Closing
+
+	return paramsStr, nil
+}
+
+//endregion

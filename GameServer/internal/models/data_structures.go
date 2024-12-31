@@ -1,14 +1,10 @@
-package utils
+package models
 
 import (
 	"fmt"
+	"gameserver/internal/utils"
 	"net"
 )
-
-type Params struct {
-	Name  string
-	Value string
-}
 
 type ConnectionInfo struct {
 	Connection net.Conn
@@ -32,12 +28,15 @@ type Message struct {
 	CommandID      int
 	TimeStamp      string
 	PlayerNickname string
-	Parameters     []Params
+	Parameters     []utils.Params
 }
 
-func CreateResponseMessage(responseInfo NetworkResponseInfo, commandID int, params []Params) Message {
+//endregion
+
+// region FUNCTIONS CONSTRUCTORS
+func CreateResponseMessage(responseInfo NetworkResponseInfo, commandID int, params []utils.Params) Message {
 	return Message{
-		Signature:      CMessageSignature,
+		Signature:      utils.CMessageSignature,
 		CommandID:      commandID,
 		TimeStamp:      responseInfo.ConnectionInfo.TimeStamp, //original so client can match response
 		PlayerNickname: responseInfo.PlayerNickname,
@@ -45,14 +44,14 @@ func CreateResponseMessage(responseInfo NetworkResponseInfo, commandID int, para
 	}
 }
 
-func CreateParams(names []string, values []string) ([]Params, error) {
-	var params []Params
+func CreateParams(names []string, values []string) ([]utils.Params, error) {
+	var params []utils.Params
 	if len(names) != len(values) {
 		return params, fmt.Errorf("error creating params")
 	}
 
 	for i := 0; i < len(names); i++ {
-		param := Params{
+		param := utils.Params{
 			Name:  names[i],
 			Value: values[i],
 		}
@@ -61,3 +60,5 @@ func CreateParams(names []string, values []string) ([]Params, error) {
 
 	return params, nil
 }
+
+//endregion

@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"gameserver/internal/models"
 	"gameserver/internal/utils"
 	"net"
 	"os"
@@ -17,8 +18,8 @@ const (
 )
 const cTimeout = time.Second
 
-var gMessageList = utils.GetInstanceMessageList()
-var gResponseList = utils.GetInstanceMessageList()
+var gMessageList = models.GetInstanceMessageList()
+var gResponseList = models.GetInstanceMessageList()
 
 //endregion
 
@@ -75,14 +76,14 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func connectionReadTimeout(connection net.Conn, timeout time.Duration) (utils.Message, bool, error) {
+func connectionReadTimeout(connection net.Conn, timeout time.Duration) (models.Message, bool, error) {
 	isTimeout := false
 
 	// Set the timeout
 	deadline := time.Now().Add(timeout)
 	err := connection.SetReadDeadline(deadline)
 	if err != nil {
-		return utils.Message{}, isTimeout, fmt.Errorf("error setting read deadline: %w", err)
+		return models.Message{}, isTimeout, fmt.Errorf("error setting read deadline: %w", err)
 	}
 
 	buffer := make([]byte, 1024)
@@ -92,48 +93,48 @@ func connectionReadTimeout(connection net.Conn, timeout time.Duration) (utils.Me
 		if errors.As(err, &netErr) && netErr.Timeout() {
 			isTimeout = true
 		}
-		return utils.Message{}, isTimeout, nil
+		return models.Message{}, isTimeout, nil
 	}
 	messageStr := string(buffer)
 
 	message, err := ParseMessage(messageStr)
 	if err != nil {
-		return utils.Message{}, isTimeout, fmt.Errorf("Error parsing message: %w", err)
+		return models.Message{}, isTimeout, fmt.Errorf("Error parsing message: %w", err)
 	}
 
 	//Save to logger
 	err = gMessageList.AddItem(message)
 	if err != nil {
-		return utils.Message{}, isTimeout, err
+		return models.Message{}, isTimeout, err
 	}
 
 	return message, isTimeout, nil
 }
 
-func connectionRead(connection net.Conn) (utils.Message, error) {
+func connectionRead(connection net.Conn) (models.Message, error) {
 
 	buffer := make([]byte, 1024)
 	_, err := connection.Read(buffer)
 	if err != nil {
-		return utils.Message{}, fmt.Errorf("error reading", err)
+		return models.Message{}, fmt.Errorf("error reading", err)
 	}
 	messageStr := string(buffer)
 
 	message, err := ParseMessage(messageStr)
 	if err != nil {
-		return utils.Message{}, fmt.Errorf("Error parsing message:", err)
+		return models.Message{}, fmt.Errorf("Error parsing message:", err)
 	}
 
 	//Save to logger
 	err = gMessageList.AddItem(message)
 	if err != nil {
-		return utils.Message{}, err
+		return models.Message{}, err
 	}
 
 	return message, nil
 }
 
-func connectionWrite(connection net.Conn, message utils.Message) error {
+func connectionWrite(connection net.Conn, message models.Message) error {
 	messageStr, err := ConvertMessageToNetworkString(message)
 	if err != nil {
 		return err
@@ -152,7 +153,7 @@ func connectionWrite(connection net.Conn, message utils.Message) error {
 	return nil
 }
 
-func isClientResponseCommand(clientResponse utils.Message, originalInfo utils.NetworkResponseInfo, command utils.Command) bool {
+func isClientResponseCommand(clientResponse models.Message, originalInfo models.NetworkResponseInfo, command utils.Command) bool {
 	if clientResponse.PlayerNickname != originalInfo.PlayerNickname {
 		return false
 	}
@@ -168,7 +169,7 @@ func isClientResponseCommand(clientResponse utils.Message, originalInfo utils.Ne
 	return true
 }
 
-func sendUpdateList(player *utils.Player, command utils.Command, params []utils.Params) error {
+func sendUpdateList(player *models.Player, command utils.Command, params []utils.Params) error {
 
 	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
 	if err != nil {
@@ -179,7 +180,7 @@ func sendUpdateList(player *utils.Player, command utils.Command, params []utils.
 	}
 
 	connection := player.GetConnectionInfo().Connection
-	responseInfo := utils.NetworkResponseInfo{
+	responseInfo := models.NetworkResponseInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
 		PlayerNickname: player.GetNickname(),
 	}
@@ -225,7 +226,7 @@ func sendUpdateList(player *utils.Player, command utils.Command, params []utils.
 	return nil
 }
 
-func handleTimeout(player *utils.Player) error {
+func handleTimeout(player *models.Player) error {
 	commandError := utils.CGCommands.ErrorPlayerUnreachable
 	err := player.FireStateMachine(commandError.Trigger)
 	if err != nil {
@@ -241,9 +242,9 @@ func handleTimeout(player *utils.Player) error {
 
 //region SEND RESPONSE FUNCTIONS
 
-func SendResponseServerSuccess(responseInfo utils.NetworkResponseInfo) error {
+func SendResponseServerSuccess(responseInfo models.NetworkResponseInfo) error {
 	//convert to message
-	message := utils.CreateResponseMessage(responseInfo, utils.CGCommands.ResponseServerSuccess.CommandID, utils.CGNetworkEmptyParams)
+	message := models.CreateResponseMessage(responseInfo, utils.CGCommands.ResponseServerSuccess.CommandID, utils.CGNetworkEmptyParams)
 
 	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
 	if err != nil {
@@ -253,9 +254,9 @@ func SendResponseServerSuccess(responseInfo utils.NetworkResponseInfo) error {
 	return nil
 }
 
-func SendResponseServerErrDuplicitNickname(responseInfo utils.NetworkResponseInfo) error {
+func SendResponseServerErrDuplicitNickname(responseInfo models.NetworkResponseInfo) error {
 	//convert to message
-	message := utils.CreateResponseMessage(responseInfo, utils.CGCommands.ResponseServerErrDuplicitNickname.CommandID, utils.CGNetworkEmptyParams)
+	message := models.CreateResponseMessage(responseInfo, utils.CGCommands.ResponseServerErrDuplicitNickname.CommandID, utils.CGNetworkEmptyParams)
 
 	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
 	if err != nil {
@@ -271,17 +272,17 @@ func SendResponseServerErrDuplicitNickname(responseInfo utils.NetworkResponseInf
 	return nil
 }
 
-func SendResponseServerError(responseInfo utils.NetworkResponseInfo, paramsValues error) error {
+func SendResponseServerError(responseInfo models.NetworkResponseInfo, paramsValues error) error {
 	command := utils.CGCommands.ResponseServerError
 
-	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValues.Error()})
+	params, err := models.CreateParams(command.ParamsNames, []string{paramsValues.Error()})
 	if err != nil {
 		return err
 	}
 	connection := responseInfo.ConnectionInfo.Connection
 
 	//convert to message
-	message := utils.CreateResponseMessage(responseInfo, command.CommandID, params)
+	message := models.CreateResponseMessage(responseInfo, command.CommandID, params)
 
 	paramsValues = connectionWrite(connection, message)
 	if paramsValues != nil {
@@ -296,19 +297,19 @@ func SendResponseServerError(responseInfo utils.NetworkResponseInfo, paramsValue
 
 	return nil
 }
-func SendResponseServerGameList(responseInfo utils.NetworkResponseInfo, paramsValues []*utils.Game) (bool, error) {
+func SendResponseServerGameList(responseInfo models.NetworkResponseInfo, paramsValues []*models.Game) (bool, error) {
 	command := utils.CGCommands.ResponseServerGameList
 
 	value := ConvertGameListToNetworkString(paramsValues)
 
-	params, err := utils.CreateParams(command.ParamsNames, []string{value})
+	params, err := models.CreateParams(command.ParamsNames, []string{value})
 	if err != nil {
 		return false, fmt.Errorf("error creating params %w", err)
 	}
 	connection := responseInfo.ConnectionInfo.Connection
 
 	//convert to message
-	message := utils.CreateResponseMessage(responseInfo, command.CommandID, params)
+	message := models.CreateResponseMessage(responseInfo, command.CommandID, params)
 
 	err = connectionWrite(connection, message)
 	if err != nil {
@@ -319,12 +320,12 @@ func SendResponseServerGameList(responseInfo utils.NetworkResponseInfo, paramsVa
 }
 
 // CommunicationServerReconnectGameList
-func CommunicationServerReconnectGameList(player *utils.Player, paramsValues []*utils.Game) (bool, error) {
+func CommunicationServerReconnectGameList(player *models.Player, paramsValues []*models.Game) (bool, error) {
 	command := utils.CGCommands.ServerReconnectGameList
 
 	value := ConvertGameListToNetworkString(paramsValues)
 
-	params, err := utils.CreateParams(command.ParamsNames, []string{value})
+	params, err := models.CreateParams(command.ParamsNames, []string{value})
 	if err != nil {
 		return false, fmt.Errorf("error creating params %w", err)
 	}
@@ -338,12 +339,12 @@ func CommunicationServerReconnectGameList(player *utils.Player, paramsValues []*
 }
 
 // CommunicationServerReconnectGameData
-func CommunicationServerReconnectGameData(player *utils.Player, paramsValues utils.GameData) (bool, error) {
+func CommunicationServerReconnectGameData(player *models.Player, paramsValues models.GameData) (bool, error) {
 	command := utils.CGCommands.ServerReconnectGameData
 
 	value := ConvertGameDataToNetworkString(paramsValues)
 
-	params, err := utils.CreateParams(command.ParamsNames, []string{value})
+	params, err := models.CreateParams(command.ParamsNames, []string{value})
 	if err != nil {
 		return false, fmt.Errorf("error creating params %w", err)
 	}
@@ -357,12 +358,12 @@ func CommunicationServerReconnectGameData(player *utils.Player, paramsValues uti
 }
 
 // CommunicationServerReconnectPlayerList
-func CommunicationServerReconnectPlayerList(player *utils.Player, paramsValues []*utils.Player) (bool, error) {
+func CommunicationServerReconnectPlayerList(player *models.Player, paramsValues []*models.Player) (bool, error) {
 	command := utils.CGCommands.ServerReconnectPlayerList
 
 	value := ConvertPlayerListToNetworkString(paramsValues)
 
-	params, err := utils.CreateParams(command.ParamsNames, []string{value})
+	params, err := models.CreateParams(command.ParamsNames, []string{value})
 	if err != nil {
 		return false, fmt.Errorf("error creating params %w", err)
 	}
@@ -375,10 +376,10 @@ func CommunicationServerReconnectPlayerList(player *utils.Player, paramsValues [
 	return isSuccess, err
 }
 
-func CommunicationServerUpdateGameList(playerList []*utils.Player, paramsValues []*utils.Game) error {
+func CommunicationServerUpdateGameList(playerList []*models.Player, paramsValues []*models.Game) error {
 	command := utils.CGCommands.ServerUpdateGameList
 	paramsValue := ConvertGameListToNetworkString(paramsValues)
-	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValue})
+	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
 		return err
 	}
@@ -394,11 +395,11 @@ func CommunicationServerUpdateGameList(playerList []*utils.Player, paramsValues 
 
 }
 
-func CommunicationServerUpdatePlayerList(playerList []*utils.Player) error {
+func CommunicationServerUpdatePlayerList(playerList []*models.Player) error {
 	command := utils.CGCommands.ServerUpdatePlayerList
 
 	paramsValue := ConvertPlayerListToNetworkString(playerList)
-	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValue})
+	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
 		return err
 	}
@@ -413,7 +414,7 @@ func CommunicationServerUpdatePlayerList(playerList []*utils.Player) error {
 	return nil
 }
 
-func CommunicationServerUpdateStartGame(playerList []*utils.Player) error {
+func CommunicationServerUpdateStartGame(playerList []*models.Player) error {
 	command := utils.CGCommands.ServerUpdateStartGame
 	params := utils.CGNetworkEmptyParams
 
@@ -427,10 +428,10 @@ func CommunicationServerUpdateStartGame(playerList []*utils.Player) error {
 	return nil
 }
 
-func CommunicationServerUpdateGameData(gameData utils.GameData, playerList []*utils.Player) error {
+func CommunicationServerUpdateGameData(gameData models.GameData, playerList []*models.Player) error {
 	command := utils.CGCommands.ServerUpdateGameData
 	paramsValue := ConvertGameDataToNetworkString(gameData)
-	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValue})
+	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
 		return err
 	}
@@ -446,7 +447,7 @@ func CommunicationServerUpdateGameData(gameData utils.GameData, playerList []*ut
 }
 
 // CommunicationServerUpdateGameData
-func CommunicationServerStartTurn(player *utils.Player) (bool, error) {
+func CommunicationServerStartTurn(player *models.Player) (bool, error) {
 	command := utils.CGCommands.ServerStartTurn
 
 	isSuccess, err := sendMessageWithSuccessResponse(player, command, utils.CGNetworkEmptyParams)
@@ -459,7 +460,7 @@ func CommunicationServerStartTurn(player *utils.Player) (bool, error) {
 // CommunicationReadClientRollDice
 // Return: bool isSuccess - if communication was successful
 
-func CommunicationServerPingPlayer(player *utils.Player) (bool, error) {
+func CommunicationServerPingPlayer(player *models.Player) (bool, error) {
 	command := utils.CGCommands.ServerPingPlayer
 
 	isSuccess, err := sendMessageWithSuccessResponse(player, command, utils.CGNetworkEmptyParams)
@@ -469,7 +470,7 @@ func CommunicationServerPingPlayer(player *utils.Player) (bool, error) {
 	return isSuccess, err
 }
 
-func SendResponseServerDiceNext(values []int, player *utils.Player, message utils.Message) error {
+func SendResponseServerDiceNext(values []int, player *models.Player, message models.Message) error {
 	command := utils.CGCommands.ResponseServerDiceNext
 
 	err := sendResponseServerDice(command, values, player, message)
@@ -479,7 +480,7 @@ func SendResponseServerDiceNext(values []int, player *utils.Player, message util
 	return nil
 }
 
-func SendResponseServerDiceEndTurn(values []int, player *utils.Player, message utils.Message) error {
+func SendResponseServerDiceEndTurn(values []int, player *models.Player, message models.Message) error {
 	command := utils.CGCommands.ResponseServerDiceEndTurn
 
 	err := sendResponseServerDice(command, values, player, message)
@@ -489,7 +490,7 @@ func SendResponseServerDiceEndTurn(values []int, player *utils.Player, message u
 	return nil
 }
 
-func CommunicationReadClientRollDice(player *utils.Player) (utils.Message, bool, error) {
+func CommunicationReadClientRollDice(player *models.Player) (models.Message, bool, error) {
 	command := utils.CGCommands.ClientRollDice
 
 	connection := player.GetConnectionInfo().Connection
@@ -503,20 +504,20 @@ func CommunicationReadClientRollDice(player *utils.Player) (utils.Message, bool,
 	if clientResponse.CommandID != command.CommandID {
 		err := RemovePlayerFromGame(player)
 		if err != nil {
-			return utils.Message{}, false, fmt.Errorf("error removing player from lists %w", err)
+			return models.Message{}, false, fmt.Errorf("error removing player from lists %w", err)
 		}
 
 		err = connection.Close()
 		if err != nil {
-			return utils.Message{}, false, fmt.Errorf("error closing connection %w", err)
+			return models.Message{}, false, fmt.Errorf("error closing connection %w", err)
 		}
-		return utils.Message{}, false, nil
+		return models.Message{}, false, nil
 	}
 
 	return clientResponse, true, nil
 }
 
-func CommunicationReadClient(player *utils.Player) (utils.Message, bool, error) {
+func CommunicationReadClient(player *models.Player) (models.Message, bool, error) {
 
 	connection := player.GetConnectionInfo().Connection
 
@@ -532,23 +533,23 @@ func CommunicationReadClient(player *utils.Player) (utils.Message, bool, error) 
 	if clientResponse.CommandID != clientEndTurn && clientResponse.CommandID != clientNextDice {
 		err := RemovePlayerFromGame(player)
 		if err != nil {
-			return utils.Message{}, false, fmt.Errorf("error removing player from lists %w", err)
+			return models.Message{}, false, fmt.Errorf("error removing player from lists %w", err)
 		}
 
 		err = connection.Close()
 		if err != nil {
-			return utils.Message{}, false, fmt.Errorf("error closing connection %w", err)
+			return models.Message{}, false, fmt.Errorf("error closing connection %w", err)
 		}
-		return utils.Message{}, false, nil
+		return models.Message{}, false, nil
 	}
 
 	return clientResponse, true, nil
 }
 
-func communicationRead(player *utils.Player, connection net.Conn) (utils.Message, utils.Message, error) {
+func communicationRead(player *models.Player, connection net.Conn) (models.Message, models.Message, error) {
 	timeout := cTimeout
 
-	var clientResponse utils.Message
+	var clientResponse models.Message
 	var isTimeout bool
 	var err error
 	doesRespond := true
@@ -556,12 +557,12 @@ func communicationRead(player *utils.Player, connection net.Conn) (utils.Message
 		//reading clientRollDice
 		clientResponse, isTimeout, err = connectionReadTimeout(connection, timeout)
 		if err != nil {
-			return utils.Message{}, utils.Message{}, fmt.Errorf("error reading %w", err)
+			return models.Message{}, models.Message{}, fmt.Errorf("error reading %w", err)
 		}
 		if isTimeout {
 			isSuccess, err := CommunicationServerPingPlayer(player)
 			if err != nil {
-				return utils.Message{}, utils.Message{}, fmt.Errorf("error sending ping player %w", err)
+				return models.Message{}, models.Message{}, fmt.Errorf("error sending ping player %w", err)
 			}
 			if !isSuccess {
 				doesRespond = false
@@ -569,14 +570,14 @@ func communicationRead(player *utils.Player, connection net.Conn) (utils.Message
 			}
 		}
 	}
-	return clientResponse, utils.Message{}, nil
+	return clientResponse, models.Message{}, nil
 }
 
 // SendResponseServerNextDiceEndScore
-func SendResponseServerNextDiceEndScore(player *utils.Player) error {
+func SendResponseServerNextDiceEndScore(player *models.Player) error {
 	command := utils.CGCommands.ResponseServerNextDiceEndScore
 
-	responseInfo := utils.NetworkResponseInfo{
+	responseInfo := models.NetworkResponseInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
 		PlayerNickname: player.GetNickname(),
 	}
@@ -590,10 +591,10 @@ func SendResponseServerNextDiceEndScore(player *utils.Player) error {
 }
 
 // SendResponseServerNextDiceSuccess
-func SendResponseServerNextDiceSuccess(player *utils.Player) error {
+func SendResponseServerNextDiceSuccess(player *models.Player) error {
 	command := utils.CGCommands.ResponseServerNextDiceSuccess
 
-	responseInfo := utils.NetworkResponseInfo{
+	responseInfo := models.NetworkResponseInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
 		PlayerNickname: player.GetNickname(),
 	}
@@ -606,14 +607,14 @@ func SendResponseServerNextDiceSuccess(player *utils.Player) error {
 	return nil
 }
 
-func sendResponseServerDice(command utils.Command, values []int, player *utils.Player, message utils.Message) error {
+func sendResponseServerDice(command utils.Command, values []int, player *models.Player, message models.Message) error {
 	paramsValue := ConvertCubeValuesToNetworkString(values)
-	params, err := utils.CreateParams(command.ParamsNames, []string{paramsValue})
+	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
 		return err
 	}
-	responseInfo := utils.NetworkResponseInfo{
-		ConnectionInfo: utils.ConnectionInfo{
+	responseInfo := models.NetworkResponseInfo{
+		ConnectionInfo: models.ConnectionInfo{
 			Connection: player.GetConnectionInfo().Connection,
 			TimeStamp:  message.TimeStamp,
 		},
@@ -628,11 +629,11 @@ func sendResponseServerDice(command utils.Command, values []int, player *utils.P
 	return nil
 }
 
-func sendResponse(responseInfo utils.NetworkResponseInfo, command utils.Command, params []utils.Params) error { //todo refactor where used
+func sendResponse(responseInfo models.NetworkResponseInfo, command utils.Command, params []utils.Params) error { //todo refactor where used
 	connection := responseInfo.ConnectionInfo.Connection
 
 	//convert to message
-	message := utils.CreateResponseMessage(responseInfo, command.CommandID, params)
+	message := models.CreateResponseMessage(responseInfo, command.CommandID, params)
 
 	err := connectionWrite(connection, message)
 	if err != nil {
@@ -643,8 +644,8 @@ func sendResponse(responseInfo utils.NetworkResponseInfo, command utils.Command,
 
 // sendMessageWithSuccessResponse
 // Return: bool isSuccess - if communication was successful
-func sendMessageWithSuccessResponse(player *utils.Player, command utils.Command, params []utils.Params) (bool, error) {
-	responseInfo := utils.NetworkResponseInfo{
+func sendMessageWithSuccessResponse(player *models.Player, command utils.Command, params []utils.Params) (bool, error) {
+	responseInfo := models.NetworkResponseInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
 		PlayerNickname: player.GetNickname(),
 	}

@@ -1,4 +1,4 @@
-package utils
+package models
 
 import (
 	"fmt"
@@ -11,6 +11,7 @@ type List struct {
 	mutex sync.Mutex
 }
 
+// region FUNCTIONS
 func CreateList() *List {
 	return &List{
 		data:  make(map[interface{}]interface{}),
@@ -18,6 +19,7 @@ func CreateList() *List {
 	}
 }
 
+// region ADD
 func (gm *List) AddItem(item interface{}) (int, error) {
 	// Generate a unique key based on the current Count
 	key := gm.Count
@@ -47,6 +49,9 @@ func (gm *List) AddItemKey(key interface{}, item interface{}) error {
 	return nil
 }
 
+//endregion
+
+// region GETTERS
 func (gm *List) GetItem(key interface{}) (interface{}, error) {
 	// Check if the key exists
 	if _, ok := gm.data[key]; !ok {
@@ -56,6 +61,17 @@ func (gm *List) GetItem(key interface{}) (interface{}, error) {
 	// Return the item
 	return gm.data[key], nil
 }
+
+// GetValuesArray returns an array of all the values in the list
+func (gm *List) GetValuesArray() []interface{} {
+	var values []interface{}
+	for _, v := range gm.data {
+		values = append(values, v)
+	}
+	return values
+}
+
+//endregion
 
 // RemoveItem removes an item from the list
 func (gm *List) RemoveItem(key interface{}) error {
@@ -80,11 +96,4 @@ func (gm *List) HasValue(value interface{}) bool {
 	return false
 }
 
-// GetValuesArray returns an array of all the values in the list
-func (gm *List) GetValuesArray() []interface{} {
-	var values []interface{}
-	for _, v := range gm.data {
-		values = append(values, v)
-	}
-	return values
-}
+//endregion

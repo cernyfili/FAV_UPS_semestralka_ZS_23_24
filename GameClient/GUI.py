@@ -192,7 +192,7 @@ class GameListPage(tk.Frame):
             if connected_count_players >= max_players:
                 connect_button.config(state="disabled")
 
-    def set_games_info(self):
+    #def set_games_info(self):
 
 
     def connect_to_game(self, game):

@@ -4,11 +4,12 @@ import (
 	"gameserver/pkg/stateless"
 )
 
+// region CONSTANTS
 const (
-	CMessageSignature = "KIVUPS"
+	CMessageSignature string = "KIVUPS"
 )
 
-var CGNetworkEmptyParams []Params
+const LogFilePath string = "logs/app.log"
 
 var (
 	CGScoreCubeValues = []ScoreCube{
@@ -17,10 +18,65 @@ var (
 	}
 )
 
+//endregion
+
+// region DATA STRUCTURES
+type Params struct {
+	Name  string
+	Value string
+}
+
+var CGNetworkEmptyParams []Params
+
 type ScoreCube struct {
 	Value      int
 	ScoreValue int
 }
+
+type Command struct {
+	CommandID   int
+	Trigger     stateless.Trigger
+	ParamsNames []string
+}
+
+type CommandType struct {
+	ClientCreateGame Command
+	ClientJoinGame   Command
+	ClientLogin      Command
+	ClientLogout     Command
+	ClientRollDice   Command
+	ClientStartGame  Command
+
+	ErrorPlayerUnreachable Command
+
+	ClientEndTurn         Command
+	ClientNextDice        Command
+	ResponseClientSuccess Command
+
+	ResponseServerNextDiceEndScore    Command
+	ResponseServerDiceEndTurn         Command
+	ResponseServerDiceNext            Command
+	ResponseServerSuccess             Command
+	ResponseServerErrDuplicitNickname Command
+
+	ServerPingPlayer          Command
+	ServerUpdateEndScore      Command
+	ServerUpdateStartGame     Command
+	ServerReconnectGameData   Command
+	ServerReconnectGameList   Command
+	ServerReconnectPlayerList Command
+	ServerStartTurn           Command
+	ServerUpdateGameData      Command
+	ServerUpdateGameList      Command
+	ServerUpdatePlayerList    Command
+	ResponseServerError       Command
+	ResponseServerGameList    Command
+	ClientReconnect           Command
+
+	ResponseServerNextDiceSuccess Command
+}
+
+//endregion
 
 var CGCommands = CommandType{
 
@@ -67,45 +123,4 @@ var CGCommands = CommandType{
 	ErrorPlayerUnreachable: Command{70, stateless.Trigger("ErrorPlayerUnreachable"), []string{""}},
 }
 
-type Command struct {
-	CommandID   int
-	Trigger     stateless.Trigger
-	ParamsNames []string
-}
-
-type CommandType struct {
-	ClientCreateGame Command
-	ClientJoinGame   Command
-	ClientLogin      Command
-	ClientLogout     Command
-	ClientRollDice   Command
-	ClientStartGame  Command
-
-	ErrorPlayerUnreachable Command
-
-	ClientEndTurn         Command
-	ClientNextDice        Command
-	ResponseClientSuccess Command
-
-	ResponseServerNextDiceEndScore    Command
-	ResponseServerDiceEndTurn         Command
-	ResponseServerDiceNext            Command
-	ResponseServerSuccess             Command
-	ResponseServerErrDuplicitNickname Command
-
-	ServerPingPlayer          Command
-	ServerUpdateEndScore      Command
-	ServerUpdateStartGame     Command
-	ServerReconnectGameData   Command
-	ServerReconnectGameList   Command
-	ServerReconnectPlayerList Command
-	ServerStartTurn           Command
-	ServerUpdateGameData      Command
-	ServerUpdateGameList      Command
-	ServerUpdatePlayerList    Command
-	ResponseServerError       Command
-	ResponseServerGameList    Command
-	ClientReconnect           Command
-
-	ResponseServerNextDiceSuccess Command
-}
+// region DATA STRUCTURES

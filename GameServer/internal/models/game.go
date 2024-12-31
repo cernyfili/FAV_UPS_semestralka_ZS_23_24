@@ -1,10 +1,24 @@
-package utils
+package models
 
 import (
 	"fmt"
+	"gameserver/internal/utils"
 	"math/rand"
 	"sync"
 )
+
+// region CONSTANTS
+const (
+	cMinimumPlayers = 2
+	cMaxCubeCount   = 6
+
+	cCubeMinValue = 1
+	cCubeMaxValue = 6
+)
+
+//endregion
+
+//region DATA STRUCTURES
 
 // enum for game state
 type GameState int
@@ -13,14 +27,6 @@ const (
 	Running GameState = iota
 	Created
 	Ended
-)
-
-const (
-	cMinimumPlayers = 2
-	cMaxCubeCount   = 6
-
-	cCubeMinValue = 1
-	cCubeMaxValue = 6
 )
 
 type Throw struct {
@@ -55,6 +61,10 @@ type GameData struct {
 	TurnPlayer        *Player
 }
 
+//endregion
+
+//region FUNCTIONS
+
 // CreateGame creates a new game with a unique ID and initializes Player and turn slices.
 func CreateGame(name string, maxPlayers int) (*Game, error) {
 	//Check if the arguments are valid
@@ -71,25 +81,12 @@ func CreateGame(name string, maxPlayers int) (*Game, error) {
 	}, nil
 }
 
-// AddPlayer adds a new Player to the game.
-func (g *Game) AddPlayer(pPlayer *Player) error {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	if len(g.playersGameDataArr) >= g.maxPlayers {
-		return fmt.Errorf("game is full")
+func generateCubeValues(count int) []int {
+	array := make([]int, count)
+	for i := 0; i < count; i++ {
+		array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
 	}
-
-	playerGameData := PlayerGameData{
-		Player:      pPlayer,
-		Score:       0,
-		TurnHistory: make([]Turn, 0),
-	}
-
-	g.playersGameDataArr = append(g.playersGameDataArr, playerGameData)
-	pPlayer.game = g
-
-	return nil
+	return array
 }
 
 // NextTurn returns the next Player in turn.
@@ -110,6 +107,29 @@ func (g *Game) NextTurn() (*Player, error) {
 	g.turnNum++
 
 	return g.playersGameDataArr[nextPlayerIndex].Player, nil
+}
+
+//region PLAYER
+
+// AddPlayer adds a new Player to the game.
+func (g *Game) AddPlayer(pPlayer *Player) error {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	if len(g.playersGameDataArr) >= g.maxPlayers {
+		return fmt.Errorf("game is full")
+	}
+
+	playerGameData := PlayerGameData{
+		Player:      pPlayer,
+		Score:       0,
+		TurnHistory: make([]Turn, 0),
+	}
+
+	g.playersGameDataArr = append(g.playersGameDataArr, playerGameData)
+	pPlayer.game = g
+
+	return nil
 }
 
 // getTurnPlayer returns the current turn player
@@ -153,6 +173,10 @@ func (g *Game) RemovePlayer(player *Player) error {
 	return nil
 }
 
+//endregion
+
+//region GETTERS
+
 // Get name
 func (g *Game) GetName() string {
 	g.mutex.Lock()
@@ -185,13 +209,6 @@ func (g *Game) GetGameID() int {
 	return g.gameID
 }
 
-func (g *Game) IsFull() bool {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	return len(g.playersGameDataArr) >= g.maxPlayers
-}
-
 func (g *Game) GetState() GameState {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
@@ -211,20 +228,6 @@ func (g *Game) GetPlayers() []*Player {
 	return players
 }
 
-func (g *Game) SetState(state GameState) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	g.gameStateValue = state
-}
-
-func (g *Game) IsEnoughPlayers() bool {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	return len(g.playersGameDataArr) >= cMinimumPlayers
-}
-
 func (g *Game) GetGameData() (GameData, error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
@@ -239,6 +242,116 @@ func (g *Game) GetGameData() (GameData, error) {
 	gameData.TurnPlayer = turnPlayer
 
 	return gameData, nil
+}
+
+func (g *Game) GetScoreIncrease(cubeIndexes []int, player *Player) (int, error) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	cubeValues, err := g.getLastThrowCubeValues(player)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last throw")
+	}
+
+	if len(cubeIndexes) == 0 {
+		return 0, fmt.Errorf("no cubes selected")
+	}
+
+	if len(cubeIndexes) > len(cubeValues) {
+		return 0, fmt.Errorf("invalid cube indexes")
+	}
+
+	scoreIncrease := 0
+	for _, index := range cubeIndexes {
+		if index < 0 || index >= len(cubeValues) {
+			return 0, fmt.Errorf("invalid cube indexes")
+		}
+		value := cubeValues[index]
+		isScoreValue := false
+		for _, scoreCube := range utils.CGScoreCubeValues {
+			if value == scoreCube.Value {
+				scoreIncrease += scoreCube.ScoreValue
+				isScoreValue = true
+				break
+			}
+		}
+
+		if !isScoreValue {
+			return 0, fmt.Errorf("invalid cube value")
+		}
+	}
+
+	return scoreIncrease, nil
+}
+
+func (g *Game) GetPlayerScore(player *Player) (int, error) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	playerGameData, err := g.getPlayerGameData(player)
+	if err != nil {
+		return 0, fmt.Errorf("player not found")
+	}
+
+	return playerGameData.Score, nil
+}
+
+func (g *Game) IsFull() bool {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	return len(g.playersGameDataArr) >= g.maxPlayers
+}
+
+func (g *Game) IsEnoughPlayers() bool {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	return len(g.playersGameDataArr) >= cMinimumPlayers
+}
+
+func (g *Game) getPlayerGameData(player *Player) (PlayerGameData, error) {
+
+	for _, gameData := range g.playersGameDataArr {
+		if gameData.Player == player {
+			return gameData, nil
+		}
+	}
+
+	return PlayerGameData{}, fmt.Errorf("player not found")
+}
+
+// GetLastThrow returns the last throw of the player
+func (g *Game) getLastThrowCubeValues(player *Player) ([]int, error) {
+
+	playerGameData, err := g.getPlayerGameData(player)
+	if err != nil {
+		return nil, fmt.Errorf("player not found")
+	}
+
+	turnHistory := playerGameData.TurnHistory
+	if len(turnHistory) == 0 {
+		return nil, fmt.Errorf("no throws")
+	}
+
+	turn := turnHistory[len(turnHistory)-1]
+	throwArr := turn.ThrowArr
+	if len(throwArr) == 0 {
+		return nil, fmt.Errorf("no throws")
+	}
+
+	throw := throwArr[len(throwArr)-1]
+	return throw.cubeValues, nil
+}
+
+//endregion
+
+// region SETTERS
+func (g *Game) SetState(state GameState) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	g.gameStateValue = state
 }
 
 func (g *Game) NewThrow(player *Player) ([]int, error) {
@@ -276,17 +389,6 @@ func (g *Game) NewThrow(player *Player) ([]int, error) {
 	return cubeValues, nil
 }
 
-func (g *Game) getPlayerGameData(player *Player) (PlayerGameData, error) {
-
-	for _, gameData := range g.playersGameDataArr {
-		if gameData.Player == player {
-			return gameData, nil
-		}
-	}
-
-	return PlayerGameData{}, fmt.Errorf("player not found")
-}
-
 func (g *Game) addThrow(player *Player, count int) ([]int, error) {
 
 	turnPlayerGameData, err := g.getPlayerGameData(player)
@@ -319,81 +421,6 @@ func (g *Game) addThrow(player *Player, count int) ([]int, error) {
 	return throw.cubeValues, nil
 }
 
-func (g *Game) GetScoreIncrease(cubeIndexes []int, player *Player) (int, error) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	cubeValues, err := g.getLastThrowCubeValues(player)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get last throw")
-	}
-
-	if len(cubeIndexes) == 0 {
-		return 0, fmt.Errorf("no cubes selected")
-	}
-
-	if len(cubeIndexes) > len(cubeValues) {
-		return 0, fmt.Errorf("invalid cube indexes")
-	}
-
-	scoreIncrease := 0
-	for _, index := range cubeIndexes {
-		if index < 0 || index >= len(cubeValues) {
-			return 0, fmt.Errorf("invalid cube indexes")
-		}
-		value := cubeValues[index]
-		isScoreValue := false
-		for _, scoreCube := range CGScoreCubeValues {
-			if value == scoreCube.Value {
-				scoreIncrease += scoreCube.ScoreValue
-				isScoreValue = true
-				break
-			}
-		}
-
-		if !isScoreValue {
-			return 0, fmt.Errorf("invalid cube value")
-		}
-	}
-
-	return scoreIncrease, nil
-}
-
-// GetLastThrow returns the last throw of the player
-func (g *Game) getLastThrowCubeValues(player *Player) ([]int, error) {
-
-	playerGameData, err := g.getPlayerGameData(player)
-	if err != nil {
-		return nil, fmt.Errorf("player not found")
-	}
-
-	turnHistory := playerGameData.TurnHistory
-	if len(turnHistory) == 0 {
-		return nil, fmt.Errorf("no throws")
-	}
-
-	turn := turnHistory[len(turnHistory)-1]
-	throwArr := turn.ThrowArr
-	if len(throwArr) == 0 {
-		return nil, fmt.Errorf("no throws")
-	}
-
-	throw := throwArr[len(throwArr)-1]
-	return throw.cubeValues, nil
-}
-
-func (g *Game) GetPlayerScore(player *Player) (int, error) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	playerGameData, err := g.getPlayerGameData(player)
-	if err != nil {
-		return 0, fmt.Errorf("player not found")
-	}
-
-	return playerGameData.Score, nil
-}
-
 func (g *Game) SetPlayerScore(player *Player, score int) error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
@@ -408,10 +435,6 @@ func (g *Game) SetPlayerScore(player *Player, score int) error {
 	return nil
 }
 
-func generateCubeValues(count int) []int {
-	array := make([]int, count)
-	for i := 0; i < count; i++ {
-		array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
-	}
-	return array
-}
+//endregion
+
+//endregion

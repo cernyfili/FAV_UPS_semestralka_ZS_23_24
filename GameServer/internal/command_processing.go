@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"gameserver/internal/models"
 	"gameserver/internal/utils"
 	"net"
 	"regexp"
@@ -10,9 +11,9 @@ import (
 
 //region GLOBAL VARIABLES
 
-var gPlayerlist = utils.GetInstancePlayerList()
+var gPlayerlist = models.GetInstancePlayerList()
 
-var gGamelist = utils.GetInstanceGameList()
+var gGamelist = models.GetInstanceGameList()
 
 const (
 	cMaxScore = 10000
@@ -34,13 +35,13 @@ var CommandsHandlers = map[int]CommandInfo{
 
 // CommandInfo represents information about a command.
 type CommandInfo struct {
-	Handler func(player *utils.Player, params []utils.Params, command utils.Command) error //todo should all return network message format
+	Handler func(player *models.Player, params []utils.Params, command utils.Command) error //todo should all return network message format
 	Command utils.Command
 }
 
 //endregion
 
-func ProcessMessage(message utils.Message, conn net.Conn) error {
+func ProcessMessage(message models.Message, conn net.Conn) error {
 
 	//Check if valid signature
 	if message.Signature != utils.CMessageSignature {
@@ -52,7 +53,7 @@ func ProcessMessage(message utils.Message, conn net.Conn) error {
 	timeStamp := message.TimeStamp
 	params := message.Parameters
 
-	connectionInfo := utils.ConnectionInfo{
+	connectionInfo := models.ConnectionInfo{
 		Connection: conn,
 		TimeStamp:  timeStamp,
 	}
@@ -121,7 +122,7 @@ func getCommandInfo(commandID int) (CommandInfo, error) {
 	return commandInfo, nil
 }
 
-func removePlayerFromLists(player *utils.Player) error {
+func removePlayerFromLists(player *models.Player) error {
 
 	//Remove player from playerlist
 	err := gPlayerlist.RemoveItem(player)
@@ -243,7 +244,7 @@ func ConvertParamClientNextDice(params []utils.Params, names []string) ([]int, e
 	return cubeValueIndex, nil
 }
 
-func addPlayerToGame(player *utils.Player, err error, game *utils.Game) error {
+func addPlayerToGame(player *models.Player, err error, game *models.Game) error {
 	// Add the player to the game
 	err = game.AddPlayer(player)
 	if err != nil {
@@ -255,7 +256,7 @@ func addPlayerToGame(player *utils.Player, err error, game *utils.Game) error {
 	return nil
 }
 
-func dissconectPlayer(player *utils.Player, responseInfo utils.NetworkResponseInfo) error {
+func dissconectPlayer(player *models.Player, responseInfo models.NetworkResponseInfo) error {
 	err := RemovePlayerFromGame(player)
 	if err != nil {
 		return err
@@ -269,7 +270,7 @@ func dissconectPlayer(player *utils.Player, responseInfo utils.NetworkResponseIn
 	return nil
 }
 
-func RemovePlayerFromGame(player *utils.Player) error {
+func RemovePlayerFromGame(player *models.Player) error {
 	err := removePlayerFromLists(player)
 	if err != nil {
 		return fmt.Errorf("Error sending response: %w", err)
@@ -293,8 +294,9 @@ func isParamsEmpty(params []utils.Params) bool {
 
 //region Processing functions
 
-func processPlayerLogin(playerNickname string, connectionInfo utils.ConnectionInfo, command utils.Command, params []utils.Params) error {
-	responseInfo := utils.NetworkResponseInfo{
+// region Process functions
+func processPlayerLogin(playerNickname string, connectionInfo models.ConnectionInfo, command utils.Command, params []utils.Params) error {
+	responseInfo := models.NetworkResponseInfo{
 		ConnectionInfo: connectionInfo,
 		PlayerNickname: playerNickname,
 	}
@@ -326,7 +328,7 @@ func processPlayerLogin(playerNickname string, connectionInfo utils.ConnectionIn
 	}
 
 	// Add the player to the playerData
-	player := utils.CreatePlayer(playerNickname, nil, true, connectionInfo)
+	player := models.CreatePlayer(playerNickname, nil, true, connectionInfo)
 
 	err = gPlayerlist.AddItem(player)
 	if err != nil {
@@ -342,8 +344,8 @@ func processPlayerLogin(playerNickname string, connectionInfo utils.ConnectionIn
 	return nil
 }
 
-func processClientCreateGame(player *utils.Player, params []utils.Params, command utils.Command) error {
-	responseInfo := utils.NetworkResponseInfo{
+func processClientCreateGame(player *models.Player, params []utils.Params, command utils.Command) error {
+	responseInfo := models.NetworkResponseInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
 		PlayerNickname: player.GetNickname(),
 	}
@@ -363,7 +365,7 @@ func processClientCreateGame(player *utils.Player, params []utils.Params, comman
 	}
 
 	// Create the game
-	game, err := utils.CreateGame(name, maxPlayers)
+	game, err := models.CreateGame(name, maxPlayers)
 	if err != nil {
 		return fmt.Errorf("Error creating game: %w", err)
 	}
@@ -403,8 +405,8 @@ func processClientCreateGame(player *utils.Player, params []utils.Params, comman
 	return nil
 }
 
-func processClientJoinGame(player *utils.Player, params []utils.Params, command utils.Command) error {
-	responseInfo := utils.NetworkResponseInfo{
+func processClientJoinGame(player *models.Player, params []utils.Params, command utils.Command) error {
+	responseInfo := models.NetworkResponseInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
 		PlayerNickname: player.GetNickname(),
 	}
@@ -456,7 +458,7 @@ func processClientJoinGame(player *utils.Player, params []utils.Params, command 
 	}
 
 	// Check if the game has already started
-	if game.GetState() != utils.Created {
+	if game.GetState() != models.Created {
 		err = dissconectPlayer(player, responseInfo)
 		if err != nil {
 			return fmt.Errorf("Error sending response: %w", err)
@@ -491,8 +493,8 @@ func processClientJoinGame(player *utils.Player, params []utils.Params, command 
 	return nil
 }
 
-func processClientStartGame(player *utils.Player, params []utils.Params, command utils.Command) error {
-	responseInfo := utils.NetworkResponseInfo{
+func processClientStartGame(player *models.Player, params []utils.Params, command utils.Command) error {
+	responseInfo := models.NetworkResponseInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
 		PlayerNickname: player.GetNickname(),
 	}
@@ -532,7 +534,7 @@ func processClientStartGame(player *utils.Player, params []utils.Params, command
 	}
 
 	// Check if the game has already started
-	if game.GetState() != utils.Created {
+	if game.GetState() != models.Created {
 		err = dissconectPlayer(player, responseInfo)
 		if err != nil {
 			return fmt.Errorf("Error sending response: %w", err)
@@ -549,7 +551,7 @@ func processClientStartGame(player *utils.Player, params []utils.Params, command
 		return nil
 	}
 
-	game.SetState(utils.Running)
+	game.SetState(models.Running)
 
 	// Send the response
 	err = SendResponseServerSuccess(responseInfo)
@@ -596,7 +598,151 @@ func processClientStartGame(player *utils.Player, params []utils.Params, command
 	return nil
 }
 
-func sendCurrentServerUpdateGameData(game *utils.Game) error {
+func processClientPlayerLogout(player *models.Player, params []utils.Params, command utils.Command) error {
+	responseInfo := models.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
+	if err != nil {
+		return fmt.Errorf("cannot join game %w", err)
+	}
+	if !canFire {
+		err = dissconectPlayer(player, responseInfo)
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		return nil
+	}
+
+	// Convert params
+	if len(params) != 0 {
+		err = dissconectPlayer(player, responseInfo)
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		return nil
+	}
+
+	//region LOGIC
+	err = RemovePlayerFromGame(player)
+	if err != nil {
+		return fmt.Errorf("Error sending response: %w", err)
+	}
+	//endregion
+
+	// Send the response
+	err = SendResponseServerSuccess(responseInfo)
+	if err != nil {
+		return fmt.Errorf("Error sending response: %w", err)
+	}
+
+	//Change state machine
+	err = player.FireStateMachine(command.Trigger)
+	if err != nil {
+		return fmt.Errorf("Error sending response: %w", err)
+	}
+
+	return nil
+}
+
+func processClientReconnect(player *models.Player, params []utils.Params, command utils.Command) error {
+	responseInfo := models.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
+	if err != nil {
+		return fmt.Errorf("cannot join game %w", err)
+	}
+	if !canFire {
+		err = dissconectPlayer(player, responseInfo)
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		return nil
+	}
+
+	// Convert params
+	if len(params) != 0 {
+		err = dissconectPlayer(player, responseInfo)
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		return nil
+	}
+
+	//region LOGIC
+
+	wasHandled := false
+	//ReconnectGameList
+	canFire, err = player.GetStateMachine().CanFire(utils.CGCommands.ServerReconnectGameList.Trigger)
+	if err != nil {
+		return fmt.Errorf("cannot join game %w", err)
+	}
+	if canFire {
+		_, err := CommunicationServerReconnectGameList(player, gGamelist.GetValuesArray())
+
+		err = player.FireStateMachine(utils.CGCommands.ServerReconnectGameList.Trigger)
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		wasHandled = true
+	}
+
+	//ReconnectGameData
+	canFire, err = player.GetStateMachine().CanFire(utils.CGCommands.ServerReconnectGameData.Trigger)
+	if err != nil {
+		return fmt.Errorf("cannot join game %w", err)
+	}
+	if canFire && !wasHandled {
+		gameData, err := player.GetGame().GetGameData()
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		_, err = CommunicationServerReconnectGameData(player, gameData)
+
+		err = player.FireStateMachine(utils.CGCommands.ServerReconnectGameData.Trigger)
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		wasHandled = true
+	}
+
+	//ReconnectPlayerList
+	canFire, err = player.GetStateMachine().CanFire(utils.CGCommands.ServerReconnectPlayerList.Trigger)
+	if err != nil {
+		return fmt.Errorf("cannot join game %w", err)
+	}
+
+	if canFire && !wasHandled {
+		_, err := CommunicationServerReconnectPlayerList(player, player.GetGame().GetPlayers())
+
+		err = player.FireStateMachine(utils.CGCommands.ServerReconnectPlayerList.Trigger)
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		wasHandled = true
+	}
+
+	if !wasHandled {
+		err = dissconectPlayer(player, responseInfo)
+		if err != nil {
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		return nil
+	}
+
+	//endregion
+
+	return nil
+}
+
+//endregion
+
+func sendCurrentServerUpdateGameData(game *models.Game) error {
 	gameData, err := game.GetGameData()
 	if err != nil {
 		return fmt.Errorf("Error sending response: %w", err)
@@ -608,7 +754,7 @@ func sendCurrentServerUpdateGameData(game *utils.Game) error {
 	return nil
 }
 
-func startPlayerTurn(game *utils.Game) (bool, error) {
+func startPlayerTurn(game *models.Game) (bool, error) {
 	gameData, err := game.GetGameData()
 	if err != nil {
 		return false, fmt.Errorf("Error sending response: %w", err)
@@ -700,8 +846,8 @@ func startPlayerTurn(game *utils.Game) (bool, error) {
 		//--> Running_Game
 
 		//Send Success
-		responseInfo := utils.NetworkResponseInfo{
-			ConnectionInfo: utils.ConnectionInfo{
+		responseInfo := models.NetworkResponseInfo{
+			ConnectionInfo: models.ConnectionInfo{
 				Connection: turnPlayer.GetConnectionInfo().Connection,
 				TimeStamp:  message.TimeStamp,
 			},
@@ -806,148 +952,6 @@ func CubesCanBePlayed(values []int) bool {
 		}
 	}
 	return false
-}
-
-func processClientPlayerLogout(player *utils.Player, params []utils.Params, command utils.Command) error {
-	responseInfo := utils.NetworkResponseInfo{
-		ConnectionInfo: player.GetConnectionInfo(),
-		PlayerNickname: player.GetNickname(),
-	}
-
-	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
-	if err != nil {
-		return fmt.Errorf("cannot join game %w", err)
-	}
-	if !canFire {
-		err = dissconectPlayer(player, responseInfo)
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		return nil
-	}
-
-	// Convert params
-	if len(params) != 0 {
-		err = dissconectPlayer(player, responseInfo)
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		return nil
-	}
-
-	//region LOGIC
-	err = RemovePlayerFromGame(player)
-	if err != nil {
-		return fmt.Errorf("Error sending response: %w", err)
-	}
-	//endregion
-
-	// Send the response
-	err = SendResponseServerSuccess(responseInfo)
-	if err != nil {
-		return fmt.Errorf("Error sending response: %w", err)
-	}
-
-	//Change state machine
-	err = player.FireStateMachine(command.Trigger)
-	if err != nil {
-		return fmt.Errorf("Error sending response: %w", err)
-	}
-
-	return nil
-}
-
-func processClientReconnect(player *utils.Player, params []utils.Params, command utils.Command) error {
-	responseInfo := utils.NetworkResponseInfo{
-		ConnectionInfo: player.GetConnectionInfo(),
-		PlayerNickname: player.GetNickname(),
-	}
-
-	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
-	if err != nil {
-		return fmt.Errorf("cannot join game %w", err)
-	}
-	if !canFire {
-		err = dissconectPlayer(player, responseInfo)
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		return nil
-	}
-
-	// Convert params
-	if len(params) != 0 {
-		err = dissconectPlayer(player, responseInfo)
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		return nil
-	}
-
-	//region LOGIC
-
-	wasHandled := false
-	//ReconnectGameList
-	canFire, err = player.GetStateMachine().CanFire(utils.CGCommands.ServerReconnectGameList.Trigger)
-	if err != nil {
-		return fmt.Errorf("cannot join game %w", err)
-	}
-	if canFire {
-		_, err := CommunicationServerReconnectGameList(player, gGamelist.GetValuesArray())
-
-		err = player.FireStateMachine(utils.CGCommands.ServerReconnectGameList.Trigger)
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		wasHandled = true
-	}
-
-	//ReconnectGameData
-	canFire, err = player.GetStateMachine().CanFire(utils.CGCommands.ServerReconnectGameData.Trigger)
-	if err != nil {
-		return fmt.Errorf("cannot join game %w", err)
-	}
-	if canFire && !wasHandled {
-		gameData, err := player.GetGame().GetGameData()
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		_, err = CommunicationServerReconnectGameData(player, gameData)
-
-		err = player.FireStateMachine(utils.CGCommands.ServerReconnectGameData.Trigger)
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		wasHandled = true
-	}
-
-	//ReconnectPlayerList
-	canFire, err = player.GetStateMachine().CanFire(utils.CGCommands.ServerReconnectPlayerList.Trigger)
-	if err != nil {
-		return fmt.Errorf("cannot join game %w", err)
-	}
-
-	if canFire && !wasHandled {
-		_, err := CommunicationServerReconnectPlayerList(player, player.GetGame().GetPlayers())
-
-		err = player.FireStateMachine(utils.CGCommands.ServerReconnectPlayerList.Trigger)
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		wasHandled = true
-	}
-
-	if !wasHandled {
-		err = dissconectPlayer(player, responseInfo)
-		if err != nil {
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		return nil
-	}
-
-	//endregion
-
-	return nil
 }
 
 //endregion

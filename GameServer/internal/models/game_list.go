@@ -1,10 +1,11 @@
-package utils
+package models
 
 import (
 	"fmt"
 	"sync"
 )
 
+// region DATA STRUCTURES
 type GameList struct {
 	list *List
 }
@@ -13,6 +14,10 @@ var (
 	instanceGL *GameList
 	onceGL     sync.Once
 )
+
+//endregion
+
+//region FUNCTIONS
 
 func GetInstanceGameList() *GameList {
 	onceGL.Do(func() {
@@ -73,3 +78,5 @@ func (gl *GameList) GetValuesArray() []*Game {
 
 	return values
 }
+
+//endregion
