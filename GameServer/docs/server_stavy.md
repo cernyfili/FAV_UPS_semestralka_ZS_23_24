@@ -2,53 +2,62 @@
 - Waiting for request
 - Get request
 
-## Control player table
+## Message format
 
-- player list
+```plaintext
+structure:
+stamp;command_id;timestamp;{player_nickname};{args...}
 
-  - player
-
-    - player_id
-    - game_id
-
-## Requests
-
-```json
-OLDDDD
-{
-  "header": {
-    "signature": "KIVUPS",
-    "command_id": 4,
-    "player_id" : 5
-  },
-  "params": [
-    {
-      "key": "nickname",
-      "value": "super_karel"
-    }
-  ]
-}
+example:
+KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
 ```
 
-### Message format
+### Param Format
 
-```json
-OLDD KIVUPS;command_id;player_id;args...
-```
+**single params**
 
-- OLDDD
-- size_bytes: 1 bytes
-- KIVUPS: 6 bytes
-- command_id: 1 byte
-- player_id: 2 bytes
-- args: based on size_bytes
+`{"gameName":"Game3", "maxPlayers":"3"}`
 
-### Client-Server
+**array params**
 
-#### **1 - Player connect**
+`{"gameList":[["gameName":"Game3","maxPlayers":"3","connectedPlayers":"5"],["gameName":"Game5","maxPlayers":"3","connectedPlayers":"5"]]}`
 
-- _Format:_
-  - **{"nickname":"super_karel"}**
+
+#### Param arrays
+
+**gameList**
+- "gameName"
+- "maxPlayers"
+- "connectedPlayers"
+
+**playerList**
+- "playerName"
+
+**gameData**
+- "playerName"
+- "isConnected"
+- "score"
+- "isTurn"
+
+### Sizes
+
+- header
+  - stamp:
+    - 6 bytes
+  - command_id:
+    - 2 bytes
+  - timestamp:
+    - 20 bytes
+  - player_nickname:
+    - in between {}
+- args:
+  - in between {}
+
+# Commands
+
+## Client-Server
+
+#### **1 - Client login**
 
 #### **21 - RESPONSE**
 
@@ -150,7 +159,166 @@ OLDD KIVUPS;command_id;player_id;args...
 
   - game in room list
   - _Format:_
-    - **ROOM_LIST;["game_id":{"name":"Room1","player_count":"5","state":"WAITING"}]}**
+    - **ROOM_LIST;["game_id":{"name":"Room1","player_count":"5","state":"WAITING"}]}
+    - **
+
+# Network messages - CURRENT
+
+## CLIENT -> SERVER
+
+- **ClientLogin**
+  `CommandID: 1, Params: []`
+
+  - **Response**
+    - ResponseServerGameList
+    - ResponseServerError
+      - Error Duplicit nickname
+      - Error other
+- **ClientCreateGame**
+  `CommandID: 2, Params: ["gameName", "maxPlayers"]`
+
+  - **Response**
+    - ResponseServerSuccess AND [To All]ServerUpdateGameList
+    - ResponseServerError
+- **ClientJoinGame**
+  `CommandID: 3, Params: ["gameID"]`
+
+  - **Response**
+    - ResponseServerSuccess AND [To All]ServerUpdatePlayerList
+    - ResponseServerError
+- **ClientStartGame**
+  `CommandID: 4, Params: []`
+
+  - **Response**
+    - ResponseServerSuccess AND [To All]ServerUpdateStartGame
+    - ResponseServerError
+- **ClientRollDice**
+  `CommandID: 5, Params: []`
+
+  - **Response**
+    - ResponseServerDiceNext
+    - ResponseServerDiceEndTurn AND [To All]ServerUpdateGameData
+- **ClientNextDice**
+  `CommandID: 61, Params: []`
+
+  - **Response**
+    - ResponseServerNextDiceSuccess
+    - ResponseServerNextDiceEndScore AND [To All]ServerUpdateEndScore
+- **ClientEndTurn**
+  `CommandID: 62, Params: []`
+
+  - **Response**
+    - ResponseServerSuccess AND [To All]ServerUpdateGameData
+- **ClientLogout**
+  `CommandID: 7, Params: []`
+
+  - **Response**
+    - ResponseServerSuccess
+    - ResponseServerError
+- **ClientReconnect**
+  `CommandID: 8, Params: []`
+
+  - todo
+
+---
+
+## RESPONSES SERVER -> CLIENT
+
+- **ResponseServerSuccess**
+  `CommandID: 30, Params: []`
+- **ResponseServerError**
+  `CommandID: 32, Params: ["message"]`
+- **ResponseServerGameList**
+  `CommandID: 33, Params: ["gameList"] List`
+- **ResponseServerDiceNext**
+  `CommandID: 34, Params: []`
+- **ResponseServerDiceEndTurn**
+  `CommandID: 35, Params: []`
+- **ResponseServerNextDiceEndScore**
+  `CommandID: 36, Params: []`
+- **ResponseServerNextDiceSuccess**
+  `CommandID: 37, Params: []`
+
+---
+
+## SERVER -> CLIENT
+
+### SERVER -> ALL CLIENT
+
+- **ServerUpdateStartGame**
+  `CommandID: 41, Params: []`
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+- **ServerUpdateEndScore**
+  `CommandID: 42, Params: []`
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+- **ServerUpdateGameData**
+  `CommandID: 43, Params: ["gameData"] List`
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+- **ServerUpdateGameList**
+  `CommandID: 44, Params: ["gameList"] List`
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+- **ServerUpdatePlayerList**
+  `CommandID: 45, Params: ["playersList"] List `
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+
+### SERVER -> ONE CLIENT
+
+- **ServerReconnectGameList**
+  `CommandID: 46, Params: ["gameList"] List`
+
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+- **ServerReconnectGameData**
+  `CommandID: 47, Params: ["gameData"] List`
+
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+- **ServerReconnectPlayerList**
+  `CommandID: 48, Params: ["playersList"] List `
+
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+- **ServerStartTurn**
+  `CommandID: 49, Params: []`
+
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+- **ServerPingPlayer**
+  `CommandID: 50, Params: []`
+
+  - **Response**
+    - ResponseClientSuccess
+    - ResponseClientError
+
+---
+
+## RESPONSES CLIENT -> SERVER
+
+- **ResponseClientSuccess**
+  `CommandID: 60, Params: []`
+- **ResponseClientError**
+  `CommandID: 61, Params: ["message"]`
+
+---
+
+## Errors
+
+- **ErrorPlayerUnreachable**
+  `CommandID: 70, Params: []`
 
 ---
 
@@ -240,5 +408,4 @@ stateDiagram
   
     Fork_next_dice --> My_turn : SERVER->CLIENT ResponseServerNextDiceSuccess()
     Fork_next_dice --> Lobby : SERVER->CLIENT ResponseServerNextDiceEndScore() \n SERVER->PLAYERS_IN_GAME ServerUpdateEndScore (winner_player_nickname, game_list)
-  
 ```

@@ -1,12 +1,12 @@
 # Command Handlers
-from constants import CommandTypeEnum
+from shared.constants import CCommandTypeEnum
 
 command_handlers = {
-    CommandTypeEnum.ClientCreateGame.value.id: {"handler": process_client_create_game, "command": CommandTypeEnum.ClientCreateGame.value},
-    CommandTypeEnum.ClientJoinGame.value.id: {"handler": process_client_join_game, "command": CommandTypeEnum.ClientJoinGame.value},
-    CommandTypeEnum.ClientStartGame.value.id: {"handler": process_client_start_game, "command": CommandTypeEnum.ClientStartGame.value},
-    CommandTypeEnum.ClientLogout.value.id: {"handler": process_client_player_logout, "command": CommandTypeEnum.ClientLogout.value},
-    CommandTypeEnum.ClientReconnect.value.id: {"handler": process_client_reconnect, "command": CommandTypeEnum.ClientReconnect.value},
+    CCommandTypeEnum.ClientCreateGame.value.id: {"handler": process_client_create_game, "command": CCommandTypeEnum.ClientCreateGame.value},
+    CCommandTypeEnum.ClientJoinGame.value.id: {"handler": process_client_join_game, "command": CCommandTypeEnum.ClientJoinGame.value},
+    CCommandTypeEnum.ClientStartGame.value.id: {"handler": process_client_start_game, "command": CCommandTypeEnum.ClientStartGame.value},
+    CCommandTypeEnum.ClientLogout.value.id: {"handler": process_client_player_logout, "command": CCommandTypeEnum.ClientLogout.value},
+    CCommandTypeEnum.ClientReconnect.value.id: {"handler": process_client_reconnect, "command": CCommandTypeEnum.ClientReconnect.value},
 }
 
 def process_message(message, conn):
@@ -17,7 +17,7 @@ def process_message(message, conn):
     command_id = message.command_id
     player_nickname = message.player_nickname
     timestamp = message.timestamp
-    params = message.parameters
+    params = message.param_names
 
     connection_info = {
         "connection": conn,
@@ -25,8 +25,8 @@ def process_message(message, conn):
     }
 
     # If player_login
-    if command_id == CommandTypeEnum.ClientLogin.value.id:
-        err = process_player_login(player_nickname, connection_info, CommandTypeEnum.ClientLogin.value, params)
+    if command_id == CCommandTypeEnum.ClientLogin.value.id:
+        err = process_player_login(player_nickname, connection_info, CCommandTypeEnum.ClientLogin.value, params)
         if err:
             raise ValueError(f"Error sending response: {err}")
 

@@ -65,7 +65,7 @@ class SignatureAdapter(Signature):
         if hasattr(method, "__signature__"):
             sig = method.__signature__
             return SignatureAdapter(
-                sig.parameters.values(),
+                sig.param_names.values(),
                 return_annotation=sig.return_annotation,
             )
         return super().from_callable(method)

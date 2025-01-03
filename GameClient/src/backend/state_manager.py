@@ -1,9 +1,10 @@
+# Now you can import the package
 from statemachine import StateMachine, State
 
 
 class GameStateMachine(StateMachine):
     # Define states
-    stateEnd = State('End')
+    stateEnd = State('End', final=True)
     stateErrorGame = State('ErrorGame')
     stateErrorLobby = State('ErrorLobby')
     stateErrorRunningGame = State('ErrorRunning_Game')
@@ -23,34 +24,39 @@ class GameStateMachine(StateMachine):
     ServerUpdateGameList = stateLobby.to(stateLobby)
     ClientJoinGame = stateLobby.to(stateGame)
     ClientCreateGame = stateLobby.to(stateGame)
-    ErrorPlayerUnreachable = stateLobby.to(stateErrorLobby)
+
     ServerReconnectGameList = stateErrorLobby.to(stateLobby)
+
+
     ClientStartGame = stateGame.to(stateRunningGame)
-    ServerUpdateStartGame = stateGame.to(stateRunningGame)
+    ServerUpdateStartGame = (stateGame.to(stateRunningGame)
+                             | stateErrorGame.to(stateErrorRunningGame)
+                             )
     ServerUpdatePlayerList = stateGame.to(stateGame)
     ErrorPlayerUnreachable = (stateGame.to(stateErrorGame)
                               | stateMyTurn.to(stateErrorRunningGame)
                               | stateRunningGame.to(stateErrorRunningGame)
+                              | stateLobby.to(stateErrorLobby)
                               )
     ServerReconnectPlayerList = stateErrorGame.to(stateGame)
-    ServerUpdateStartGame = stateErrorGame.to(stateErrorRunningGame)
-    ServerUpdateEndScore = stateRunningGame.to(stateLobby)
+
+    ServerUpdateEndScore = (stateRunningGame.to(stateLobby)
+                            | stateErrorRunningGame.to(stateErrorGame))
     ServerStartTurn = stateRunningGame.to(stateMyTurn)
     ServerUpdateGameData = stateRunningGame.to(stateRunningGame)
 
     ServerReconnectGameData = stateErrorRunningGame.to(stateRunningGame)
-    ServerUpdateEndScore = stateErrorRunningGame.to(stateErrorGame)
+
     ClientRollDice = stateMyTurn.to(stateForkMyTurn)
-    ServerPingPlayer = stateMyTurn.to(stateMyTurn)
+    ServerPingPlayer = (stateMyTurn.to(stateMyTurn)
+                        | stateNextDice.to(stateNextDice))
 
     ResponseServerDiceEndTurn = stateForkMyTurn.to(stateRunningGame)
     ResponseServerDiceNext = stateForkMyTurn.to(stateNextDice)
+
     ClientEndTurn = stateNextDice.to(stateRunningGame)
-    ClientNextDice = stateNextDice.to(stateMyTurn)
-    ServerPingPlayer = stateNextDice.to(stateNextDice)
-    ResponseServerNextDiceEndScore = stateForkNextDice.to(stateRunningGame)
-    ResponseServerNextDiceSuccess = stateForkNextDice.to(stateNextDice)
+    ClientNextDice = stateNextDice.to(stateForkNextDice)
 
+    ResponseServerNextDiceEndScore = stateForkNextDice.to(stateLobby)
+    ResponseServerNextDiceSuccess = stateForkNextDice.to(stateMyTurn)
 
-state_machine = StateMachine()
-G_game_state_machine = GameStateMachine(state_machine)

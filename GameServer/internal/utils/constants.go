@@ -108,9 +108,9 @@ var CGCommands = CommandType{
 	//SERVER->CLIENT
 	ServerUpdateStartGame:  Command{41, stateless.Trigger("ServerUpdateStartGame"), []string{""}},
 	ServerUpdateEndScore:   Command{42, stateless.Trigger("ServerUpdateEndScore"), []string{""}},
-	ServerUpdateGameData:   Command{43, stateless.Trigger("ServerUpdateGameData"), []string{""}},
+	ServerUpdateGameData:   Command{43, stateless.Trigger("ServerUpdateGameData"), []string{"gameData"}},
 	ServerUpdateGameList:   Command{44, stateless.Trigger("ServerUpdateGameList"), []string{"gameList"}},
-	ServerUpdatePlayerList: Command{45, stateless.Trigger("ServerUpdatePlayerList"), []string{""}},
+	ServerUpdatePlayerList: Command{45, stateless.Trigger("ServerUpdatePlayerList"), []string{"playersList"}},
 
 	ServerReconnectGameList:   Command{46, stateless.Trigger("ServerReconnectGameList"), []string{""}},
 	ServerReconnectGameData:   Command{47, stateless.Trigger("ServerReconnectGameData"), []string{""}},

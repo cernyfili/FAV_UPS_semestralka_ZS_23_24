@@ -59,8 +59,202 @@ func StartServer() {
 }
 
 // region PRIVATE FUNCTIONS
+func sendResponseServerDice(command utils.Command, values []int, player *models.Player, message models.Message) error {
+	paramsValue := ConvertCubeValuesToNetworkString(values)
+	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return err
+	}
+	responseInfo := models.NetworkResponseInfo{
+		ConnectionInfo: models.ConnectionInfo{
+			Connection: player.GetConnectionInfo().Connection,
+			TimeStamp:  message.TimeStamp,
+		},
+		PlayerNickname: message.PlayerNickname,
+	}
+
+	err = sendResponse(responseInfo, command, params)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error sending response %w", err)
+	}
+
+	return nil
+}
+
+func sendResponse(responseInfo models.NetworkResponseInfo, command utils.Command, params []utils.Params) error { //todo refactor where used
+	connection := responseInfo.ConnectionInfo.Connection
+
+	//convert to message
+	message := models.CreateResponseMessage(responseInfo, command.CommandID, params)
+
+	err := connectionWrite(connection, message)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error writing %w", err)
+	}
+	return nil
+}
+
+// sendMessageWithSuccessResponse
+// Return: bool isSuccess - if communication was successful
+func sendMessageWithSuccessResponse(player *models.Player, command utils.Command, params []utils.Params) (bool, error) {
+	responseInfo := models.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	err := sendResponse(responseInfo, command, params)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return false, fmt.Errorf("error sending response %w", err)
+	}
+
+	connection := responseInfo.ConnectionInfo.Connection
+
+	//wait for client response
+	timeout := cTimeout
+	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return false, fmt.Errorf("error reading %w", err)
+	}
+	if isTimeout {
+		err = handleTimeout(player)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return false, fmt.Errorf("error handling timeout %w", err)
+		}
+		return false, nil
+	}
+
+	//check if client responded with success
+	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
+		err := RemovePlayerFromGame(player)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return false, fmt.Errorf("error removing player from lists %w", err)
+		}
+
+		err = connection.Close()
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return false, fmt.Errorf("error closing connection %w", err)
+		}
+
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func sendUpdateList(player *models.Player, command utils.Command, params []utils.Params) error {
+
+	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error checking if can fire %w", err)
+	}
+	if !canFire {
+		return nil
+	}
+
+	connection := player.GetConnectionInfo().Connection
+	responseInfo := models.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	err = sendResponse(responseInfo, command, params)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error sending response %w", err)
+	}
+
+	//wait for client response
+	timeout := cTimeout
+	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error reading %w", err)
+	}
+	if isTimeout {
+		err := handleTimeout(player)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return fmt.Errorf("error handling timeout %w", err)
+		}
+		return nil
+	}
+
+	//check if client responded with success
+	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
+		err := RemovePlayerFromGame(player)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return fmt.Errorf("error removing player from lists %w", err)
+		}
+
+		err = connection.Close()
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return fmt.Errorf("error closing connection %w", err)
+		}
+		return nil
+	}
+
+	err = player.FireStateMachine(command.Trigger)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error firing state machine %w", err)
+	}
+
+	return nil
+}
+
+func communicationRead(player *models.Player, connection net.Conn) (models.Message, models.Message, error) {
+	timeout := cTimeout
+
+	var clientResponse models.Message
+	var isTimeout bool
+	var err error
+	doesRespond := true
+	for doesRespond {
+		//reading clientRollDice
+		clientResponse, isTimeout, err = connectionReadTimeout(connection, timeout)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return models.Message{}, models.Message{}, fmt.Errorf("error reading %w", err)
+		}
+		if isTimeout {
+			isSuccess, err := CommunicationServerPingPlayer(player)
+			if err != nil {
+				errorHandeling.PrintError(err)
+				return models.Message{}, models.Message{}, fmt.Errorf("error sending ping player %w", err)
+			}
+			if !isSuccess {
+				doesRespond = false
+				break
+			}
+		}
+	}
+	return clientResponse, models.Message{}, nil
+}
+
+func handlePlayerTimeOut(connection net.Conn) error {
+	err := connection.Close()
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error closing connection %w", err)
+	}
+	return nil
+}
+
 func handleConnection(conn net.Conn) {
 
+	//todo while loop for reading new messages
+	//todo handle timeout and ping
 	logger.Log.Info("New connection from " + conn.RemoteAddr().String())
 	message, err := connectionRead(conn)
 	if err != nil {
@@ -86,6 +280,19 @@ func handleConnection(conn net.Conn) {
 		fmt.Println("Error processing message:", err)
 		return
 	}
+}
+
+func handleTimeout(player *models.Player) error {
+	commandError := utils.CGCommands.ErrorPlayerUnreachable
+	err := player.FireStateMachine(commandError.Trigger)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error firing state machine %w", err)
+	}
+
+	player.SetConnected(false)
+
+	return nil
 }
 
 func connectionReadTimeout(connection net.Conn, timeout time.Duration) (models.Message, bool, error) {
@@ -205,83 +412,6 @@ func isClientResponseCommand(clientResponse models.Message, originalInfo models.
 	return true
 }
 
-func sendUpdateList(player *models.Player, command utils.Command, params []utils.Params) error {
-
-	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error checking if can fire %w", err)
-	}
-	if !canFire {
-		return nil
-	}
-
-	connection := player.GetConnectionInfo().Connection
-	responseInfo := models.NetworkResponseInfo{
-		ConnectionInfo: player.GetConnectionInfo(),
-		PlayerNickname: player.GetNickname(),
-	}
-
-	err = sendResponse(responseInfo, command, params)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error sending response %w", err)
-	}
-
-	//wait for client response
-	timeout := cTimeout
-	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error reading %w", err)
-	}
-	if isTimeout {
-		err := handleTimeout(player)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return fmt.Errorf("error handling timeout %w", err)
-		}
-		return nil
-	}
-
-	//check if client responded with success
-	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
-		err := RemovePlayerFromGame(player)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return fmt.Errorf("error removing player from lists %w", err)
-		}
-
-		err = connection.Close()
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return fmt.Errorf("error closing connection %w", err)
-		}
-		return nil
-	}
-
-	err = player.FireStateMachine(command.Trigger)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error firing state machine %w", err)
-	}
-
-	return nil
-}
-
-func handleTimeout(player *models.Player) error {
-	commandError := utils.CGCommands.ErrorPlayerUnreachable
-	err := player.FireStateMachine(commandError.Trigger)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error firing state machine %w", err)
-	}
-
-	player.SetConnected(false)
-
-	return nil
-}
-
 //endregion
 
 //region SEND RESPONSE FUNCTIONS
@@ -300,21 +430,10 @@ func SendResponseServerSuccess(responseInfo models.NetworkResponseInfo) error {
 }
 
 func SendResponseServerErrDuplicitNickname(responseInfo models.NetworkResponseInfo) error {
-	//convert to message
-	message := models.CreateResponseMessage(responseInfo, utils.CGCommands.ResponseServerErrDuplicitNickname.CommandID, utils.CGNetworkEmptyParams)
-
-	err := connectionWrite(responseInfo.ConnectionInfo.Connection, message)
+	err := SendResponseServerError(responseInfo, fmt.Errorf("error duplicate nickname"))
 	if err != nil {
 		errorHandeling.PrintError(err)
-		return fmt.Errorf("error writing %w", err)
-	}
-
-	connection := responseInfo.ConnectionInfo.Connection
-
-	err = connection.Close()
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return err
+		return fmt.Errorf("error sending response %w", err)
 	}
 	return nil
 }
@@ -346,6 +465,7 @@ func SendResponseServerError(responseInfo models.NetworkResponseInfo, paramsValu
 
 	return nil
 }
+
 func SendResponseServerGameList(responseInfo models.NetworkResponseInfo, paramsValues []*models.Game) (bool, error) {
 	command := utils.CGCommands.ResponseServerGameList
 
@@ -369,6 +489,66 @@ func SendResponseServerGameList(responseInfo models.NetworkResponseInfo, paramsV
 
 	return true, nil
 }
+
+func SendResponseServerDiceNext(values []int, player *models.Player, message models.Message) error {
+	command := utils.CGCommands.ResponseServerDiceNext
+
+	err := sendResponseServerDice(command, values, player, message)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error sending response %w", err)
+	}
+	return nil
+}
+
+func SendResponseServerDiceEndTurn(values []int, player *models.Player, message models.Message) error {
+	command := utils.CGCommands.ResponseServerDiceEndTurn
+
+	err := sendResponseServerDice(command, values, player, message)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error sending response %w", err)
+	}
+	return nil
+}
+
+func SendResponseServerNextDiceSuccess(player *models.Player) error {
+	command := utils.CGCommands.ResponseServerNextDiceSuccess
+
+	responseInfo := models.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	err := sendResponse(responseInfo, command, utils.CGNetworkEmptyParams)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error sending response %w", err)
+	}
+
+	return nil
+}
+
+func SendResponseServerNextDiceEndScore(player *models.Player) error {
+	command := utils.CGCommands.ResponseServerNextDiceEndScore
+
+	responseInfo := models.NetworkResponseInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	err := sendResponse(responseInfo, command, utils.CGNetworkEmptyParams)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error sending response %w", err)
+	}
+
+	return nil
+}
+
+//endregion
+
+//region COMMUNICATION FUNCTIONS
 
 // CommunicationServerReconnectGameList
 func CommunicationServerReconnectGameList(player *models.Player, paramsValues []*models.Game) (bool, error) {
@@ -522,9 +702,6 @@ func CommunicationServerStartTurn(player *models.Player) (bool, error) {
 	return isSuccess, err
 }
 
-// CommunicationReadClientRollDice
-// Return: bool isSuccess - if communication was successful
-
 func CommunicationServerPingPlayer(player *models.Player) (bool, error) {
 	command := utils.CGCommands.ServerPingPlayer
 
@@ -534,28 +711,6 @@ func CommunicationServerPingPlayer(player *models.Player) (bool, error) {
 		return isSuccess, fmt.Errorf("error sending ping player %w", err)
 	}
 	return isSuccess, err
-}
-
-func SendResponseServerDiceNext(values []int, player *models.Player, message models.Message) error {
-	command := utils.CGCommands.ResponseServerDiceNext
-
-	err := sendResponseServerDice(command, values, player, message)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error sending response %w", err)
-	}
-	return nil
-}
-
-func SendResponseServerDiceEndTurn(values []int, player *models.Player, message models.Message) error {
-	command := utils.CGCommands.ResponseServerDiceEndTurn
-
-	err := sendResponseServerDice(command, values, player, message)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error sending response %w", err)
-	}
-	return nil
 }
 
 func CommunicationReadClientRollDice(player *models.Player) (models.Message, bool, error) {
@@ -618,170 +773,6 @@ func CommunicationReadClient(player *models.Player) (models.Message, bool, error
 	}
 
 	return clientResponse, true, nil
-}
-
-func communicationRead(player *models.Player, connection net.Conn) (models.Message, models.Message, error) {
-	timeout := cTimeout
-
-	var clientResponse models.Message
-	var isTimeout bool
-	var err error
-	doesRespond := true
-	for doesRespond {
-		//reading clientRollDice
-		clientResponse, isTimeout, err = connectionReadTimeout(connection, timeout)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return models.Message{}, models.Message{}, fmt.Errorf("error reading %w", err)
-		}
-		if isTimeout {
-			isSuccess, err := CommunicationServerPingPlayer(player)
-			if err != nil {
-				errorHandeling.PrintError(err)
-				return models.Message{}, models.Message{}, fmt.Errorf("error sending ping player %w", err)
-			}
-			if !isSuccess {
-				doesRespond = false
-				break
-			}
-		}
-	}
-	return clientResponse, models.Message{}, nil
-}
-
-// SendResponseServerNextDiceEndScore
-func SendResponseServerNextDiceEndScore(player *models.Player) error {
-	command := utils.CGCommands.ResponseServerNextDiceEndScore
-
-	responseInfo := models.NetworkResponseInfo{
-		ConnectionInfo: player.GetConnectionInfo(),
-		PlayerNickname: player.GetNickname(),
-	}
-
-	err := sendResponse(responseInfo, command, utils.CGNetworkEmptyParams)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error sending response %w", err)
-	}
-
-	return nil
-}
-
-// SendResponseServerNextDiceSuccess
-func SendResponseServerNextDiceSuccess(player *models.Player) error {
-	command := utils.CGCommands.ResponseServerNextDiceSuccess
-
-	responseInfo := models.NetworkResponseInfo{
-		ConnectionInfo: player.GetConnectionInfo(),
-		PlayerNickname: player.GetNickname(),
-	}
-
-	err := sendResponse(responseInfo, command, utils.CGNetworkEmptyParams)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error sending response %w", err)
-	}
-
-	return nil
-}
-
-func sendResponseServerDice(command utils.Command, values []int, player *models.Player, message models.Message) error {
-	paramsValue := ConvertCubeValuesToNetworkString(values)
-	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return err
-	}
-	responseInfo := models.NetworkResponseInfo{
-		ConnectionInfo: models.ConnectionInfo{
-			Connection: player.GetConnectionInfo().Connection,
-			TimeStamp:  message.TimeStamp,
-		},
-		PlayerNickname: message.PlayerNickname,
-	}
-
-	err = sendResponse(responseInfo, command, params)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error sending response %w", err)
-	}
-
-	return nil
-}
-
-func sendResponse(responseInfo models.NetworkResponseInfo, command utils.Command, params []utils.Params) error { //todo refactor where used
-	connection := responseInfo.ConnectionInfo.Connection
-
-	//convert to message
-	message := models.CreateResponseMessage(responseInfo, command.CommandID, params)
-
-	err := connectionWrite(connection, message)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error writing %w", err)
-	}
-	return nil
-}
-
-// sendMessageWithSuccessResponse
-// Return: bool isSuccess - if communication was successful
-func sendMessageWithSuccessResponse(player *models.Player, command utils.Command, params []utils.Params) (bool, error) {
-	responseInfo := models.NetworkResponseInfo{
-		ConnectionInfo: player.GetConnectionInfo(),
-		PlayerNickname: player.GetNickname(),
-	}
-
-	err := sendResponse(responseInfo, command, params)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("error sending response %w", err)
-	}
-
-	connection := responseInfo.ConnectionInfo.Connection
-
-	//wait for client response
-	timeout := cTimeout
-	clientResponse, isTimeout, err := connectionReadTimeout(connection, timeout)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("error reading %w", err)
-	}
-	if isTimeout {
-		err = handleTimeout(player)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return false, fmt.Errorf("error handling timeout %w", err)
-		}
-		return false, nil
-	}
-
-	//check if client responded with success
-	if !isClientResponseCommand(clientResponse, responseInfo, utils.CGCommands.ResponseClientSuccess) {
-		err := RemovePlayerFromGame(player)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return false, fmt.Errorf("error removing player from lists %w", err)
-		}
-
-		err = connection.Close()
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return false, fmt.Errorf("error closing connection %w", err)
-		}
-
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func handlePlayerTimeOut(connection net.Conn) error {
-	err := connection.Close()
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("error closing connection %w", err)
-	}
-	return nil
 }
 
 //endregion

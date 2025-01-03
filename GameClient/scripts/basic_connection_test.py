@@ -36,7 +36,12 @@ try:
         response = sock.recv(1024)  # Receive up to 1024 bytes of data
         if not response:
             continue
-        print(f"Received response from server: {response.decode()}")
+
+        response_str = response.decode()
+        print(f"Received response from server: {response_str}")
+        # if response_str == "KIVUPS332024-12-31T15:30:00Z{nickname}{\"gameList\":\"[]\",}":
+        send_message = "KIVUPS022024-12-31T15:30:00Z{nickname}{\"gameName\":\"game_name\",maxPlayers:\"2\"}"
+        sock.sendall(send_message.encode())
 
 finally:
     # Close the connection
