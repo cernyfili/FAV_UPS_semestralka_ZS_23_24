@@ -20,7 +20,7 @@ type NetworkResponseInfo struct {
 type MessageHeader struct {
 	Signature      [len(utils.CMessageSignature)]byte
 	CommandID      [2]byte
-	TimeStamp      [20]byte
+	TimeStamp      [26]byte
 	PlayerNickname string // {karel_1}
 }
 

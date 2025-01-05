@@ -278,6 +278,9 @@ func ConvertMessageToNetworkString(message models.Message) (string, error) {
 	}
 	networkString += paramsStr
 
+	//End delimiter
+	networkString += string(utils.CMessageEndDelimiter)
+
 	return networkString, nil
 }
 
@@ -383,12 +386,24 @@ func convertParamsToNetworkString(params []utils.Params) (string, error) {
 
 	paramsStr := ""
 	paramsStr += cParamsBrackets.Opening
-	for i := 0; i < length; i++ {
-		paramsStr += cParamsWrapper + params[i].Name + cParamsWrapper + cParamsKeyValueDelimiter + cParamsWrapper + params[i].Value + cParamsWrapper + cParamsDelimiter
+	for i := 0; i < length-1; i++ {
+		param := params[i]
+		paramStr := convertParamElementToNetworkString(param.Name, param.Value)
+		paramsStr += paramStr
 	}
+
+	// last one without delimiter
+	param := params[length-1]
+	paramStr := cParamsWrapper + param.Name + cParamsWrapper + cParamsKeyValueDelimiter + cParamsWrapper + param.Value + cParamsWrapper
+	paramsStr += paramStr
+
 	paramsStr += cParamsBrackets.Closing
 
 	return paramsStr, nil
+}
+
+func convertParamElementToNetworkString(name string, value string) string {
+	return cParamsWrapper + name + cParamsWrapper + cParamsKeyValueDelimiter + cParamsWrapper + value + cParamsWrapper + cParamsDelimiter
 }
 
 //endregion
