@@ -7,31 +7,88 @@ Created: 02.01.2025
 Version: 1.0
 Description: 
 """
+import logging
+import threading
 import tkinter as tk
+from abc import ABC
 
-from frontend.page_interface import PageInterface
-from shared.constants import CGameConfig, CMessageConfig
-from shared.data_structures import GameList
+from pyparsing import empty
+
+from backend.server_communication import ServerCommunication
+from frontend.page_interface import PageInterface, UpdateInterface
+from frontend.views.utils import process_is_not_connected, stop_update_thread
+from shared.constants import CGameConfig, CMessageConfig, GameList, Game, GAME_STATE_MACHINE
 
 
-class LobbyPage(tk.Frame, PageInterface):
+class LobbyPage(tk.Frame, UpdateInterface, ABC):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self._game_list : GameList = GameList()
+        self._list = []
+        self._lock = threading.Lock()  # Initialize the lock
+        #self._receive_updates = True
+        self._stop_event = threading.Event()
 
         self._load_page_content()
+        self._update_thread = None
 
-    def connect_to_game(self, game):
-        self.controller.show_page("PlayerListPage")
+    def tkraise(self, aboveThis=None):
+        logging.debug("Raising Page")
+        # Call the original tkraise method
+        super().tkraise(aboveThis)
+        # Custom behavior after raising the frame
+        self._load_page_content()
+
+        self._start_listening_for_updates()
+
+    def _get_state_name(self):
+        return 'stateLobby'
+
+    def _get_update_function(self):
+        return ServerCommunication().receive_game_list_update
+
+    def _set_update_thread(self, param):
+        self._update_thread = param
+
+    # def _start_listening_for_updates(self):
+    #     state_name = 'stateLobby'
+    #     update_function = ServerCommunication().receive_game_list_update
+    #
+    #     logging.debug("Starting to listen for updates")
+    #     def listen_for_updates():
+    #         current_state = GAME_STATE_MACHINE.get_current_state()
+    #         while current_state == state_name and not self._stop_event.is_set():
+    #             logging.debug("Listening for game list updates")
+    #             try:
+    #                 update_list = update_function()
+    #                 if self._stop_event.is_set():
+    #                     break
+    #                 if not update_list:
+    #                     break
+    #                 self.update_data(update_list)
+    #             except Exception as e:
+    #                 raise e
+    #                 break
+    #     # Wait for the update thread to finish
+    #     self.update_thread = threading.Thread(target=listen_for_updates, daemon=True)
+    #     self.update_thread.start()
 
     def _load_page_content(self):
         def show_game_list():
-            game_list = self._game_list
+            game_list = self._list
             label = tk.Label(self, text="Available Games")
             label.pack(pady=10, padx=10)
 
+            if game_list == '[]' or not game_list:
+                label = tk.Label(self, text="No games available")
+                label.pack(pady=10, padx=10)
+                return
+
+            if not isinstance(game_list[0], Game):
+                raise ValueError("Invalid game list format")
+
             for game in game_list:
+                game : Game = game
                 game_name = game.name
                 connected_count_players = game.connected_count_players
                 max_players = game.max_players
@@ -41,7 +98,7 @@ class LobbyPage(tk.Frame, PageInterface):
                 game_label.pack(pady=10, padx=10)
 
                 # Create a connect button for the game
-                connect_button = tk.Button(self, text="Connect", command=lambda game_element=game: self.connect_to_game(game_element))
+                connect_button = tk.Button(self, text="Connect", command=lambda game_element=game: self._button_action_connect_to_game(game_element))
                 connect_button.pack(pady=10, padx=10)
 
                 # Disable the connect button if the game is full
@@ -49,20 +106,28 @@ class LobbyPage(tk.Frame, PageInterface):
                     connect_button.config(state="disabled")
 
         def open_popup_new_game():
+            if hasattr(self, 'popup') and self.popup.winfo_exists():
+                self.popup.lift()
+                return
+
             popup = tk.Toplevel(self)
             popup.title("Create New Game")
             popup.geometry("300x200")
 
             # Game name label and entry
+            default_game_name = "Game1"
             game_name_label = tk.Label(popup, text="Game Name:")
             game_name_label.pack(pady=5)
             game_name_entry = tk.Entry(popup)
+            game_name_entry.insert(0, default_game_name)
             game_name_entry.pack(pady=5)
 
             # Max players label and entry
             max_players_label = tk.Label(popup, text="Max Players:")
             max_players_label.pack(pady=5)
             max_players_entry = tk.Entry(popup)
+            max_players_entry = tk.Entry(popup)
+            max_players_entry.insert(0, "4")
             max_players_entry.pack(pady=5)
 
             # Validation function
@@ -85,15 +150,17 @@ class LobbyPage(tk.Frame, PageInterface):
                 return True
 
             # Create game button
-            create_button = tk.Button(popup, text="Create", command=lambda: validate_inputs() and self.create_game(game_name_entry.get(), max_players_entry.get()) and popup.destroy())
+            create_button = tk.Button(popup, text="Create", command=lambda: validate_inputs() and self._button_action_create_game(game_name_entry.get(), int(max_players_entry.get())) and popup.destroy())
             create_button.pack(pady=10)
 
             # Close button
             close_button = tk.Button(popup, text="Close", command=popup.destroy)
             close_button.pack(pady=5)
 
-        # Clear the current content
+        # Clear the current content except for popups
         for widget in self.winfo_children():
+            if isinstance(widget, tk.Toplevel):
+                continue
             widget.destroy()
 
         show_game_list()
@@ -102,14 +169,47 @@ class LobbyPage(tk.Frame, PageInterface):
         create_game_button = tk.Button(self, text="Create New Game", command=lambda: open_popup_new_game())
         create_game_button.pack(pady=10, padx=10)
 
+    # def update_data(self, data : GameList):
+    #     with self._lock:  # Acquire the lock
+    #         self._list = data
+    #         self._load_page_content()
 
+    def _button_action_create_game(self, game_name : str, max_players_count : int) -> bool:
+        send_function = ServerCommunication().send_client_create_game
+        next_page_name = "BeforeGamePage"
+        
+        stop_update_thread(self)
+        try:
+            is_connected = send_function(game_name, max_players_count)
+            if not is_connected:
+                process_is_not_connected(self)
+        except Exception as e:
+            #messagebox.showerror("Connection Failed", str(e))
+            #todo
 
-    def update_data(self, data : GameList):
-        self._game_list = data
-        self._load_page_content()
+            raise e
+            return False
 
-    def create_game(self, param, param1):
-        print("Creating game")
+        self.controller.show_page(next_page_name)
+        return True
+
+    def _button_action_connect_to_game(self, game_name: str) -> bool:
+        send_function = ServerCommunication().send_client_join_game
+        next_page_name = "BeforeGamePage"
+
+        stop_update_thread(self)
+        try:
+            is_connected = send_function(game_name)
+            if not is_connected:
+                process_is_not_connected(self)
+        except Exception as e:
+            #messagebox.showerror("Connection Failed", str(e))
+            #todo
+
+            raise e
+            return False
+
+        self.controller.show_page(next_page_name)
         return True
 
 

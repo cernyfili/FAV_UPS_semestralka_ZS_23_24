@@ -17,6 +17,7 @@ class MyApp(tk.Tk):
         self.container.pack(side="top", fill="both", expand=True)
         self.container.grid_rowconfigure(0, weight=1)
         self.container.grid_columnconfigure(0, weight=1)
+        self._current_frame = "StartPage"
 
         # Dictionary to hold pages
         self.pages = {}
@@ -31,13 +32,23 @@ class MyApp(tk.Tk):
         # Show the initial page
         self.show_page("StartPage")
 
-    def show_page(self, page_name):
+    def show_page(self, page_name, data=None):
         # Show the selected page
+        self._current_frame = page_name
         frame = self.pages[page_name]
-        frame.tkraise()
+        if data:
+            frame.update_data(data)
 
-    def show_page_with_data(self, page_name, data):
-        frame = self.pages[page_name]
-        frame.update_data(data)
         frame.tkraise()
+        # try:
+
+        #     frame.tkraise()
+        # except Exception as e:
+        #     print(f"Error: {e}")
+        #     # exit
+        #     sys.exit(1)
+
+    def get_current_frame(self):
+        return self._current_frame
+
 

@@ -9,7 +9,7 @@ structure:
 stamp;command_id;timestamp;{player_nickname};{args...}
 
 example:
-KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
+KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 ```
 
 ### Param Format
@@ -20,20 +20,22 @@ KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
 
 **array params**
 
-`{"gameList":[["gameName":"Game3","maxPlayers":"3","connectedPlayers":"5"],["gameName":"Game5","maxPlayers":"3","connectedPlayers":"5"]]}`
-
+`{"gameList":[{"gameName":"Game3","maxPlayers":"3","connectedPlayers":"5"};{"gameName":"Game5","maxPlayers":"3","connectedPlayers":"5"}]}`
 
 #### Param arrays
 
 **gameList**
+
 - "gameName"
 - "maxPlayers"
 - "connectedPlayers"
 
 **playerList**
+
 - "playerName"
 
 **gameData**
+
 - "playerName"
 - "isConnected"
 - "score"
@@ -43,15 +45,24 @@ KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
 
 - header
   - stamp:
+
     - 6 bytes
   - command_id:
+
     - 2 bytes
   - timestamp:
-    - 20 bytes
-  - player_nickname:
+
+    - 26 bytes
+    - format:
+
+      - `%Y-%m-%d %H:%M:%S.%f`
+      - `2025-01-04 12:47:56.816357`
+    - player_nickname:
+
+      - in between {}
+  - args:
+
     - in between {}
-- args:
-  - in between {}
 
 # Commands
 
@@ -181,7 +192,7 @@ KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
     - ResponseServerSuccess AND [To All]ServerUpdateGameList
     - ResponseServerError
 - **ClientJoinGame**
-  `CommandID: 3, Params: ["gameID"]`
+  `CommandID: 3, Params: ["gameName"]`
 
   - **Response**
     - ResponseServerSuccess AND [To All]ServerUpdatePlayerList
@@ -190,7 +201,7 @@ KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
   `CommandID: 4, Params: []`
 
   - **Response**
-    - ResponseServerSuccess AND [To All]ServerUpdateStartGame
+    - ResponseServerSuccess AND [To All]ServerUpdateStartGame, ServerUpdateGameData
     - ResponseServerError
 - **ClientRollDice**
   `CommandID: 5, Params: []`
@@ -224,16 +235,23 @@ KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
 
 ## RESPONSES SERVER -> CLIENT
 
+### GENERAL
+
 - **ResponseServerSuccess**
   `CommandID: 30, Params: []`
 - **ResponseServerError**
   `CommandID: 32, Params: ["message"]`
+
+### SPECIFIC
+
 - **ResponseServerGameList**
   `CommandID: 33, Params: ["gameList"] List`
+-
 - **ResponseServerDiceNext**
   `CommandID: 34, Params: []`
 - **ResponseServerDiceEndTurn**
-  `CommandID: 35, Params: []`
+- `CommandID: 35, Params: []`
+-
 - **ResponseServerNextDiceEndScore**
   `CommandID: 36, Params: []`
 - **ResponseServerNextDiceSuccess**
@@ -245,31 +263,31 @@ KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
 
 ### SERVER -> ALL CLIENT
 
+#### ONCE
+
 - **ServerUpdateStartGame**
   `CommandID: 41, Params: []`
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 - **ServerUpdateEndScore**
   `CommandID: 42, Params: []`
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
+
+#### CONTINOUS
+
 - **ServerUpdateGameData**
   `CommandID: 43, Params: ["gameData"] List`
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 - **ServerUpdateGameList**
   `CommandID: 44, Params: ["gameList"] List`
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 - **ServerUpdatePlayerList**
   `CommandID: 45, Params: ["playersList"] List `
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 
 ### SERVER -> ONE CLIENT
 
@@ -278,31 +296,26 @@ KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
 
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 - **ServerReconnectGameData**
   `CommandID: 47, Params: ["gameData"] List`
 
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 - **ServerReconnectPlayerList**
   `CommandID: 48, Params: ["playersList"] List `
 
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 - **ServerStartTurn**
   `CommandID: 49, Params: []`
 
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 - **ServerPingPlayer**
   `CommandID: 50, Params: []`
 
   - **Response**
     - ResponseClientSuccess
-    - ResponseClientError
 
 ---
 
@@ -310,8 +323,6 @@ KIVUPS012024-12-31T15:30:00Z{nickname}{}\n
 
 - **ResponseClientSuccess**
   `CommandID: 60, Params: []`
-- **ResponseClientError**
-  `CommandID: 61, Params: ["message"]`
 
 ---
 

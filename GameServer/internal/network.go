@@ -16,7 +16,7 @@ import (
 // region GLOBAL VARIABLES
 const (
 	connType = "tcp"
-	connHost = "0.0.0.0"
+	connHost = "127.0.0.1"
 	connPort = "10000"
 )
 const cTimeout = time.Second

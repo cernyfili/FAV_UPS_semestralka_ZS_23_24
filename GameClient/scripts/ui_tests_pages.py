@@ -8,26 +8,26 @@ Version: 1.0
 Description: 
 """
 from frontend.ui_manager import MyApp
-from shared.data_structures import GameList, Game, PlayerList, Player, GameData, PlayerGameData
+from shared.constants import Game, GameList, Player, PlayerList, PlayerGameData, GameData
 
 
 def lobby_page():
 
     app = init_app()
     game_list = GameList( [Game("Game1", 2, 4), Game("Game2", 3, 5), Game("Game3", 1, 3)] )
-    app.show_page_with_data("LobbyPage", game_list)
+    app.show_page("LobbyPage", game_list)
     app.mainloop()
 
 def before_game_page():
     app = init_app()
     player_list = PlayerList( [Player("Player1")] )
-    app.show_page_with_data("BeforeGamePage", player_list)
+    app.show_page("BeforeGamePage", player_list)
     app.mainloop()
 
 def running_game_page():
     app = init_app()
     game_data = GameData([PlayerGameData("Karel", True, 5, True),PlayerGameData("Jan", False, 5, False)])
-    app.show_page_with_data("RunningGamePage", game_data)
+    app.show_page("RunningGamePage", game_data)
     app.mainloop()
 
 def my_turn_page():

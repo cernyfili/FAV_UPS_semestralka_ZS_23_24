@@ -10,7 +10,7 @@ Description:
 import tkinter as tk
 
 from frontend.page_interface import PageInterface
-from shared.data_structures import GameData
+from shared.constants import GameData
 
 
 class RunningGamePage(tk.Frame, PageInterface):
@@ -19,7 +19,7 @@ class RunningGamePage(tk.Frame, PageInterface):
         self.controller = controller
 
         # List of players and their scores
-        self.gameData : GameData = GameData()
+        self.gameData : GameData = []
 
         self._load_page_content()
 
