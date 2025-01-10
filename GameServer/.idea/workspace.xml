@@ -4,28 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="probably not stable but fixing bugs &#10;test Start -&gt; lobby">
-      <change afterPath="$PROJECT_DIR$/../GameClient/scripts/dummy_server_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/src/backend/test_parser.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/scripts/ui_tests_pages.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/scripts/ui_tests_pages.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/parser.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/state_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/state_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/ui_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/ui_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/before_game_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/before_game_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/lobby_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/lobby_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/running_game_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/running_game_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/start_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/start_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/shared/data_structures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/shared/data_structures.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/server_stavy.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/server_stavy.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/data_structures.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/data_structures.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/parser.go" afterDir="false" />
-    </list>
+    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="probably not stable but fixing bugs &#10;test Start -&gt; lobby" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

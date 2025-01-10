@@ -6,7 +6,8 @@ from typing import List
 
 from backend.parser import convert_message_to_network_string, parse_message
 from shared.constants import CMessageConfig, CCommandTypeEnum, \
-    CNetworkConfig, GAME_STATE_MACHINE, Command, Param, NetworkMessage, GameList, reset_game_state_machine, PlayerList
+    CNetworkConfig, GAME_STATE_MACHINE, Command, Param, NetworkMessage, GameList, reset_game_state_machine, PlayerList, \
+    CubeValuesList
 
 
 #
@@ -167,7 +168,7 @@ class ServerCommunication:
 
         return error_message
 
-    def _process_wrong_message(self):
+    def _close_connection_processes(self):
         self._close_connection()
         reset_game_state_machine()
 
@@ -175,7 +176,9 @@ class ServerCommunication:
 
     # region SEND
 
-    def _send_standard_command(self, command : Command, allowed_response_commands_id, param_list) -> bool:
+    def _send_standard_command(self, command : Command, param_list) -> bool:
+        allowed_response_commands_id = [CCommandTypeEnum.ResponseServerError.value.id, CCommandTypeEnum.ResponseServerSuccess.value.id]
+
         #self._can_receive = False
         # check if statemachine can fire
         if not GAME_STATE_MACHINE.can_fire(command.trigger.id):
@@ -192,13 +195,11 @@ class ServerCommunication:
         received_message = self._receive_message()
         # Response other
         if received_message.command_id not in allowed_response_commands_id:
-            self._process_wrong_message()
+            self._close_connection_processes()
             return False
 
         # Response Error
-        if received_message.command_id == CCommandTypeEnum.ResponseServerError.value.id:
-            error_message = self.convert_params_error_message(received_message.parameters)
-            raise ConnectionError(f"Error: {error_message}")
+        self._process_error_message(command, received_message)
 
         # Response Success
         if received_message.command_id != CCommandTypeEnum.ResponseServerSuccess.value.id:
@@ -238,7 +239,7 @@ class ServerCommunication:
         # region RECEIVED MESSAGE
         # received_message other
         if received_message.command_id not in allowed_response_commands_id:
-            self._process_wrong_message()
+            self._close_connection_processes()
             return False, None
 
         # received_message = Error
@@ -264,44 +265,185 @@ class ServerCommunication:
 
     def send_client_create_game(self, game_name, max_players_count) -> bool:
         command = CCommandTypeEnum.ClientCreateGame.value
-        allowed_response_commands = [CCommandTypeEnum.ResponseServerSuccess.value.id, CCommandTypeEnum.ResponseServerError.value.id]
         param_list = [Param("gameName", game_name), Param("maxPlayers", max_players_count)]
 
-        return self._send_standard_command(command, allowed_response_commands, param_list)
+        return self._send_standard_command(command, param_list)
 
     def send_client_join_game(self, game_name) -> bool:
         command = CCommandTypeEnum.ClientJoinGame.value
-        allowed_response_commands = [CCommandTypeEnum.ResponseServerSuccess.value.id, CCommandTypeEnum.ResponseServerError.value.id]
         param_list = [Param("gameName", game_name)]
 
-        return self._send_standard_command(command, allowed_response_commands, param_list)
+        return self._send_standard_command(command, param_list)
 
     def send_start_game(self) -> bool:
         command = CCommandTypeEnum.ClientStartGame.value
-        allowed_response_commands = [CCommandTypeEnum.ResponseServerSuccess.value.id, CCommandTypeEnum.ResponseServerError.value.id]
 
-        return self._send_standard_command(command, allowed_response_commands, [])
-    # endregion
+        return self._send_standard_command(command, [])
 
-    # region RECEIVE
-    def _receive_standard_command(self, command : Command):
+    def send_client_logout(self) -> bool:
+        command = CCommandTypeEnum.ClientLogout.value
+        param_list = []
+
+        allowed_response_commands_id = [CCommandTypeEnum.ResponseServerError.value.id, CCommandTypeEnum.ResponseServerSuccess.value.id]
+
+        # region LOGIC
+
+        # region SEND
+        self._send_message(command, param_list)
+        # endregion
+
+        # region RESPONSE
+        #self._can_receive = True
+        received_message = self._receive_message()
+        # Response other
+        if received_message.command_id not in allowed_response_commands_id:
+            self._close_connection_processes()
+            return False
+
+        # Response Error
+        self._process_error_message(command, received_message)
+
+        # Response Success
+        if received_message.command_id != CCommandTypeEnum.ResponseServerSuccess.value.id:
+            raise ValueError("Invalid command ID for game list update.")
+
+        # endregion
+        return True
+
+    @staticmethod
+    def __state_machine_send_triggers(send_command, received_command):
+        GAME_STATE_MACHINE.send_trigger(send_command.trigger)
+        GAME_STATE_MACHINE.send_trigger(received_command.trigger)
+
+    def send_client_roll_dice(self) -> tuple[bool,Command | None, CubeValuesList | None]:
+
+
+        command = CCommandTypeEnum.ClientRollDice.value
+
+        allowed_response_commands_id = [CCommandTypeEnum.ResponseServerSelectCubes.value.id, CCommandTypeEnum.ResponseServerEndTurn.value.id, CCommandTypeEnum.ResponseServerError.value.id]
+
         # check if statemachine can fire
         if not GAME_STATE_MACHINE.can_fire(command.trigger.id):
             raise ValueError("Invalid state machine transition.")
 
         # region LOGIC
+        # region SEND
+        # Connect to the server
+        self._send_message(command)
+        # endregion
+
+        # region RESPONSE
+        received_message = self._receive_message()
+        received_command = CCommandTypeEnum.get_command_by_id(received_message.command_id)
+
+        # Response other
+        if received_command.id not in allowed_response_commands_id:
+            self._close_connection_processes()
+            return False, None, None
+
+        # Response Error
+        self._process_error_message(received_command, received_message)
+
+        # Response SUCCESS
+
+        # Response SelectCubes
+        expected_command = CCommandTypeEnum.ResponseServerSelectCubes.value
+        if received_command.id == expected_command.id:
+            received_command = expected_command
+            self.__state_machine_send_triggers(command, received_command)
+            return_value = received_message.get_array_param()
+            return True, received_command,return_value
+
+        # Response EndTurn
+        expected_command = CCommandTypeEnum.ResponseServerEndTurn.value
+        if received_command.id == expected_command:
+            received_command = expected_command
+            self.__state_machine_send_triggers(command, received_command)
+            return True, received_command,None
+
+        raise ValueError("Invalid command ID for roll dice.")
+        # endregion
+
+        # endregion
+
+    def send_client_select_cubes(self, selected_cubes) -> tuple[bool, Command | None]:
+
+        command = CCommandTypeEnum.ClientSelectedCubes.value
+
+        success_response_command = [CCommandTypeEnum.ResponseServerDiceSuccess.value.id, CCommandTypeEnum.ResponseServerEndScore.value.id]
+        allowed_response_commands_id = success_response_command + [CCommandTypeEnum.ResponseServerError.value.id]
+
+        # check if statemachine can fire
+        if not GAME_STATE_MACHINE.can_fire(command.trigger.id):
+            raise ValueError("Invalid state machine transition.")
+
+        # region LOGIC
+        # region SEND
+        # Connect to the server
+        param_list = [Param("cubeValues", selected_cubes)]
+        self._send_message(command, param_list)
+        # endregion
+
+        # region RESPONSE
+        received_message = self._receive_message()
+        received_command = CCommandTypeEnum.get_command_by_id(received_message.command_id)
+
+        # Response other
+        if received_command.id not in allowed_response_commands_id:
+            self._close_connection_processes()
+            return False, None
+
+        # Response Error
+        self._process_error_message(received_command, received_message)
+
+        # Response SUCCESS
+
+        if not received_command.id in success_response_command:
+            raise ValueError("Invalid command ID for select cubes.")
+
+        # Response Dice Success or EndScore
+        self.__state_machine_send_triggers(command, received_command)
+        return True, received_command
+
+        # endregion
+
+        # endregion
+
+    def _process_error_message(self, received_command, received_message):
+        if received_command.id == CCommandTypeEnum.ResponseServerError.value.id:
+            error_message = self.convert_params_error_message(received_message.parameters)
+            raise ConnectionError(f"Error: {error_message}")
+
+    # endregion
+
+    # region RECEIVE
+    def _receive_standard_update_command(self, command : Command) -> tuple[bool, any]:
+        """
+
+        :param command:
+        :return: list of updated values
+        """
         try:
-            received_message = self._receive_message()
-        except Exception as e:
-            return None
+            is_connected, recieved_message =  self._receive_standard_command(command)
+            return is_connected, recieved_message.get_array_param()
+        except ConnectionError:
+            return True, None
 
-        if received_message is None:
-            return None
-        if received_message.command_id != command.id:
-            return None
-            #raise ValueError("Invalid command ID for game list update.")
+    def _receive_standard_command(self, command : Command) -> tuple[bool, NetworkMessage | None]:
+        # region LOGIC
+        received_message = self._receive_message()
 
-        return_value = received_message.get_array_param()
+        received_command_id = received_message.command_id
+        received_command = CCommandTypeEnum.get_command_by_id(received_command_id)
+
+        # check if statemachine can fire
+        if not GAME_STATE_MACHINE.can_fire(received_command.trigger.id):
+            raise ValueError("Invalid state machine transition.")
+
+        # Recieved Other
+        if received_command_id != command.id:
+            self._close_connection_processes()
+            return False, None
 
         # region SEND RESPONSE
 
@@ -311,18 +453,94 @@ class ServerCommunication:
 
         # endregion
 
-        GAME_STATE_MACHINE.send_trigger(command.trigger)
-        return return_value
+        GAME_STATE_MACHINE.send_trigger(received_command.trigger)
+        return True, received_message
 
-    def receive_game_list_update(self) -> GameList | None:
+    def receive_server_ping(self) -> dict:
+        command = CCommandTypeEnum.ServerPingPlayer.value
+
+        try:
+            is_connected, recieved_message =  self._receive_standard_command(command)
+            return {"command": command, "data":None} #is not important not used to show anything
+        except ConnectionError:
+            return {"command": None, "data":None}
+
+    def receive_game_list_update(self) -> tuple[bool, GameList | None]:
         command = CCommandTypeEnum.ServerUpdateGameList.value
-        return self._receive_standard_command(command)
+        return self._receive_standard_update_command(command)
 
-    def receive_player_list_update(self) -> PlayerList | None:
+    def receive_player_list_update(self) -> tuple[bool, PlayerList | None]:
         command = CCommandTypeEnum.ServerUpdatePlayerList.value
-        return self._receive_standard_command(command)
+        return self._receive_standard_update_command(command)
 
-    # endregion
+    def _receive_standard_state_messages(self, allowed_commands : dict[int, callable]) -> tuple[bool, Command | None, any]:
+        allowed_commands_id = allowed_commands.keys()
+
+        # region LOGIC
+        try:
+            received_message = self._receive_message()
+        except ConnectionError("Server did not respond in time."):
+            # try to receive update message
+            return True, None, None
+
+        received_command_id = received_message.command_id
+        received_command = CCommandTypeEnum.get_command_by_id(received_command_id)
+
+        # check if statemachine can fire
+        if not GAME_STATE_MACHINE.can_fire(received_command.trigger.id):
+            raise ValueError("Invalid state machine transition.")
+
+        # Recieved Other
+        if received_command_id not in allowed_commands_id:
+            self._close_connection_processes()
+            return False, None, None
+
+        for command_id, process_function in allowed_commands.items():
+            if received_command_id == command_id:
+                return process_function(received_command, received_message)
+
+        raise ValueError("Invalid command ID for running game messages.")
+
+
+    def _process_respond_successs(self, received_command):
+        self._respond_client_success()
+        GAME_STATE_MACHINE.send_trigger(received_command.trigger)
+
+    def _process_server_update_game_data(self, received_command, received_message):
+        self._process_respond_successs(received_command)
+        return True, received_command, received_message.get_array_param()
+
+    def receive_running_game_messages(self) -> tuple[bool, Command | None, GameList | None]:
+        def __process_server_start_turn(received_command, received_message):
+            self._process_respond_successs(received_command)
+            return True, received_command, None
+
+        def __process_server_update_end_score(received_command, received_message):
+            self._process_respond_successs(received_command)
+            return True, received_command, received_message.get_single_param()
+
+        allowed_commands = {
+            CCommandTypeEnum.ServerUpdateGameData.value.id: self._process_server_update_game_data,
+            CCommandTypeEnum.ServerStartTurn.value.id: __process_server_start_turn,
+            CCommandTypeEnum.ServerUpdateEndScore.value.id: __process_server_update_end_score
+        }
+
+        return self._receive_standard_state_messages(allowed_commands)
+
+    def receive_my_turn_messages(self) -> tuple[bool, Command | None, GameList | None]:
+        def __process_server_ping_player(received_command, received_message):
+            self._process_respond_successs(received_command)
+            return True, received_command, None
+
+        allowed_commands = {
+            CCommandTypeEnum.ServerUpdateGameData.value.id: self._process_server_update_game_data,
+            CCommandTypeEnum.ServerPingPlayer.value.id: __process_server_ping_player
+        }
+
+        return self._receive_standard_state_messages(allowed_commands)
+
+
+# endregion
 
     # region RESPONSE
 

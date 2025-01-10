@@ -12,6 +12,8 @@ import tkinter as tk
 from tkinter import messagebox
 
 from backend.server_communication import ServerCommunication
+from frontend.views.utils import PAGES_DIC
+from frontend.views.lobby_page import LobbyPage
 from frontend.views.utils import process_is_not_connected
 
 
@@ -65,6 +67,7 @@ class StartPage(tk.Frame):
 
     def _button_action_connect(self, ip : str, port : int, nickname : str):
 
+        next_page_name = PAGES_DIC.LobbyPage
         try:
             is_connected, game_list = ServerCommunication().send_client_login(ip, port, nickname)
             if not is_connected:
@@ -76,6 +79,6 @@ class StartPage(tk.Frame):
             raise e
             return
 
-        self.controller.show_page("LobbyPage", game_list)
+        self.controller.show_page(next_page_name, game_list)
 
 

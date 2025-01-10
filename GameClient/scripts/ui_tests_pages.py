@@ -8,7 +8,7 @@ Version: 1.0
 Description: 
 """
 from frontend.ui_manager import MyApp
-from shared.constants import Game, GameList, Player, PlayerList, PlayerGameData, GameData
+from shared.constants import Game, GameList, Player, PlayerList, PlayerGameData, GameData, CubeValuesList
 
 
 def lobby_page():
@@ -20,7 +20,7 @@ def lobby_page():
 
 def before_game_page():
     app = init_app()
-    player_list = PlayerList( [Player("Player1")] )
+    player_list = PlayerList( [Player("Player1",True),Player("Player2",False),Player("Player2",False)] )
     app.show_page("BeforeGamePage", player_list)
     app.mainloop()
 
@@ -28,6 +28,11 @@ def running_game_page():
     app = init_app()
     game_data = GameData([PlayerGameData("Karel", True, 5, True),PlayerGameData("Jan", False, 5, False)])
     app.show_page("RunningGamePage", game_data)
+    app.mainloop()
+
+def my_turn_select_cubes_page():
+    app = init_app()
+    app.show_page("MyTurnSelectCubesPage", CubeValuesList([1, 2, 2, 5, 5]))
     app.mainloop()
 
 def my_turn_page():
@@ -42,4 +47,4 @@ def init_app():
 
 
 if __name__ == "__main__":
-    my_turn_page()
+    before_game_page()

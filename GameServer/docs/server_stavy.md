@@ -33,6 +33,7 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 **playerList**
 
 - "playerName"
+- "isConnected"
 
 **gameData**
 
@@ -40,6 +41,10 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 - "isConnected"
 - "score"
 - "isTurn"
+
+**cubeValues**
+
+- "value"
 
 ### Sizes
 
@@ -170,7 +175,7 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 
   - game in room list
   - _Format:_
-    - **ROOM_LIST;["game_id":{"name":"Room1","player_count":"5","state":"WAITING"}]}
+    - **ROOM_LIST;["game_id":{"name":"Room1","player_count":"5","state":"WAITING"}]
     - **
 
 # Network messages - CURRENT
@@ -207,19 +212,16 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
   `CommandID: 5, Params: []`
 
   - **Response**
-    - ResponseServerDiceNext
-    - ResponseServerDiceEndTurn AND [To All]ServerUpdateGameData
-- **ClientNextDice**
-  `CommandID: 61, Params: []`
+    - ResponseServerSelectCubes
+    - ResponseServerEndTurn AND [To All]ServerUpdateGameData
+    - ResponseServerError
+- **ClientSelectedCubes(ClientNextDice)**
+  `CommandID: 61, Params: ["cubeValues"] List`
 
   - **Response**
-    - ResponseServerNextDiceSuccess
-    - ResponseServerNextDiceEndScore AND [To All]ServerUpdateEndScore
-- **ClientEndTurn**
-  `CommandID: 62, Params: []`
-
-  - **Response**
-    - ResponseServerSuccess AND [To All]ServerUpdateGameData
+    - ResponseServerDiceSuccess
+    - ResponseServerEndScore AND [To All]ServerUpdateEndScore]
+    - ResponseServerError
 - **ClientLogout**
   `CommandID: 7, Params: []`
 
@@ -247,14 +249,14 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 - **ResponseServerGameList**
   `CommandID: 33, Params: ["gameList"] List`
 -
-- **ResponseServerDiceNext**
-  `CommandID: 34, Params: []`
-- **ResponseServerDiceEndTurn**
+- **ResponseServerSelectCubes (ResponseServerDiceNext)**
+  `CommandID: 34, Params: ["cubeValues"] List`
+- **ResponseServerEndTurn(ResponseServerDiceEndTurn)**
 - `CommandID: 35, Params: []`
 -
-- **ResponseServerNextDiceEndScore**
-  `CommandID: 36, Params: []`
-- **ResponseServerNextDiceSuccess**
+- **ResponseServerEndScore(ResponseServerNextDiceEndScore)**
+  `CommandID: 36, Params: ["playerName"]`
+- **ResponseServerDiceSuccess(ResponseServerNextDiceSuccess)**
   `CommandID: 37, Params: []`
 
 ---
@@ -309,6 +311,8 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 - **ServerStartTurn**
   `CommandID: 49, Params: []`
 
+  - **Simultaneously**
+    - ServerUpdateGameData
   - **Response**
     - ResponseClientSuccess
 - **ServerPingPlayer**
@@ -339,7 +343,6 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 stateDiagram
   Start --> Lobby: ClientLogin
   
-  Lobby --> End: ClientLogout
   Lobby --> Lobby: ServerUpdateGameList
   Lobby --> Game: ClientJoinGame
   Lobby --> Game: ClientCreateGame
@@ -356,32 +359,32 @@ stateDiagram
   Error_game --> Error_running_Game: ServerUpdateStartGame
 
   Running_Game --> Lobby: ServerUpdateEndScore
-  Running_Game --> My_turn: ServerStartTurn
+  Running_Game --> My_turn_roll_dice: ServerStartTurn
   Running_Game --> Running_Game: ServerUpdateGameData
   Running_Game --> Error_running_Game: ErrorPlayerUnreachable
   
   Error_running_Game --> Running_Game: ServerReconnectGameData
   Error_running_Game --> Error_game: ServerUpdateEndScore
 
-  My_turn --> Fork_my_turn: ClientRollDice
-  My_turn --> My_turn: ServerPingPlayer
-  My_turn --> Error_running_Game: ErrorPlayerUnreachable
+  My_turn_roll_dice --> Fork_my_turn: ClientRollDice
+  My_turn_roll_dice --> My_turn_roll_dice: ServerPingPlayer
+  My_turn_roll_dice --> My_turn_roll_dice: ServerUpdateGameData
+  My_turn_roll_dice --> Error_running_Game: ErrorPlayerUnreachable
   
-  Fork_my_turn --> Running_Game: ResponseServerDiceEndTurn
-  Fork_my_turn --> Next_dice: ResponseServerDiceNext
+  Fork_my_turn --> Running_Game: ResponseServerEndTurn
+  Fork_my_turn --> My_turn_select_cubes: ResponseServerSelectCubes
 
-  Next_dice --> Running_Game: ClientEndTurn
-  Next_dice --> Fork_next_dice: ClientNextDice
-  Next_dice --> Next_dice: ServerPingPlayer
+  My_turn_select_cubes --> Fork_dice_(Fork_next_dice): ClientSelectedCubes
+  My_turn_select_cubes --> My_turn_select_cubes: ServerPingPlayer
+  My_turn_select_cubes --> My_turn_select_cubes: ServerUpdateGameData
   
-  Fork_next_dice --> My_turn: ResponseServerNextDiceSuccess
-  Fork_next_dice --> Lobby: ResponseServerNextDiceEndScore
+  Fork_dice_(Fork_next_dice) --> My_turn_roll_dice: ResponseServerDiceSuccess
+  Fork_dice_(Fork_next_dice) --> Lobby: ResponseServerEndScore
 ```
 
 ```mermaid
 stateDiagram
     Start --> Lobby : CLIENT->SERVER ClientLogin (nickname)\n -- SERVER-CLIENT ResponseServerGameList\n -or- SERVER->CLIENT ResponseServerError \n -or- SERVER->CLIENT ResponseServerErrDuplicitNickname
-    Lobby --> End : CLIENT->SERVER ClientLogout \n -- SERVER->CLIENT ResponseServerSuccess \n -or- SERVER->CLIENT ResponseServerError
     Lobby --> Lobby : SERVER->CLIENT ServerUpdateGameList (game_list (game_name, max_players, connected_players_num)) \n CLIENT->SERVER ResponseServerSuccess
     Lobby --> Game : CLIENT->SERVER ClientJoinGame (game_id) \n -- SERVER->CLIENT ResponseServerSuccess  \n -or- SERVER->CLIENT ResponseServerError \n SERVER->PLAYERS_IN_GAME ServerUpdatePlayerList (player_list (active/inactive))
     Lobby --> Game : CLIENT->SERVER ClientCreateGame (game_name, max_players) \n -- SERVER->CLIENT ResponseServerSuccess \n -or- SERVER->CLIENT ResponseServerError  \n SERVER->PLAYERS_IN_LOBBY ServerUpdateGameList(gameList (game_name, max_players, connected_players_num))
@@ -398,25 +401,24 @@ stateDiagram
     Error_game --> Error_running_Game : SERVER->CLIENT ServerUpdateStartGame \n CLIENT->SERVER ResponseServerSuccess
   
     Running_Game --> Lobby : SERVER->CLIENT ServerUpdateEndScore (winner_player_nickname, game_list) \n CLIENT->SERVER ResponseServerSuccess
-    Running_Game --> My_turn : SERVER->CLIENT ServerStartTurn \n CLIENT->SERVER ResponseServerSuccess
+    Running_Game --> My_turn_roll_dice : SERVER->CLIENT ServerStartTurn \n CLIENT->SERVER ResponseServerSuccess
     Running_Game --> Running_Game : SERVER->CLIENT ServerUpdateGameData(player_list (active/inactive), turn_player, score) \n CLIENT->SERVER ResponseServerSuccess
     Running_Game --> Error_running_Game : ErrorPlayerUnreachable
   
     Error_running_Game --> Running_Game : SERVER->CLIENT ServerReconnectGameData(player_list (active/inactive), turn_player, score) \n CLIENT->SERVER ResponseServerSuccess
     Error_running_Game --> Error_game : SERVER->CLIENT ServerUpdateEndScore (winner_player_nickname, game_list) \n CLIENT->SERVER ResponseServerSuccess
   
-    My_turn --> fork_my_turn : CLIENT->SERVER ClientRollDice
-    My_turn --> My_turn : SERVER->CLIENT ServerPingPlayer \n CLIENT->SERVER ResponseServerSuccess
-    My_turn --> Error_running_Game : ErrorPlayerUnreachable
+    My_turn_roll_dice --> fork_my_turn : CLIENT->SERVER ClientRollDice
+    My_turn_roll_dice --> My_turn_roll_dice : SERVER->CLIENT ServerPingPlayer \n CLIENT->SERVER ResponseServerSuccess
+    My_turn_roll_dice --> Error_running_Game : ErrorPlayerUnreachable
   
-    fork_my_turn --> Running_Game : SERVER->CLIENT ResponseServerDiceEndTurn(cubes_values, score) \n SERVER->PLAYERS_IN_GAME ServerGameUpdates(player_list (active/inactive), turn_player, score)
-    fork_my_turn --> Next_dice : SERVER->CLIENT ResponseServerDiceNext(dice_result- cubes_values)
+    fork_my_turn --> Running_Game : SERVER->CLIENT ResponseServerEndTurn(cubes_values, score) \n SERVER->PLAYERS_IN_GAME ServerGameUpdates(player_list (active/inactive), turn_player, score)
+    fork_my_turn --> My_turn_select_cubes : SERVER->CLIENT ResponseServerSelectCubes(dice_result- cubes_values)
   
   
-    Next_dice --> Running_Game : CLIENT->SERVER ClientEndTurn() \n SERVER->CLIENT endTurn(score) \n SERVER->PLAYERS_IN_GAME ServerGameUpdates(player_list (active/inactive), turn_player, score)
-    Next_dice --> Fork_next_dice : CLIENT->SERVER ClientNextDice(selected_cubes)
-    Next_dice --> Next_dice : SERVER->CLIENT ServerPingPlayer \n CLIENT->SERVER ResponseServerSuccess
+    My_turn_select_cubes --> Fork_dice_(Fork_next_dice) : CLIENT->SERVER ClientSelectedCubes(selected_cubes)
+    My_turn_select_cubes --> My_turn_select_cubes : SERVER->CLIENT ServerPingPlayer \n CLIENT->SERVER ResponseServerSuccess
   
-    Fork_next_dice --> My_turn : SERVER->CLIENT ResponseServerNextDiceSuccess()
-    Fork_next_dice --> Lobby : SERVER->CLIENT ResponseServerNextDiceEndScore() \n SERVER->PLAYERS_IN_GAME ServerUpdateEndScore (winner_player_nickname, game_list)
+    Fork_dice_(Fork_next_dice) --> My_turn_roll_dice : SERVER->CLIENT ResponseServerDiceSuccess()
+    Fork_dice_(Fork_next_dice) --> Lobby : SERVER->CLIENT ResponseServerEndScore() \n SERVER->PLAYERS_IN_GAME ServerUpdateEndScore (winner_player_nickname, game_list)
 ```

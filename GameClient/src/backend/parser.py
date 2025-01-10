@@ -95,6 +95,7 @@ def parse_message(input_str) -> NetworkMessage:
             if elements_names != message_param_list_info.param_names:
                 raise ValueError("Invalid parameter names in array element")
         converted_data = message_param_list_info.convert_function(param_array)
+        # todo raise error which then closes connection becouse message is not in format that is expected
 
         return [Param(param.name, converted_data)]
 

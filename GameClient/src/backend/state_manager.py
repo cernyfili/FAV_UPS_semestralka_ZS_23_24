@@ -9,7 +9,6 @@ class GameStateMachine(StateMachine):
     _lock = threading.Lock()
 
     # Define states
-    stateEnd = State('End', final=True)
     stateErrorGame = State('ErrorGame')
     stateErrorLobby = State('ErrorLobby')
     stateErrorRunningGame = State('ErrorRunning_Game')
@@ -25,7 +24,6 @@ class GameStateMachine(StateMachine):
 #todo check if this is correct
     # Define transitions
     ClientLogin = stateStart.to(stateLobby)
-    ClientLogout = stateLobby.to(stateEnd)
     ServerUpdateGameList = stateLobby.to(stateLobby)
     ClientJoinGame = stateLobby.to(stateGame)
     ClientCreateGame = stateLobby.to(stateGame)
@@ -48,7 +46,10 @@ class GameStateMachine(StateMachine):
     ServerUpdateEndScore = (stateRunningGame.to(stateLobby)
                             | stateErrorRunningGame.to(stateErrorGame))
     ServerStartTurn = stateRunningGame.to(stateMyTurn)
-    ServerUpdateGameData = stateRunningGame.to(stateRunningGame)
+    ServerUpdateGameData = (stateRunningGame.to(stateRunningGame)
+                            | stateMyTurn.to(stateMyTurn)
+                            | stateNextDice.to(stateNextDice)
+                            )
 
     ServerReconnectGameData = stateErrorRunningGame.to(stateRunningGame)
 

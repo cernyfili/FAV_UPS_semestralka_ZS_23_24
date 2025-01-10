@@ -7,25 +7,64 @@ Created: 02.01.2025
 Version: 1.0
 Description: 
 """
+import logging
+import threading
 import tkinter as tk
+from abc import ABC
+from tkinter import messagebox
 
-from frontend.page_interface import PageInterface
-from shared.constants import GameData
+from backend.server_communication import ServerCommunication
+from frontend.page_interface import UpdateInterface
+from frontend.views.utils import PAGES_DIC, show_game_data, game_data_start_listening_for_updates
+from frontend.views.utils import process_is_not_connected
+from shared.constants import GameData, GAME_STATE_MACHINE, CCommandTypeEnum
 
 
-class RunningGamePage(tk.Frame, PageInterface):
+class RunningGamePage(tk.Frame, UpdateInterface, ABC):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
 
         # List of players and their scores
-        self.gameData : GameData = []
+        self._list : GameData = GameData([])
+        self._lock = threading.Lock()
+        self._stop_event = threading.Event()
 
         self._load_page_content()
 
-    def animate(self):
+    def _get_state_name(self):
+        return 'stateRunningGame'
+
+    def _get_update_function(self):
+        return ServerCommunication().receive_running_game_messages
+
+    def _set_update_thread(self, param):
+        self._update_thread = param
+
+    def tkraise(self, aboveThis=None):
+        logging.debug("Raising Page")
+        # Call the original tkraise method
+        super().tkraise(aboveThis)
+        # Custom behavior after raising the frame
+        self._load_page_content()
+
+        self._start_listening_for_updates()
+
+    def _start_listening_for_updates(self):
+        process_command = {
+            CCommandTypeEnum.ServerStartTurn.value: self._process_start_turn,
+            CCommandTypeEnum.ServerUpdateEndScore.value: self._process_update_end_score
+        }
+
+        game_data_start_listening_for_updates(self, process_command)
+
+    def animate(self, waiting_animation):
+        # Check if the widget still exists
+        if not waiting_animation.winfo_exists():
+            return
+
         # Get the current text of the waiting animation
-        text = self.waiting_animation.cget("text")
+        text = waiting_animation.cget("text")
 
         # Update the text of the waiting animation
         if text.count(".") < 3:
@@ -33,45 +72,31 @@ class RunningGamePage(tk.Frame, PageInterface):
         else:
             text = "Playing"
 
-        self.waiting_animation.config(text=text)
+        waiting_animation.config(text=text)
 
         # Schedule the next animation
-        self.after(500, self.animate)
+        self.after(500, lambda: self.animate(waiting_animation))
 
     def _load_page_content(self):
         # Clear the current content
         for widget in self.winfo_children():
             widget.destroy()
 
+        self._show_logout_button(tk)
         # header
         header = tk.Label(self, text="Game is running")
         header.pack(pady=10, padx=10)
 
+        show_game_data(self, tk, self._list)
 
+    def _process_start_turn(self):
+        next_page_name = PAGES_DIC.MyTurnRollDicePage
 
-        for player in self.gameData:
-            player_name = player.player_name
-            score = player.score
-            is_turn = player.is_turn
-            is_connected = player.is_connected
+        self.controller.show_page(next_page_name)
 
-            # Create a label for each player and their score
-            player_label = tk.Label(self, text=f"{player_name}: {score}")
+    def _process_update_end_score(self, player_name):
+        next_page_name = PAGES_DIC.LobbyPage
 
+        messagebox.showinfo("End of game", f"Player {player_name} has WON")
+        self.controller.show_page(next_page_name)
 
-            # if the player isnt connected show the label in gray
-            if not is_connected:
-                player_label.config(fg="gray")
-
-            player_label.pack(pady=10, padx=10)
-
-            # If it's the player's turn, display a waiting animation
-            if is_turn:
-                self.waiting_animation = tk.Label(self, text="Playing")
-                self.waiting_animation.pack(pady=2, padx=10)
-                self.animate()
-
-    def update_data(self, data : GameData):
-        self.gameData = data
-
-        self._load_page_content()

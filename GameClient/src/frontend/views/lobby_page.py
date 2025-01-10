@@ -16,6 +16,8 @@ from pyparsing import empty
 
 from backend.server_communication import ServerCommunication
 from frontend.page_interface import PageInterface, UpdateInterface
+from frontend.views.utils import PAGES_DIC
+from frontend.views.before_game_page import BeforeGamePage
 from frontend.views.utils import process_is_not_connected, stop_update_thread
 from shared.constants import CGameConfig, CMessageConfig, GameList, Game, GAME_STATE_MACHINE
 
@@ -24,13 +26,13 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+
         self._list = []
         self._lock = threading.Lock()  # Initialize the lock
-        #self._receive_updates = True
         self._stop_event = threading.Event()
+        self._update_thread = None
 
         self._load_page_content()
-        self._update_thread = None
 
     def tkraise(self, aboveThis=None):
         logging.debug("Raising Page")
@@ -49,29 +51,6 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
 
     def _set_update_thread(self, param):
         self._update_thread = param
-
-    # def _start_listening_for_updates(self):
-    #     state_name = 'stateLobby'
-    #     update_function = ServerCommunication().receive_game_list_update
-    #
-    #     logging.debug("Starting to listen for updates")
-    #     def listen_for_updates():
-    #         current_state = GAME_STATE_MACHINE.get_current_state()
-    #         while current_state == state_name and not self._stop_event.is_set():
-    #             logging.debug("Listening for game list updates")
-    #             try:
-    #                 update_list = update_function()
-    #                 if self._stop_event.is_set():
-    #                     break
-    #                 if not update_list:
-    #                     break
-    #                 self.update_data(update_list)
-    #             except Exception as e:
-    #                 raise e
-    #                 break
-    #     # Wait for the update thread to finish
-    #     self.update_thread = threading.Thread(target=listen_for_updates, daemon=True)
-    #     self.update_thread.start()
 
     def _load_page_content(self):
         def show_game_list():
@@ -163,20 +142,17 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
                 continue
             widget.destroy()
 
+        self._show_logout_button(tk)
+
         show_game_list()
 
         # button to create a new game
         create_game_button = tk.Button(self, text="Create New Game", command=lambda: open_popup_new_game())
         create_game_button.pack(pady=10, padx=10)
 
-    # def update_data(self, data : GameList):
-    #     with self._lock:  # Acquire the lock
-    #         self._list = data
-    #         self._load_page_content()
-
     def _button_action_create_game(self, game_name : str, max_players_count : int) -> bool:
         send_function = ServerCommunication().send_client_create_game
-        next_page_name = "BeforeGamePage"
+        next_page_name = PAGES_DIC.BeforeGamePage
         
         stop_update_thread(self)
         try:
@@ -195,7 +171,7 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
 
     def _button_action_connect_to_game(self, game_name: str) -> bool:
         send_function = ServerCommunication().send_client_join_game
-        next_page_name = "BeforeGamePage"
+        next_page_name = PAGES_DIC.BeforeGamePage
 
         stop_update_thread(self)
         try:
