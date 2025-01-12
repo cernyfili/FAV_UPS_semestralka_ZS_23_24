@@ -9,13 +9,15 @@ Description:
 """
 import logging
 import threading
+import time
 import tkinter as tk
 from abc import ABC
 from tkinter import messagebox
 
 from backend.server_communication import ServerCommunication
 from frontend.page_interface import UpdateInterface
-from frontend.views.utils import PAGES_DIC, my_turn_start_listening_for_updates
+from frontend.views.utils import PAGES_DIC, my_turn_start_listening_for_updates, show_loading_animation, \
+    stop_loading_animation, show_game_data
 from frontend.views.utils import process_is_not_connected, stop_update_thread
 from shared.constants import CubeValuesList, ALLOWED_CUBE_VALUES_COMBINATIONS, CombinationList, CCommandTypeEnum, \
     GameData
@@ -24,7 +26,7 @@ from shared.constants import CubeValuesList, ALLOWED_CUBE_VALUES_COMBINATIONS, C
 class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        self.cubes_values_list = None
+        self._cubes_values_list: CubeValuesList = CubeValuesList([])
         self.controller = controller
 
         self._list : GameData = GameData([])
@@ -47,7 +49,7 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
         return 'stateNextDice'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_my_turn_messages
+        return ServerCommunication().receive_server_my_turn_messages
 
     def _set_update_thread(self, param):
         self._update_thread = param
@@ -57,6 +59,8 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
         for widget in self.winfo_children():
             widget.destroy()
         self._show_logout_button(tk)
+
+        show_game_data(self, tk, self._list)
 
 
 
@@ -72,9 +76,13 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
         my_turn_start_listening_for_updates(self)
 
     def update_data(self, gui_data):
+
+        if isinstance(gui_data, dict):
+            self._cubes_values_list = gui_data["cube_values_list"]
+            self._list = gui_data["game_data"]
         # called from MyApp.show_page(
-        if isinstance(gui_data, CubeValuesList):
-            self.cubes_values_list = gui_data
+        elif isinstance(gui_data, CubeValuesList):
+            self._cubes_values_list = gui_data
         # called from ServerCommunication.receive_my_turn_messages
         elif isinstance(gui_data, GameData):
             self._list = gui_data
@@ -128,21 +136,26 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
 
     def _show_cube_values_list(self):
 
-        cube_values_list = self.cubes_values_list
+        cube_values_list = self._cubes_values_list
         if not cube_values_list:
             return
 
-        cubes_num = len(self.cubes_values_list)
+        cubes_num = len(self._cubes_values_list)
 
         # Create a list of Canvas widgets and Checkbutton widgets for the dice cubes
         self.dice_cube_vars = [tk.IntVar() for _ in range(cubes_num)]
         self.dice_cube_canvases = [tk.Canvas(self, width=40, height=40, bg="white") for _ in range(cubes_num)]
         self.dice_cube_checkbuttons = [tk.Checkbutton(self, text="", variable=self.dice_cube_vars[i]) for i in range(cubes_num)]
+
+        # Calculate positions dynamically to avoid intersection
+        start_x = 50
+        start_y = 250
+        spacing_x = 60
+        spacing_y = 60
+
         for i in range(cubes_num):
-            self.dice_cube_canvases[i].place(x=50 + i * 60, y=50)
-            self.dice_cube_checkbuttons[i].place(x=50 + i * 60, y=100)
-
-
+            self.dice_cube_canvases[i].place(x=start_x + i * spacing_x, y=start_y)
+            self.dice_cube_checkbuttons[i].place(x=start_x + i * spacing_x, y=start_y + spacing_y)
 
         allowed_list = ALLOWED_CUBE_VALUES_COMBINATIONS.create_allowed_values_mask(cube_values_list)
 
@@ -176,33 +189,42 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
                 cube_list = changed_cube_list.copy()
 
             return not cube_list
+
+        def run_send_function(selected_dice_cubes_values):
+            time.sleep(1)
+            stop_update_thread(self)
+
+            try:
+                is_connected, command = ServerCommunication().send_client_select_cubes(selected_dice_cubes_values)
+                if not is_connected:
+                    process_is_not_connected(self)
+                if command == CCommandTypeEnum.ResponseServerDiceSuccess.value:
+                    next_page_name = PAGES_DIC.MyTurnRollDicePage
+                elif command == CCommandTypeEnum.ResponseServerEndScore.value:
+                    messagebox.showinfo("!!! YOU WON !!!", "You have reached the score limit")
+                    next_page_name = PAGES_DIC.LobbyPage
+                else:
+                    raise Exception("Unknown command")
+            except Exception as e:
+                process_is_not_connected(self)
+                # todo remove
+                raise e
+            finally:
+                stop_loading_animation(self)
+
+            self.controller.show_page(next_page_name)
+
         # Get the selected dice cubes
-        selected_dice_cubes_values = [self.cubes_values_list[i] for i in range(len(self.dice_cube_vars)) if self.dice_cube_vars[i].get()]
+        selected_dice_cubes_values = [self._cubes_values_list[i] for i in range(len(self.dice_cube_vars)) if
+                                      self.dice_cube_vars[i].get()]
 
         if not __is_valid_selected_dice_cubes(selected_dice_cubes_values):
             rules_str = str(ALLOWED_CUBE_VALUES_COMBINATIONS)
-            messagebox.showerror("Invalid Selection", "Please select valid dice cubes\n\nAllowed combinations:\n" + rules_str)
+            messagebox.showerror("Invalid Selection",
+                                 "Please select valid dice cubes\n\nAllowed combinations:\n" + rules_str)
             return
 
-        stop_update_thread(self)
+        show_loading_animation(self, tk)
 
-        try:
-            is_connected, command = ServerCommunication().send_client_select_cubes(selected_dice_cubes_values)
-            if not is_connected:
-                process_is_not_connected(self)
-
-            if command == CCommandTypeEnum.ResponseServerDiceSuccess.value:
-                next_page_name = PAGES_DIC.MyTurnRollDicePage
-            elif command == CCommandTypeEnum.ResponseServerEndScore.value:
-                messagebox.showinfo("!!! YOU WON !!!", "You have reached the score limit")
-                next_page_name = PAGES_DIC.LobbyPage
-            else:
-                raise Exception("Unknown command")
-        except Exception as e:
-            #messagebox.showerror("Connection Failed", str(e))
-            #todo
-
-            raise e
-            return
-
-        self.controller.show_page(next_page_name)
+        threading.Thread(target=run_send_function, args=(selected_dice_cubes_values,)).start()
+        return True

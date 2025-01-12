@@ -1,6 +1,5 @@
 import tkinter as tk
 from dataclasses import dataclass
-from types import SimpleNamespace
 
 from frontend.views.before_game_page import BeforeGamePage
 from frontend.views.lobby_page import LobbyPage
@@ -62,13 +61,6 @@ class MyApp(tk.Tk):
             frame.update_data(data)
 
         frame.tkraise()
-        # try:
-
-        #     frame.tkraise()
-        # except Exception as e:
-        #     print(f"Error: {e}")
-        #     # exit
-        #     sys.exit(1)
 
     def get_current_frame(self):
         return self._current_frame

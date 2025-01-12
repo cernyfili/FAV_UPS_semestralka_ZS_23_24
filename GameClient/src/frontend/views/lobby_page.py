@@ -12,14 +12,10 @@ import threading
 import tkinter as tk
 from abc import ABC
 
-from pyparsing import empty
-
 from backend.server_communication import ServerCommunication
-from frontend.page_interface import PageInterface, UpdateInterface
+from frontend.page_interface import UpdateInterface
 from frontend.views.utils import PAGES_DIC
-from frontend.views.before_game_page import BeforeGamePage
-from frontend.views.utils import process_is_not_connected, stop_update_thread
-from shared.constants import CGameConfig, CMessageConfig, GameList, Game, GAME_STATE_MACHINE
+from shared.constants import CGameConfig, CMessageConfig, Game, Param
 
 
 class LobbyPage(tk.Frame, UpdateInterface, ABC):
@@ -47,7 +43,7 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
         return 'stateLobby'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_game_list_update
+        return ServerCommunication().receive_server_game_list_update
 
     def _set_update_thread(self, param):
         self._update_thread = param
@@ -153,39 +149,15 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
     def _button_action_create_game(self, game_name : str, max_players_count : int) -> bool:
         send_function = ServerCommunication().send_client_create_game
         next_page_name = PAGES_DIC.BeforeGamePage
-        
-        stop_update_thread(self)
-        try:
-            is_connected = send_function(game_name, max_players_count)
-            if not is_connected:
-                process_is_not_connected(self)
-        except Exception as e:
-            #messagebox.showerror("Connection Failed", str(e))
-            #todo
+        param_list = [Param("gameName", game_name), Param("maxPlayers", max_players_count)]
 
-            raise e
-            return False
-
-        self.controller.show_page(next_page_name)
-        return True
+        return self.button_action_standard(tk=tk, send_function=send_function, next_page_name=next_page_name,
+                                           param_list=param_list)
 
     def _button_action_connect_to_game(self, game_name: str) -> bool:
         send_function = ServerCommunication().send_client_join_game
         next_page_name = PAGES_DIC.BeforeGamePage
+        param_list = [Param("gameName", game_name)]
 
-        stop_update_thread(self)
-        try:
-            is_connected = send_function(game_name)
-            if not is_connected:
-                process_is_not_connected(self)
-        except Exception as e:
-            #messagebox.showerror("Connection Failed", str(e))
-            #todo
-
-            raise e
-            return False
-
-        self.controller.show_page(next_page_name)
-        return True
-
-
+        return self.button_action_standard(tk=tk, send_function=send_function, next_page_name=next_page_name,
+                                           param_list=param_list)

@@ -8,20 +8,18 @@ Version: 1.0
 Description: 
 """
 import logging
-import random
 import threading
+import time
 import tkinter as tk
 from abc import ABC
 from tkinter import messagebox
 
 from backend.server_communication import ServerCommunication
-from frontend.page_interface import PageInterface, UpdateInterface
-from frontend.views.utils import PAGES_DIC, show_game_data, game_data_start_listening_for_updates, \
-    my_turn_start_listening_for_updates
-from frontend.views.my_turn_select_cubes_page import MyTurnSelectCubesPage
-from frontend.views.running_game_page import RunningGamePage
+from frontend.page_interface import UpdateInterface
+from frontend.views.utils import PAGES_DIC, show_game_data, my_turn_start_listening_for_updates, show_loading_animation, \
+    stop_loading_animation
 from frontend.views.utils import process_is_not_connected, stop_update_thread
-from shared.constants import CCommandTypeEnum, GameData, GAME_STATE_MACHINE
+from shared.constants import CCommandTypeEnum, GameData
 
 
 class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
@@ -49,7 +47,7 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
         return 'stateMyTurn'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_my_turn_messages
+        return ServerCommunication().receive_server_my_turn_messages
 
     def _set_update_thread(self, param):
         self._update_thread = param
@@ -71,25 +69,33 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
         my_turn_start_listening_for_updates(self)
 
     def _button_action_send_roll_dice(self):
+        def run_send_function():
+            # todo remove
+            time.sleep(1)
+            stop_update_thread(self)
+            try:
+                is_connected, command, cube_values_list = ServerCommunication().send_client_roll_dice()
+                if not is_connected:
+                    process_is_not_connected(self)
 
-        stop_update_thread(self)
-        try:
-            is_connected, command , cube_values_list = ServerCommunication().send_client_roll_dice()
-            if not is_connected:
+                if command == CCommandTypeEnum.ResponseServerSelectCubes.value:
+                    next_page_name = PAGES_DIC.MyTurnSelectCubesPage
+                elif command == CCommandTypeEnum.ResponseServerEndTurn.value:
+                    messagebox.showinfo("End of turn",
+                                        "Your turn is over you didnt roll any from the allowed combinations")
+                    next_page_name = PAGES_DIC.RunningGamePage
+                else:
+                    raise Exception("Unknown command")
+            except Exception as e:
                 process_is_not_connected(self)
+                # todo remove
+                raise e
+            finally:
+                stop_loading_animation(self)
 
-            if command == CCommandTypeEnum.ResponseServerSelectCubes.value:
-                next_page_name = PAGES_DIC.MyTurnSelectCubesPage
-            elif command == CCommandTypeEnum.ResponseServerEndTurn.value:
-                messagebox.showinfo("End of turn", "Your turn is over you didnt roll any from the allowed combinations")
-                next_page_name = PAGES_DIC.RunningGamePage
-            else:
-                raise Exception("Unknown command")
-        except Exception as e:
-            #messagebox.showerror("Connection Failed", str(e))
-            #todo
+            self.controller.show_page(next_page_name, cube_values_list)
 
-            raise e
-            return
+        show_loading_animation(self, tk)
 
-        self.controller.show_page(next_page_name, cube_values_list)
+        threading.Thread(target=run_send_function, args=()).start()
+        return True

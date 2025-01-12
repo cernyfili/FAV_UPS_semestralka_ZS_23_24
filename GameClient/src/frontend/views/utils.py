@@ -9,11 +9,11 @@ Description:
 """
 import logging
 import threading
-import tkinter
 from tkinter import messagebox
 from types import SimpleNamespace
 
-from shared.constants import reset_game_state_machine, GAME_STATE_MACHINE, CCommandTypeEnum
+from backend.server_communication import ServerCommunication
+from shared.constants import GAME_STATE_MACHINE, CCommandTypeEnum
 
 pages_names = {
     "StartPage": "StartPage",
@@ -40,11 +40,52 @@ def stop_update_thread(self):
     # endregion
 
 
+# region Loading animation
+def stop_loading_animation(self):
+    if hasattr(self, 'loading_label'):
+        self.loading_label.destroy()
+
+
+def animate(self, waiting_animation, label_str):
+    if not waiting_animation.winfo_exists():
+        return
+
+    text = waiting_animation.cget("text")
+    if text.count(".") < 3:
+        text += "."
+    else:
+        text = label_str
+
+    waiting_animation.config(text=text)
+    self.after(500, lambda: animate(self, waiting_animation, label_str))
+
+
+def show_loading_animation(self, tk):
+    # destroy the current content
+    for widget in self.winfo_children():
+        widget.destroy()
+
+    self.loading_label = tk.Label(self, text="Loading...")
+    self.loading_label.pack(pady=10, padx=10)
+    animate(self, self.loading_label, "Loading")
+
+
+# endregion
+
 def show_game_data(self, tk, player_list):
     if player_list == '[]' or not player_list:
         label = tk.Label(self, text="No players connected")
         label.pack(pady=10, padx=10)
         return
+
+    # Create a frame to contain the player data with a border
+    frame = tk.Frame(self, bd=2, relief="solid")
+    frame.pack(pady=10, padx=10)
+
+    # Create a label for the game
+    label = tk.Label(frame, text="GAME DATA", font=("Helvetica", 12, "underline"))
+    label.pack(pady=10, padx=10)
+
 
     for player in player_list:
         player_name = player.player_name
@@ -52,8 +93,11 @@ def show_game_data(self, tk, player_list):
         is_turn = player.is_turn
         is_connected = player.is_connected
 
+        if player_name == ServerCommunication().nickname:
+            player_name += " (You)"
+
         # Create a label for each player and their score
-        player_label = tk.Label(self, text=f"{player_name}: {score}")
+        player_label = tk.Label(frame, text=f"{player_name}: {score}")
 
 
         # if the player isnt connected show the label in gray
@@ -64,18 +108,25 @@ def show_game_data(self, tk, player_list):
 
         # If it's the player's turn, display a waiting animation
         if is_turn:
-            self.waiting_animation = tk.Label(self, text="Playing")
+            self.waiting_animation = tk.Label(frame, text="Playing")
             self.waiting_animation.pack(pady=2, padx=10)
-            self.animate(self.waiting_animation)
+            animate(self=self, waiting_animation=self.waiting_animation, label_str="Playing")
 
 
-def game_data_start_listening_for_updates(self, process_command):
+def _standard_start_listening_for_updates(self, process_command, listen_for_updates: callable):
     state_name = self._get_state_name()
     update_function = self._get_update_function()
 
 
     logging.debug("Starting to listen for updates")
-    def listen_for_updates():
+    # Wait for the update thread to finish
+    self._set_update_thread(
+        threading.Thread(target=listen_for_updates, args=(state_name, update_function, process_command), daemon=True))
+    self._update_thread.start()
+
+
+def game_data_start_listening_for_updates(self, process_command):
+    def listen_for_updates(state_name: str, update_function: callable, process_command: dict[int, callable]):
         logging.debug("Listening for updates")
         current_state = GAME_STATE_MACHINE.get_current_state()
         while current_state == state_name and not self._stop_event.is_set():
@@ -83,20 +134,20 @@ def game_data_start_listening_for_updates(self, process_command):
             try:
                 is_connected, command, message_data = update_function()
                 if self._stop_event.is_set():
-                    break
+                    return
 
                 if not is_connected:
                     process_is_not_connected(self)
-                    break
+                    return
 
                 # timeout trying read update message
                 if not command and not message_data:
                     continue
 
-                for command, handler in process_command.items():
-                    if command == command:
+                for command_id, handler in process_command.items():
+                    if command_id == command.id:
                         handler()
-                        break
+                        return
 
                 if command == CCommandTypeEnum.ServerUpdateGameData.value:
                     self.update_data(message_data)
@@ -108,16 +159,49 @@ def game_data_start_listening_for_updates(self, process_command):
                 # todo change
                 messagebox.showerror("Error", str(e))
                 break
-    # Wait for the update thread to finish
-    self._set_update_thread(threading.Thread(target=listen_for_updates, daemon=True))
-    self._update_thread.start()
+
+    _standard_start_listening_for_updates(self, process_command, listen_for_updates)
+
 
 def my_turn_start_listening_for_updates(self):
-    def _process_server_ping_player():
-        pass
+    def listen_for_updates(state_name: str, update_function: callable, process_command: dict[int, callable]):
+        logging.debug("Listening for updates")
+        current_state = GAME_STATE_MACHINE.get_current_state()
+        while current_state == state_name and not self._stop_event.is_set():
+            logging.debug("Listening for Data updates")
+            try:
+                is_connected, command, message_data = update_function()
+                if self._stop_event.is_set():
+                    return
+
+                if not is_connected:
+                    process_is_not_connected(self)
+                    return
+
+                # timeout trying read update message
+                if not command and not message_data:
+                    continue
+
+                for command_id, handler in process_command.items():
+                    if command_id == command.id:
+                        handler()
+                        return
+
+                if command == CCommandTypeEnum.ServerPingPlayer.value:
+                    continue
+
+                if command == CCommandTypeEnum.ServerUpdateGameData.value:
+                    self.update_data(message_data)
+                    continue
+
+                raise Exception("Unknown command")
+            except Exception as e:
+                raise e
+                # todo change
+                messagebox.showerror("Error", str(e))
+                break
 
     process_command = {
-        CCommandTypeEnum.ServerPingPlayer.value: _process_server_ping_player
     }
 
-    game_data_start_listening_for_updates(self, process_command)
+    _standard_start_listening_for_updates(self, process_command, listen_for_updates)

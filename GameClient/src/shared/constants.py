@@ -1,12 +1,11 @@
-import threading
 from dataclasses import dataclass
 from enum import Enum
-from typing import Final, List, TypeAlias
+from typing import Final, List
 
 import timestamp
 
-
 from backend.state_manager import GameStateMachine
+
 
 # region DATA STRUCTURES
 
@@ -35,6 +34,8 @@ class Command:
     def is_valid_param_names(self, params: List[Param]) -> bool:
         if not self.param_names:
             return True
+        if len(params) != len(self.param_names):
+            return False
         param_names = [param.name for param in params]
         return self.param_names == param_names
 
@@ -389,7 +390,7 @@ class CCommandTypeEnum(Enum):
     ClientJoinGame: Command = Command(3, GAME_STATE_MACHINE.ClientJoinGame, ["gameName"], None)
     ClientStartGame: Command = Command(4, GAME_STATE_MACHINE.ClientStartGame, [], None)
     ClientRollDice: Command = Command(5, GAME_STATE_MACHINE.ClientRollDice, [], None)
-    ClientLogout: Command = Command(7, GAME_STATE_MACHINE.ClientLogout, [], None)
+    ClientLogout: Command = Command(7, None, [], None)
     # ClientReconnect: Command = Command(8, G_game_state_machine.ClientReconnect, [], None)
     ClientSelectedCubes: Command = Command(61, GAME_STATE_MACHINE.ClientNextDice, ["cubeValues"], cube_values_info)
     ClientEndTurn: Command = Command(62, GAME_STATE_MACHINE.ClientEndTurn, [], None)
@@ -480,3 +481,5 @@ class CNetworkConfig:
     RECEIVE_TIMEOUT = 2
     BUFFER_SIZE: Final = 1024
     MAX_MESSAGE_SIZE: Final = 1024
+    RECONNECT_ATTEMPTS: Final = 3
+    RECONNECT_TIMEOUT_SEC: Final = 2

@@ -1,12 +1,12 @@
 import logging
+import queue
 import socket
 import threading
-import queue
 import time
 
+from backend.parser import convert_message_to_network_string
 from frontend.ui_manager import MyApp
 from shared.constants import CMessageConfig, CCommandTypeEnum, NetworkMessage, Param
-from backend.parser import convert_message_to_network_string, parse_message
 
 WAIT_TIME = 0.5
 
@@ -88,6 +88,11 @@ def simulate_server_response():
                     message = create_server_ping_player()
                     send_message(client_socket, message)
 
+                    # ServerUpdateGameData
+                    time.sleep(WAIT_TIME)
+                    message = create_game_data_update()
+                    send_message(client_socket, message)
+
                 elif client_roll_dice in request_message:
                     # ResponseServerSelectedCubes
                     response = create_response_server_select_cubes()
@@ -96,6 +101,11 @@ def simulate_server_response():
                     # ServerPingPlayer
                     time.sleep(WAIT_TIME)
                     message = create_server_ping_player()
+                    send_message(client_socket, message)
+
+                    # ServerUpdateGameData
+                    time.sleep(WAIT_TIME)
+                    message = create_game_data_update()
                     send_message(client_socket, message)
 
                 elif client_selected_cubes in request_message:

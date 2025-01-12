@@ -8,12 +8,12 @@ Version: 1.0
 Description: 
 """
 import re
+import threading
+import time
 import tkinter as tk
-from tkinter import messagebox
 
 from backend.server_communication import ServerCommunication
-from frontend.views.utils import PAGES_DIC
-from frontend.views.lobby_page import LobbyPage
+from frontend.views.utils import PAGES_DIC, show_loading_animation, stop_loading_animation
 from frontend.views.utils import process_is_not_connected
 
 
@@ -68,17 +68,25 @@ class StartPage(tk.Frame):
     def _button_action_connect(self, ip : str, port : int, nickname : str):
 
         next_page_name = PAGES_DIC.LobbyPage
-        try:
-            is_connected, game_list = ServerCommunication().send_client_login(ip, port, nickname)
-            if not is_connected:
+
+        def run_send_function(ip, port, nickname):
+            # todo remove
+            time.sleep(1)
+
+            try:
+                is_connected, game_list = ServerCommunication().send_client_login(ip, port, nickname)
+                if not is_connected:
+                    process_is_not_connected(self)
+            except Exception as e:
                 process_is_not_connected(self)
-        except Exception as e:
-            #messagebox.showerror("Connection Failed", str(e))
-            #todo
+                # todo remove
+                raise e
+            finally:
+                stop_loading_animation(self)
 
-            raise e
-            return
+            self.controller.show_page(next_page_name, game_list)
 
-        self.controller.show_page(next_page_name, game_list)
+        show_loading_animation(self, tk)
 
-
+        threading.Thread(target=run_send_function, args=(ip, port, nickname)).start()
+        return True

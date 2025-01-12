@@ -14,8 +14,7 @@ from abc import ABC
 
 from backend.server_communication import ServerCommunication
 from frontend.page_interface import UpdateInterface
-
-from frontend.views.utils import process_is_not_connected, stop_update_thread, PAGES_DIC
+from frontend.views.utils import PAGES_DIC
 from shared.constants import CGameConfig, PlayerList
 
 
@@ -24,7 +23,7 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         # List of player names
-        self._list : PlayerList = PlayerList([])
+        self._list: PlayerList = PlayerList([])
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
 
@@ -34,7 +33,7 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         return 'stateGame'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_player_list_update
+        return ServerCommunication().receive_server_player_list_update
 
     def _set_update_thread(self, param):
         self._update_thread = param
@@ -69,7 +68,6 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         for widget in self.winfo_children():
             widget.destroy()
 
-
         self._show_logout_button(tk)
 
         show_players_list()
@@ -79,31 +77,11 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         start_game_button.pack(pady=10, padx=10)
 
         # Disable the "Start Game" button if there are less than 2 players connected
-        connected_players_num = len( [player for player in self._list if player.is_connected])
+        connected_players_num = len([player for player in self._list if player.is_connected])
         if connected_players_num < CGameConfig.MIN_PLAYERS:
             start_game_button.config(state="disabled")
 
     def _button_action_start_game(self) -> bool:
-        send_function = ServerCommunication().send_start_game
-        next_page_name = PAGES_DIC.RunningGamePage
 
-        stop_update_thread(self)
-
-        try:
-            is_connected = send_function()
-            if not is_connected:
-                process_is_not_connected(self)
-        except Exception as e:
-            #messagebox.showerror("Connection Failed", str(e))
-            #todo
-
-            raise e
-            return False
-
-        self.controller.show_page(next_page_name)
-        return True
-
-    # def update_data(self, data : PlayerList):
-    #     with self._lock:
-    #         self._list = data
-    #         self._load_page_content()
+        return self.button_action_standard(tk=tk, send_function=ServerCommunication().send_client_start_game,
+                                           next_page_name=PAGES_DIC.RunningGamePage, param_list=[])

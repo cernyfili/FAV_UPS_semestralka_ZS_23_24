@@ -16,8 +16,7 @@ from tkinter import messagebox
 from backend.server_communication import ServerCommunication
 from frontend.page_interface import UpdateInterface
 from frontend.views.utils import PAGES_DIC, show_game_data, game_data_start_listening_for_updates
-from frontend.views.utils import process_is_not_connected
-from shared.constants import GameData, GAME_STATE_MACHINE, CCommandTypeEnum
+from shared.constants import GameData, CCommandTypeEnum
 
 
 class RunningGamePage(tk.Frame, UpdateInterface, ABC):
@@ -36,7 +35,7 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
         return 'stateRunningGame'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_running_game_messages
+        return ServerCommunication().receive_server_running_game_messages
 
     def _set_update_thread(self, param):
         self._update_thread = param
@@ -51,31 +50,12 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
         self._start_listening_for_updates()
 
     def _start_listening_for_updates(self):
-        process_command = {
-            CCommandTypeEnum.ServerStartTurn.value: self._process_start_turn,
-            CCommandTypeEnum.ServerUpdateEndScore.value: self._process_update_end_score
+        process_command: dict[int, callable] = {
+            CCommandTypeEnum.ServerStartTurn.value.id: self._process_start_turn,
+            CCommandTypeEnum.ServerUpdateEndScore.value.id: self._process_update_end_score
         }
 
         game_data_start_listening_for_updates(self, process_command)
-
-    def animate(self, waiting_animation):
-        # Check if the widget still exists
-        if not waiting_animation.winfo_exists():
-            return
-
-        # Get the current text of the waiting animation
-        text = waiting_animation.cget("text")
-
-        # Update the text of the waiting animation
-        if text.count(".") < 3:
-            text += "."
-        else:
-            text = "Playing"
-
-        waiting_animation.config(text=text)
-
-        # Schedule the next animation
-        self.after(500, lambda: self.animate(waiting_animation))
 
     def _load_page_content(self):
         # Clear the current content

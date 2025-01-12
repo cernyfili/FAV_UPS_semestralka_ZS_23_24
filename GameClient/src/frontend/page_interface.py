@@ -9,11 +9,13 @@ Description:
 """
 import logging
 import threading
+import time
 from abc import ABC, abstractmethod
 from tkinter import messagebox
 
 from backend.server_communication import ServerCommunication
-from frontend.views.utils import stop_update_thread, PAGES_DIC, process_is_not_connected
+from frontend.views.utils import stop_update_thread, PAGES_DIC, process_is_not_connected, show_loading_animation, \
+    stop_loading_animation
 from shared.constants import GAME_STATE_MACHINE
 
 
@@ -89,6 +91,29 @@ class UpdateInterface(ABC):
         # Wait for the update thread to finish
         self._set_update_thread(threading.Thread(target=listen_for_updates, daemon=True))
         self._update_thread.start()
+
+    def button_action_standard(self, tk, send_function, next_page_name, param_list):
+        def run_send_function(send_function, next_page_name, param_list):
+            # todo remove
+            time.sleep(2)
+            stop_update_thread(self)
+            try:
+                is_connected = send_function(param_list)
+                if not is_connected:
+                    process_is_not_connected(self)
+                else:
+                    self.controller.show_page(next_page_name)
+            except Exception as e:
+                process_is_not_connected(self)
+                # todo remove
+                raise e
+            finally:
+                stop_loading_animation(self)
+
+        show_loading_animation(self, tk)
+
+        threading.Thread(target=run_send_function, args=(send_function, next_page_name, param_list)).start()
+        return True
 
     @abstractmethod
     def _get_state_name(self):
