@@ -39,7 +39,8 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         self._update_thread = param
 
     def tkraise(self, aboveThis=None):
-        logging.debug("Raising Page")
+        page_name = self.winfo_name()
+        logging.debug(f"Raising Page: {page_name}")
         # Call the original tkraise method
         super().tkraise(aboveThis)
         # Custom behavior after raising the frame
@@ -80,6 +81,8 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         connected_players_num = len([player for player in self._list if player.is_connected])
         if connected_players_num < CGameConfig.MIN_PLAYERS:
             start_game_button.config(state="disabled")
+
+        self.bind('<Return>', lambda event: self._button_action_start_game())
 
     def _button_action_start_game(self) -> bool:
 

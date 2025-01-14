@@ -9,7 +9,6 @@ Description:
 """
 import logging
 import threading
-import time
 from abc import ABC, abstractmethod
 from tkinter import messagebox
 
@@ -72,7 +71,7 @@ class UpdateInterface(ABC):
         def listen_for_updates():
             current_state = GAME_STATE_MACHINE.get_current_state()
             while current_state == state_name and not self._stop_event.is_set():
-                logging.debug("Listening for game list updates")
+                logging.debug("Listening for list updates")
                 try:
                     is_connected, update_list = list_update_function()
                     if self._stop_event.is_set():
@@ -81,8 +80,9 @@ class UpdateInterface(ABC):
                         process_is_not_connected(self)
                         break
                     if not update_list:
-                        break
+                        continue
                     self.update_data(update_list)
+                    continue
                 except Exception as e:
                     raise e
                     #todo change
@@ -94,8 +94,7 @@ class UpdateInterface(ABC):
 
     def button_action_standard(self, tk, send_function, next_page_name, param_list):
         def run_send_function(send_function, next_page_name, param_list):
-            # todo remove
-            time.sleep(2)
+
             stop_update_thread(self)
             try:
                 is_connected = send_function(param_list)

@@ -31,7 +31,8 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
         self._load_page_content()
 
     def tkraise(self, aboveThis=None):
-        logging.debug("Raising Page")
+        page_name = self.winfo_name()
+        logging.debug(f"Raising Page: {page_name}")
         # Call the original tkraise method
         super().tkraise(aboveThis)
         # Custom behavior after raising the frame
@@ -73,7 +74,9 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
                 game_label.pack(pady=10, padx=10)
 
                 # Create a connect button for the game
-                connect_button = tk.Button(self, text="Connect", command=lambda game_element=game: self._button_action_connect_to_game(game_element))
+                connect_button = tk.Button(self, text="Connect",
+                                           command=lambda game_element=game_name: self._button_action_connect_to_game(
+                                               game_element))
                 connect_button.pack(pady=10, padx=10)
 
                 # Disable the connect button if the game is full
@@ -115,7 +118,8 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
                     return False
 
                 if not (CMessageConfig.is_valid_name(game_name)):
-                    tk.messagebox.showerror("Invalid Input", f"Game Name must be between {CGameConfig.NAME_MIN_CHARS} and {CGameConfig.NAME_MAX_CHARS} characters")
+                    tk.messagebox.showerror("Invalid Input",
+                                            f"Game Name must be between {CMessageConfig.NAME_MIN_CHARS} and {CMessageConfig.NAME_MAX_CHARS} characters")
                     return False
 
                 if not (CGameConfig.MIN_PLAYERS <= max_players <= CGameConfig.MAX_PLAYERS):
@@ -145,6 +149,8 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
         # button to create a new game
         create_game_button = tk.Button(self, text="Create New Game", command=lambda: open_popup_new_game())
         create_game_button.pack(pady=10, padx=10)
+
+        self.bind('<Return>', lambda event: open_popup_new_game())
 
     def _button_action_create_game(self, game_name : str, max_players_count : int) -> bool:
         send_function = ServerCommunication().send_client_create_game

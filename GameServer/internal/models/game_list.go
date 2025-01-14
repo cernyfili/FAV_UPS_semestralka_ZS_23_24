@@ -45,6 +45,22 @@ func (gl *GameList) AddItem(game *Game) (int, error) {
 	return key, nil
 }
 
+// remove item
+func (gl *GameList) RemoveItem(game *Game) error {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
+	gameKey := game.gameID
+
+	err := gl.list.RemoveItem(gameKey)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return err
+	}
+
+	return nil
+}
+
 func (gl *GameList) GetItem(key int) (*Game, error) {
 	gl.list.mutex.Lock()
 	defer gl.list.mutex.Unlock()
@@ -59,6 +75,23 @@ func (gl *GameList) GetItem(key int) (*Game, error) {
 		return nil, fmt.Errorf("item is not a game")
 	}
 	return game, nil
+}
+
+// get item by game name
+func (gl *GameList) GetItemByName(name string) (*Game, error) {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
+	for _, v := range gl.list.data {
+		game, ok := v.(*Game)
+		if !ok {
+			return nil, fmt.Errorf("item is not a game")
+		}
+		if game.name == name {
+			return game, nil
+		}
+	}
+	return nil, fmt.Errorf("game not found")
 }
 
 // Has Item in list
@@ -80,6 +113,26 @@ func (gl *GameList) GetValuesArray() []*Game {
 	}
 
 	return values
+}
+
+// GetPlayersGame returns the game of the player
+func (gl *GameList) GetPlayersGame(player *Player) *Game {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
+	for _, v := range gl.list.data {
+		game, ok := v.(*Game)
+		if !ok {
+			panic("item is not a game")
+			return nil
+		}
+		for _, p := range game.playersGameDataArr {
+			if p.Player == player {
+				return game
+			}
+		}
+	}
+	return nil
 }
 
 //endregion

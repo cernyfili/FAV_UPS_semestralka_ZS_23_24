@@ -1,7 +1,7 @@
 package models
 
 import (
-	"gameserver/internal/utils"
+	"gameserver/internal/utils/constants"
 	"gameserver/pkg/stateless"
 )
 
@@ -41,53 +41,53 @@ func CreateStateMachine() *stateless.StateMachine {
 func initilize(stateMachine *stateless.StateMachine) {
 
 	stateMachine.Configure(stateStart).
-		Permit(utils.CGCommands.ClientLogin.Trigger, stateLobby)
+		Permit(constants.CGCommands.ClientLogin.Trigger, stateLobby)
 
 	stateMachine.Configure(stateLobby).
-		Permit(utils.CGCommands.ClientLogout.Trigger, stateEnd).
-		PermitReentry(utils.CGCommands.ServerUpdateGameList.Trigger).
-		Permit(utils.CGCommands.ClientJoinGame.Trigger, stateGame).
-		Permit(utils.CGCommands.ClientCreateGame.Trigger, stateGame).
-		Permit(utils.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorLobby)
+		Permit(constants.CGCommands.ClientLogout.Trigger, stateEnd).
+		PermitReentry(constants.CGCommands.ServerUpdateGameList.Trigger).
+		Permit(constants.CGCommands.ClientJoinGame.Trigger, stateGame).
+		Permit(constants.CGCommands.ClientCreateGame.Trigger, stateGame).
+		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorLobby)
 
 	stateMachine.Configure(stateErrorLobby).
-		Permit(utils.CGCommands.ServerReconnectGameList.Trigger, stateLobby)
+		Permit(constants.CGCommands.ServerReconnectGameList.Trigger, stateLobby)
 
 	stateMachine.Configure(stateGame).
-		Permit(utils.CGCommands.ClientStartGame.Trigger, stateRunningGame).
-		Permit(utils.CGCommands.ServerUpdateStartGame.Trigger, stateRunningGame).
-		PermitReentry(utils.CGCommands.ServerUpdatePlayerList.Trigger).
-		Permit(utils.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorGame)
+		Permit(constants.CGCommands.ClientStartGame.Trigger, stateRunningGame).
+		Permit(constants.CGCommands.ServerUpdateStartGame.Trigger, stateRunningGame).
+		PermitReentry(constants.CGCommands.ServerUpdatePlayerList.Trigger).
+		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorGame)
 
 	stateMachine.Configure(stateErrorGame).
-		Permit(utils.CGCommands.ServerReconnectPlayerList.Trigger, stateGame).
-		Permit(utils.CGCommands.ServerUpdateStartGame.Trigger, stateErrorRunningGame)
+		Permit(constants.CGCommands.ServerReconnectPlayerList.Trigger, stateGame).
+		Permit(constants.CGCommands.ServerUpdateStartGame.Trigger, stateErrorRunningGame)
 
 	stateMachine.Configure(stateRunningGame).
-		Permit(utils.CGCommands.ServerUpdateEndScore.Trigger, stateLobby).
-		Permit(utils.CGCommands.ServerStartTurn.Trigger, stateMyTurn).
-		PermitReentry(utils.CGCommands.ServerUpdateGameData.Trigger).
-		Permit(utils.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorRunningGame)
+		Permit(constants.CGCommands.ServerUpdateEndScore.Trigger, stateLobby).
+		Permit(constants.CGCommands.ServerStartTurn.Trigger, stateMyTurn).
+		PermitReentry(constants.CGCommands.ServerUpdateGameData.Trigger).
+		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorRunningGame)
 
 	stateMachine.Configure(stateErrorRunningGame).
-		Permit(utils.CGCommands.ServerReconnectGameData.Trigger, stateRunningGame).
-		Permit(utils.CGCommands.ServerUpdateEndScore.Trigger, stateErrorGame)
+		Permit(constants.CGCommands.ServerReconnectGameData.Trigger, stateRunningGame).
+		Permit(constants.CGCommands.ServerUpdateEndScore.Trigger, stateErrorGame)
 
 	stateMachine.Configure(stateMyTurn).
-		Permit(utils.CGCommands.ClientRollDice.Trigger, stateForkMyTurn).
-		PermitReentry(utils.CGCommands.ServerPingPlayer.Trigger).
-		Permit(utils.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorRunningGame)
+		Permit(constants.CGCommands.ClientRollDice.Trigger, stateForkMyTurn).
+		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
+		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorRunningGame)
 
 	stateMachine.Configure(stateForkMyTurn).
-		Permit(utils.CGCommands.ResponseServerDiceEndTurn.Trigger, stateRunningGame).
-		Permit(utils.CGCommands.ResponseServerDiceNext.Trigger, stateNextDice)
+		Permit(constants.CGCommands.ResponseServerEndTurn.Trigger, stateRunningGame).
+		Permit(constants.CGCommands.ResponseServerSelectCubes.Trigger, stateNextDice)
 
 	stateMachine.Configure(stateNextDice).
-		Permit(utils.CGCommands.ClientEndTurn.Trigger, stateRunningGame).
-		Permit(utils.CGCommands.ClientNextDice.Trigger, stateMyTurn).
-		PermitReentry(utils.CGCommands.ServerPingPlayer.Trigger)
+		Permit(constants.CGCommands.ClientEndTurn.Trigger, stateRunningGame).
+		Permit(constants.CGCommands.ClientSelectedCubes.Trigger, stateMyTurn).
+		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger)
 
 	stateMachine.Configure(stateForkNextDice).
-		Permit(utils.CGCommands.ResponseServerNextDiceEndScore.Trigger, stateRunningGame).
-		Permit(utils.CGCommands.ResponseServerNextDiceSuccess.Trigger, stateNextDice)
+		Permit(constants.CGCommands.ResponseServerEndScore.Trigger, stateRunningGame).
+		Permit(constants.CGCommands.ResponseServerDiceSuccess.Trigger, stateNextDice)
 }

@@ -1,10 +1,9 @@
 from typing import List
 
-import shared.constants
 from shared.constants import CMessagePartsSizes, CMessageConfig, CCommandTypeEnum, Param, NetworkMessage
 
 
-def parse_message(input_str) -> NetworkMessage:
+def parse_message(input_str: str) -> NetworkMessage:
     def _parse_param_str(params_string)->Param:
         def __process_array_values(param : Param) -> Param:
             def ___is_array_param(param : Param) -> bool:
@@ -115,6 +114,9 @@ def parse_message(input_str) -> NetworkMessage:
 
         return player_nickname, player_nickname_size
 
+    if len(input_str) == 0:
+        raise ValueError("Invalid input format")
+
     signature_size = CMessagePartsSizes.SIGNATURE_SIZE
     command_id_size = CMessagePartsSizes.COMMANDID_SIZE
     timestamp_size = CMessagePartsSizes.TIMESTAMP_SIZE
@@ -128,6 +130,11 @@ def parse_message(input_str) -> NetworkMessage:
     # Check if the message ends with the end of message character
     if input_str[-1] != CMessageConfig.END_OF_MESSAGE:
         raise ValueError("Invalid message format")
+
+    # Check if not more end of message characters
+    if input_str[:-1].find(CMessageConfig.END_OF_MESSAGE) != -1:
+        raise ValueError("Buffer read multiple messages")
+
     # remove the end of message character
     input_str = input_str[:-1]
 

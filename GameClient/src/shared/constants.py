@@ -12,7 +12,7 @@ from backend.state_manager import GameStateMachine
 @dataclass
 class MessageParamListInfo:
     param_names: list[str]
-    convert_function: callable = None
+    convert_function: callable
 
 @dataclass
 class ScoreCube:
@@ -252,7 +252,7 @@ class CombinationList:
 ALLOWED_CUBE_VALUES_COMBINATIONS : CombinationList = CombinationList([
     Combination([1]),
     Combination([5]),
-    Combination([2, 2])
+    # Combination([2, 2])
 ])
 
 
@@ -411,14 +411,18 @@ class CCommandTypeEnum(Enum):
     ## SERVER -> ALL CLIENTS
     ServerUpdateStartGame: Command = Command(41, GAME_STATE_MACHINE.ServerUpdateStartGame, [], None)
     ServerUpdateEndScore: Command = Command(42, GAME_STATE_MACHINE.ServerUpdateEndScore, ["playerName"], None)
+
     ServerUpdateGameData: Command = Command(43, GAME_STATE_MACHINE.ServerUpdateGameData, ["gameData"], game_data_info)
     ServerUpdateGameList: Command = Command(44, GAME_STATE_MACHINE.ServerUpdateGameList, ["gameList"], game_list_info)
     ServerUpdatePlayerList: Command = Command(45, GAME_STATE_MACHINE.ServerUpdatePlayerList, ["playerList"], player_list_info)
 
     ## SERVER -> SINGLE CLIENT
-    ServerReconnectGameList: Command = Command(46, GAME_STATE_MACHINE.ServerReconnectGameList, ["gameList"], game_list_info)
-    ServerReconnectGameData: Command = Command(47, GAME_STATE_MACHINE.ServerReconnectGameData, ["gameData"], game_data_info)
-    ServerReconnectPlayerList: Command = Command(48, GAME_STATE_MACHINE.ServerReconnectPlayerList, ["playerList"], player_list_info)
+    ServerReconnectGameList: Command = Command(46, GAME_STATE_MACHINE.ServerReconnectGameList, ["gameList"],
+                                               game_list_info)  # todo implement
+    ServerReconnectGameData: Command = Command(47, GAME_STATE_MACHINE.ServerReconnectGameData, ["gameData"],
+                                               game_data_info)  # todo implement
+    ServerReconnectPlayerList: Command = Command(48, GAME_STATE_MACHINE.ServerReconnectPlayerList, ["playerList"],
+                                                 player_list_info)  # todo implement
 
     ServerStartTurn: Command = Command(49, GAME_STATE_MACHINE.ServerStartTurn, [], None)
     ServerPingPlayer: Command = Command(50, GAME_STATE_MACHINE.ServerPingPlayer, [], None)
@@ -473,13 +477,19 @@ class CMessageConfig:
     NAME_MAX_CHARS : Final = 20
 
     @staticmethod
-    def is_valid_name(player_nickname: str) -> bool:
-        return CMessageConfig.NAME_MIN_CHARS <= len(player_nickname) <= CMessageConfig.NAME_MAX_CHARS
+    def is_valid_name(name: str) -> bool:
+        if not name:
+            return False
+
+        if not name.isalnum():
+            return False
+
+        return CMessageConfig.NAME_MIN_CHARS <= len(name) <= CMessageConfig.NAME_MAX_CHARS
 
 @dataclass(frozen=True)
 class CNetworkConfig:
     RECEIVE_TIMEOUT = 2
     BUFFER_SIZE: Final = 1024
     MAX_MESSAGE_SIZE: Final = 1024
-    RECONNECT_ATTEMPTS: Final = 3
+    RECONNECT_ATTEMPTS: Final = 1  #todo change
     RECONNECT_TIMEOUT_SEC: Final = 2

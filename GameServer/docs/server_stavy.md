@@ -20,7 +20,7 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 
 **array params**
 
-`{"gameList":[{"gameName":"Game3","maxPlayers":"3","connectedPlayers":"5"};{"gameName":"Game5","maxPlayers":"3","connectedPlayers":"5"}]}`
+`{"gameList":"[{"gameName":"Game1","maxPlayers":"4","connectedPlayers":"2"};{"gameName":"Game2","maxPlayers":"4","connectedPlayers":"2"}]"}`
 
 #### Param arrays
 
@@ -183,7 +183,7 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 ## CLIENT -> SERVER
 
 - **ClientLogin**
-  `CommandID: 1, Params: []`
+  `CommandID: 1, Params: []` - nickname is in the header
 
   - **Response**
     - ResponseServerGameList
@@ -252,10 +252,10 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 - **ResponseServerSelectCubes (ResponseServerDiceNext)**
   `CommandID: 34, Params: ["cubeValues"] List`
 - **ResponseServerEndTurn(ResponseServerDiceEndTurn)**
-- `CommandID: 35, Params: []`
+ `CommandID: 35, Params: []`
 -
 - **ResponseServerEndScore(ResponseServerNextDiceEndScore)**
-  `CommandID: 36, Params: ["playerName"]`
+  `CommandID: 36, Params: []`
 - **ResponseServerDiceSuccess(ResponseServerNextDiceSuccess)**
   `CommandID: 37, Params: []`
 
@@ -272,7 +272,7 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
   - **Response**
     - ResponseClientSuccess
 - **ServerUpdateEndScore**
-  `CommandID: 42, Params: []`
+  `CommandID: 42, Params: ["playerName"]`
   - **Response**
     - ResponseClientSuccess
 

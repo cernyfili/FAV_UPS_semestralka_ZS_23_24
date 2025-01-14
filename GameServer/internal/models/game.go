@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	"gameserver/internal/utils"
+	"gameserver/internal/utils/constants"
 	"gameserver/internal/utils/errorHandeling"
 	"math/rand"
 	"sync"
@@ -90,10 +90,8 @@ func generateCubeValues(count int) []int {
 	return array
 }
 
-// NextTurn returns the next Player in turn.
-func (g *Game) NextTurn() (*Player, error) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
+// nextTurn returns the next Player in turn.
+func (g *Game) nextTurn() (*Player, error) {
 
 	if len(g.playersGameDataArr) == 0 {
 		return nil, fmt.Errorf("no players in the game")
@@ -128,7 +126,6 @@ func (g *Game) AddPlayer(pPlayer *Player) error {
 	}
 
 	g.playersGameDataArr = append(g.playersGameDataArr, playerGameData)
-	pPlayer.game = g
 
 	return nil
 }
@@ -166,7 +163,6 @@ func (g *Game) RemovePlayer(player *Player) error {
 
 	for i, p := range g.playersGameDataArr {
 		if p.Player == player {
-			player.game = nil
 			g.playersGameDataArr = append(g.playersGameDataArr[:i], g.playersGameDataArr[i+1:]...)
 			break
 		}
@@ -235,7 +231,7 @@ func (g *Game) GetGameData() (GameData, error) {
 
 	var gameData GameData
 	gameData.PlayerGameDataArr = g.playersGameDataArr
-	turnPlayer, err := g.NextTurn()
+	turnPlayer, err := g.nextTurn()
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return GameData{}, err
@@ -246,33 +242,35 @@ func (g *Game) GetGameData() (GameData, error) {
 	return gameData, nil
 }
 
-func (g *Game) GetScoreIncrease(cubeIndexes []int, player *Player) (int, error) {
+func (g *Game) GetScoreIncrease(cubeValuesList []int, player *Player) (int, error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	cubeValues, err := g.getLastThrowCubeValues(player)
+	playerLastThrowCubeValues, err := g.getLastThrowCubeValues(player)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return 0, fmt.Errorf("failed to get last throw")
 	}
 
-	if len(cubeIndexes) == 0 {
-		return 0, fmt.Errorf("no cubes selected")
-	}
-
-	if len(cubeIndexes) > len(cubeValues) {
-		return 0, fmt.Errorf("invalid cube indexes")
+	// check if cubeValuesList elements are all in playerLastThrowCubeValues
+	for _, cubeValue := range cubeValuesList {
+		isInList := false
+		for _, playerCubeValue := range playerLastThrowCubeValues {
+			if cubeValue == playerCubeValue {
+				isInList = true
+				break
+			}
+		}
+		if !isInList {
+			return 0, fmt.Errorf("invalid cube value")
+		}
 	}
 
 	scoreIncrease := 0
-	for _, index := range cubeIndexes {
-		if index < 0 || index >= len(cubeValues) {
-			return 0, fmt.Errorf("invalid cube indexes")
-		}
-		value := cubeValues[index]
+	for _, cubeValue := range cubeValuesList {
 		isScoreValue := false
-		for _, scoreCube := range utils.CGScoreCubeValues {
-			if value == scoreCube.Value {
+		for _, scoreCube := range constants.CGScoreCubeValues {
+			if cubeValue == scoreCube.Value {
 				scoreIncrease += scoreCube.ScoreValue
 				isScoreValue = true
 				break

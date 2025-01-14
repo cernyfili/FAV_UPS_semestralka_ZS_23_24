@@ -37,7 +37,8 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
         self._load_page_content()
 
     def tkraise(self, aboveThis=None):
-        logging.debug("Raising Page")
+        page_name = self.winfo_name()
+        logging.debug(f"Raising Page: {page_name}")
         # Call the original tkraise method
         super().tkraise(aboveThis)
         # Custom behavior after raising the frame

@@ -44,15 +44,28 @@ func InitLogger(config LoggerConfig) error {
 		Log.SetFormatter(&logrus.TextFormatter{
 			FullTimestamp:          true, // Show full timestamp
 			TimestampFormat:        config.TimestampFormat,
-			DisableColors:          true,  // Disable colors in output
-			DisableQuote:           false, // Disable quote around message
-			DisableSorting:         true,  // Disable sorting of log fields
+			DisableColors:          false, // Disable colors in output
+			DisableQuote:           true,  // Disable quote around message
+			DisableSorting:         false, // Disable sorting of log fields
 			DisableLevelTruncation: true,  // Disable truncating log level name
+			ForceColors:            true,
 			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 				// Format path and line number for clickable links in JetBrains
 				absPath, _ := filepath.Abs(f.File)
 				return "", fmt.Sprintf("%s:%d", absPath, f.Line)
 			},
+			//SortingFunc: func(keys []string) {
+			//	// make it sorted like: level, time, msg, caller
+			//	sortKeys := []string{"level", "msg", "func", "time"}
+			//	for i, key := range sortKeys {
+			//		for _, k := range keys {
+			//			if k == key {
+			//				keys[i] = k
+			//				break
+			//			}
+			//		}
+			//	}
+			//},
 		})
 	}
 

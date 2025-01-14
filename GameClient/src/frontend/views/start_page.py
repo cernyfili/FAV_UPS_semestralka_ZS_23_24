@@ -40,7 +40,12 @@ class StartPage(tk.Frame):
 
         nickname_label = tk.Label(self, text="Nickname")
         nickname_label.pack(pady=10, padx=10, fill='both', expand=True)
-        nickname_entry_var = tk.StringVar(value="Player1")
+
+        randomNum = str(time.time())
+        player_str = "Player" + randomNum[-5:]
+        # player_str = "Player1"
+
+        nickname_entry_var = tk.StringVar(value=player_str)
         nickname_entry = tk.Entry(self, textvariable=nickname_entry_var, validate="focusout", validatecommand=(self.register(self._validate_nickname), '%P'))
         nickname_entry.pack(pady=10, padx=10, fill='both', expand=True)
 
@@ -49,6 +54,9 @@ class StartPage(tk.Frame):
                                        ip_entry.get(), int(port_entry.get()), nickname_entry.get())
                                    )
         connect_button.pack(pady=10, padx=10, fill='both', expand=True)
+
+        self.bind('<Return>',
+                  lambda event: self._button_action_connect(ip_entry.get(), int(port_entry.get()), nickname_entry.get()))
 
     @staticmethod
     def _validate_ip(ip):
@@ -70,8 +78,6 @@ class StartPage(tk.Frame):
         next_page_name = PAGES_DIC.LobbyPage
 
         def run_send_function(ip, port, nickname):
-            # todo remove
-            time.sleep(1)
 
             try:
                 is_connected, game_list = ServerCommunication().send_client_login(ip, port, nickname)

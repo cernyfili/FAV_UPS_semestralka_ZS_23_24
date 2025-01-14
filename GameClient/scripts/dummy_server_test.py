@@ -48,6 +48,12 @@ def simulate_server_response():
                     message = create_response_game_list()
                     send_message(client_socket, message)
 
+                    # ServerUpdateGameList
+                    time.sleep(WAIT_TIME)
+                    message = create_game_list_update()
+                    send_message(client_socket, message)
+
+                    # ServerUpdateGameList
                     time.sleep(WAIT_TIME)
                     message = create_game_list_update()
                     send_message(client_socket, message)
@@ -60,6 +66,7 @@ def simulate_server_response():
                     response = create_response_success()
                     send_message(client_socket, response)
 
+                    # ServerUpdatePlayerList
                     time.sleep(WAIT_TIME)
                     message = create_player_list()
                     send_message(client_socket, message)
@@ -133,6 +140,8 @@ def simulate_server_response():
         message_str = convert_message_to_network_string(message)
         logging.debug(f"SERVER: Sending response {CCommandTypeEnum.get_command_name_from_id(message.command_id)}:  {message}")
         print(f"SERVER: Sending response {CCommandTypeEnum.get_command_name_from_id(message.command_id)}:  {message}")
+        print(
+            f"SERVER: Sending response {CCommandTypeEnum.get_command_name_from_id(message.command_id)}:  {message_str}")
         client_socket.sendall(message_str.encode())
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -166,7 +175,10 @@ def create_game_list_update():
     global switcher
     switcher = not switcher
 
-    param_value = "[{\"gameName\":\"Game1\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"}]" if switcher else "[{\"gameName\":\"Game1\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"};{\"gameName\":\"Game2\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"}]"
+    game_list_1 = "[{\"gameName\":\"GameA1\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"};{\"gameName\":\"GameA2\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"}]"
+    game_list_2 = "[{\"gameName\":\"GameB1\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"};{\"gameName\":\"GameB2\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"}]"
+
+    param_value = game_list_1 if switcher else game_list_2
 
 
     game_list_update = NetworkMessage(
@@ -179,7 +191,7 @@ def create_game_list_update():
     return game_list_update
 
 def create_response_game_list():
-    param_value = "[{\"gameName\":\"Game1\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"}]" if switcher else "[{\"gameName\":\"Game1\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"};{\"gameName\":\"Game2\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"}]"
+    param_value = "[{\"gameName\":\"Game1\",\"maxPlayers\":\"4\",\"connectedPlayers\":\"2\"}]"
     game_list = NetworkMessage(
         signature=CMessageConfig.SIGNATURE,
         command_id=CCommandTypeEnum.ResponseServerGameList.value.id,
@@ -251,17 +263,31 @@ def create_server_ping_player():
     )
     return response
 
-if __name__ == "__main__":
-    # save logging to file
-    logging.basicConfig(level=logging.DEBUG, handlers=[logging.FileHandler('dummy_server_client.log'), logging.StreamHandler()])
 
-    # Start the dummy server
-    server_thread = threading.Thread(target=simulate_server_response, daemon=True)
-    server_thread.start()
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        record.msg = record.msg.replace(':', '-')
+        return super().format(record)
 
 
-    # Start the GUI application
+def main():
+
     app = MyApp()
     app.geometry("800x400")
     app.show_page("StartPage")
     app.mainloop()
+
+
+if __name__ == "__main__":
+    # Start the dummy server
+    server_thread = threading.Thread(target=simulate_server_response, daemon=True)
+    server_thread.start()
+
+    logging.basicConfig(
+        level=logging.DEBUG
+    )
+
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(
+            CustomFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s\n    ["%(filename)s:%(lineno)d"]'))
+    main()

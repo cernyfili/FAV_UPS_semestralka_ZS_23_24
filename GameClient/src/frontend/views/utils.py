@@ -32,10 +32,12 @@ def process_is_not_connected(instance_object):
     raise ConnectionError("Could not connect to the server")
 
 def stop_update_thread(self):
+    logging.debug("Stopping the update thread")
     # region THREAD STOP
     self._stop_event.set()
     # Wait for the update thread to finish
     if self._update_thread.is_alive():
+        logging.debug("Waiting for the update thread to finish")
         self._update_thread.join()
     # endregion
 
@@ -44,6 +46,11 @@ def stop_update_thread(self):
 def stop_loading_animation(self):
     if hasattr(self, 'loading_label'):
         self.loading_label.destroy()
+
+
+def bind_to_enter_key(self, button):
+    pass
+    # self.bind('<Return>', button.invoke())
 
 
 def animate(self, waiting_animation, label_str):

@@ -44,7 +44,6 @@ func (pl *PlayerList) GetItem(key string) (*Player, error) {
 
 	item, err := pl.list.GetItem(key)
 	if err != nil {
-		errorHandeling.PrintError(err)
 		return nil, err
 	}
 	player, ok := item.(*Player)
@@ -89,13 +88,16 @@ func (pl *PlayerList) RemoveItem(player *Player) error {
 
 }
 
-// GetValuesArray
-func (pl *PlayerList) GetValuesArray() []*Player {
+// GetValuesArrayWithoutOnePlayer
+func (pl *PlayerList) GetValuesArrayWithoutOnePlayer(player *Player) []*Player {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
 
 	var values []*Player
 	for _, v := range pl.list.data {
+		if v.(*Player) == player {
+			continue
+		}
 		values = append(values, v.(*Player))
 	}
 

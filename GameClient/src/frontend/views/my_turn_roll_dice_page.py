@@ -9,7 +9,6 @@ Description:
 """
 import logging
 import threading
-import time
 import tkinter as tk
 from abc import ABC
 from tkinter import messagebox
@@ -35,7 +34,8 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
         self._load_page_content()
 
     def tkraise(self, aboveThis=None):
-        logging.debug("Raising Page")
+        page_name = self.winfo_name()
+        logging.debug(f"Raising Page: {page_name}")
         # Call the original tkraise method
         super().tkraise(aboveThis)
         # Custom behavior after raising the frame
@@ -70,8 +70,7 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
 
     def _button_action_send_roll_dice(self):
         def run_send_function():
-            # todo remove
-            time.sleep(1)
+
             stop_update_thread(self)
             try:
                 is_connected, command, cube_values_list = ServerCommunication().send_client_roll_dice()

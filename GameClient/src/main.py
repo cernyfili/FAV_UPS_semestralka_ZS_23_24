@@ -1,9 +1,6 @@
 import logging
-import os
-import sys
 
 from frontend.ui_manager import MyApp
-from shared.constants import Game, GameList
 
 
 def main():
@@ -16,7 +13,10 @@ def main():
 
 if __name__ == "__main__":
     # log to console
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s \n["%(filename)s:%(lineno)d"]'
+    )
     main()
     # try:
     #     main()
