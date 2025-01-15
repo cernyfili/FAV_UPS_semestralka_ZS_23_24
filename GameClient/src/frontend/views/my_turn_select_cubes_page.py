@@ -41,6 +41,8 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
         logging.debug(f"Raising Page: {page_name}")
         # Call the original tkraise method
         super().tkraise(aboveThis)
+
+        self._list : GameData = GameData([])
         self._lock = threading.Lock()  # Initialize the lock
         self._stop_event = threading.Event()
         self._update_thread = None

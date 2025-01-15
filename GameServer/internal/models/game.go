@@ -2,10 +2,11 @@ package models
 
 import (
 	"fmt"
-	"gameserver/internal/logger"
 	"gameserver/internal/utils/constants"
 	"gameserver/internal/utils/errorHandeling"
+	"math/rand"
 	"sync"
+	"time"
 )
 
 // region CONSTANTS
@@ -52,7 +53,7 @@ type Game struct {
 	name               string
 	playersGameDataArr []PlayerGameData
 	maxPlayers         int
-	turnNum            int
+	turnCount          int
 	gameStateValue     GameState
 	mutex              sync.Mutex
 }
@@ -77,33 +78,61 @@ func CreateGame(name string, maxPlayers int) (*Game, error) {
 		name:               name,
 		playersGameDataArr: make([]PlayerGameData, 0),
 		maxPlayers:         maxPlayers,
-		turnNum:            0,
+		turnCount:          0,
 		gameStateValue:     Created,
 	}, nil
 }
 
 func generateCubeValues(count int) []int {
-
-	valueInt := 4
+	rand.Seed(time.Now().UnixNano())
 	array := make([]int, count)
+	hasFive := rand.Intn(2) // Randomly decide if there will be a five (0 or 1)
+
 	for i := 0; i < count; i++ {
-		//array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
-		//todo remove
-		array[i] = valueInt
+		if hasFive == 1 && i == 0 {
+			array[i] = 5
+		} else {
+			array[i] = 4
+		}
 	}
+
 	return array
+
+	//
+	//
+	//valueInt := 4
+	//array := make([]int, count)
+	//for i := 0; i < count; i++ {
+	//	//array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
+	//	//todo remove
+	//	array[i] = valueInt
+	//}
+	//return array
 }
 
 // get turn number
-func (g *Game) GetTurnNum() int {
+//func (g *Game) GetTurnNum() int {
+//	g.mutex.Lock()
+//	defer g.mutex.Unlock()
+//
+//	return g.turnCount
+//}
+
+// public GetRoundNum
+func (g *Game) GetRoundNum() int {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	return g.turnNum
+	return g.getRoundNum()
 }
 
-// nextTurn returns the next Player in turn.
-func (g *Game) nextTurn() (*Player, error) {
+// get game round number
+func (g *Game) getRoundNum() int {
+	return g.turnCount / len(g.playersGameDataArr)
+}
+
+// nextPlayerTurn returns the next Player in turn.
+func (g *Game) nextPlayerTurn() (*Player, error) {
 
 	if len(g.playersGameDataArr) == 0 {
 		return nil, fmt.Errorf("no players in the game")
@@ -112,10 +141,10 @@ func (g *Game) nextTurn() (*Player, error) {
 		return nil, fmt.Errorf("game is not running")
 	}
 
-	currentPlayerIndex := g.turnNum % len(g.playersGameDataArr)
+	currentPlayerIndex := g.turnCount % len(g.playersGameDataArr)
 	nextPlayerIndex := (currentPlayerIndex + 1) % len(g.playersGameDataArr)
 
-	g.turnNum++
+	g.turnCount++
 
 	return g.playersGameDataArr[nextPlayerIndex].Player, nil
 }
@@ -160,7 +189,7 @@ func (g *Game) getTurnPlayer() (*Player, error) {
 		return nil, fmt.Errorf("game is not running")
 	}
 
-	currentPlayerIndex := g.turnNum % len(g.playersGameDataArr)
+	currentPlayerIndex := g.turnCount % len(g.playersGameDataArr)
 
 	return g.playersGameDataArr[currentPlayerIndex].Player, nil
 }
@@ -258,8 +287,8 @@ func (g *Game) IsPlayerTurn(player *Player) bool {
 	return turnPlayer == player
 }
 
-// ShiftTurn shifts the turn to the next player
-func (g *Game) ShiftTurn() error {
+// NextPlayerTurn shifts the turn to the next player
+func (g *Game) NextPlayerTurn() error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
@@ -268,7 +297,7 @@ func (g *Game) ShiftTurn() error {
 
 func (g *Game) shiftTurn() error {
 
-	_, err := g.nextTurn()
+	_, err := g.nextPlayerTurn()
 	if err != nil {
 		return fmt.Errorf("failed to shift turn")
 	}
@@ -413,7 +442,7 @@ func (g *Game) StartGame() error {
 	}
 
 	g.gameStateValue = Running
-	g.turnNum = 0
+	g.turnCount = 0
 
 	err := g.shiftTurn()
 	if err != nil {
@@ -474,25 +503,26 @@ func (g *Game) addThrow(player *Player, count int) ([]int, error) {
 	throw.cubeValues = generateCubeValues(count)
 	throw.selectedCubesValues = make([]int, 0)
 
-	turnNum := g.turnNum
+	gameRoundNum := g.getRoundNum()
+	gameRoundNumIndex := gameRoundNum - 1
+	if gameRoundNumIndex < 0 {
+		gameRoundNumIndex = 0
+	}
 
 	// Add new turn if it is the first throw of the turn
-	if len(turnPlayerGameData.TurnHistory) < turnNum {
+	if len(turnPlayerGameData.TurnHistory) == gameRoundNumIndex {
 		emptyTurn := Turn{}
 		emptyTurn.ThrowArr = make([]Throw, 0)
 		turnPlayerGameData.TurnHistory = append(turnPlayerGameData.TurnHistory, emptyTurn)
 	}
-	if len(turnPlayerGameData.TurnHistory) != turnNum {
-		return nil, fmt.Errorf("failed to add throw")
-	}
 
-	array := turnPlayerGameData.TurnHistory[turnNum-1].ThrowArr
-	array = append(array, throw)
-	turnPlayerGameData.TurnHistory[turnNum-1].ThrowArr = array
+	// Add the new throw to the turn history to the turnPlayerGameData
+	turnPlayerGameData.TurnHistory[gameRoundNumIndex].ThrowArr = append(turnPlayerGameData.TurnHistory[gameRoundNumIndex].ThrowArr, throw)
 
 	// Set the updated turn history in the game playersGameDataArr
 	for i, p := range g.playersGameDataArr {
 		if p.Player == player {
+			//add turn history
 			g.playersGameDataArr[i].TurnHistory = turnPlayerGameData.TurnHistory
 			break
 		}
@@ -534,7 +564,6 @@ func (g *Game) SetPlayerScore(player *Player, selectedCubeValues []int) error {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("failed to set score")
 	}
-	logger.Log.Infof("Player score: %d", score)
 
 	isSet := false
 	for i, p := range g.playersGameDataArr {
@@ -545,6 +574,9 @@ func (g *Game) SetPlayerScore(player *Player, selectedCubeValues []int) error {
 	}
 	if !isSet {
 		return fmt.Errorf("player not found")
+	}
+	if score == 0 {
+		return nil
 	}
 
 	//set selected cube values

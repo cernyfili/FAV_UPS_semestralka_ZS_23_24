@@ -57,10 +57,11 @@ class MyApp(tk.Tk):
         # Show the selected page
         self._current_frame = page_name
         frame = self.pages[page_name]
-        if data:
-            frame.update_data(data)
 
         frame.tkraise()
+
+        if data:
+            frame.update_data(data)
 
     def get_current_frame(self):
         return self._current_frame

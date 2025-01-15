@@ -204,5 +204,5 @@ func IsAlphaNumeric(name string) bool {
 
 // region GLOBAL VARIABLES
 const (
-	CMaxScore = 200
+	CMaxScore = 100
 )

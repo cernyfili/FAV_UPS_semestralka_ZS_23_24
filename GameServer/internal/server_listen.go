@@ -118,7 +118,7 @@ func handleConnection(conn net.Conn) {
 							fmt.Println("Error processing player turn:", err)
 							return
 						}
-						err = playerGame.ShiftTurn()
+						err = playerGame.NextPlayerTurn()
 						if err != nil {
 							errorHandeling.PrintError(err)
 							fmt.Println("Error shifting turn:", err)

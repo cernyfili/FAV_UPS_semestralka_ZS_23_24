@@ -763,8 +763,8 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 	}
 
 	for {
-		turnNumber := game.GetTurnNum()
-		logger.Log.Debugf("Turn number: %d ,player: %s ", turnNumber, turnPlayer.GetNickname())
+		roundNumber := game.GetRoundNum()
+		logger.Log.Debugf("Turn number: %d ,player: %s ", roundNumber, turnPlayer.GetNickname())
 		//Send ServerUpdateGameData
 		err = sendCurrentServerUpdateGameData(game, nil)
 		if err != nil {
