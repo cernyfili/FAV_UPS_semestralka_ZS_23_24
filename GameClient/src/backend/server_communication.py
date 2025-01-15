@@ -504,7 +504,7 @@ class ServerCommunication:
 
         # Response EndTurn
         expected_command = CCommandTypeEnum.ResponseServerEndTurn.value
-        if received_command.id == expected_command:
+        if received_command.id == expected_command.id:
             received_command = expected_command
             self.__state_machine_send_triggers(command, received_command)
             return True, received_command,None

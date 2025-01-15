@@ -1,7 +1,6 @@
 package main
 
 import (
-	"gameserver/internal/models"
 	"gameserver/internal/utils/constants"
 )
 
@@ -19,6 +18,7 @@ func IsValidName(name string) bool {
 	return len(name) >= constants.CMessageNameMinChars && len(name) <= constants.CMessageNameMaxChars
 }
 
-func main() {
-	print(models.IsValidName("Game1"))
-}
+//
+//func main() {
+//	print(models.IsValidName("Game1"))
+//}

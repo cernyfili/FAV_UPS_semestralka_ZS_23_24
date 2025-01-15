@@ -44,6 +44,7 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         # Call the original tkraise method
         super().tkraise(aboveThis)
 
+        self._list: PlayerList = PlayerList([])
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
         # Custom behavior after raising the frame

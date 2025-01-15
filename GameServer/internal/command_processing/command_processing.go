@@ -12,11 +12,6 @@ import (
 	"net"
 )
 
-// region GLOBAL VARIABLES
-const (
-	cMaxScore = 10000
-)
-
 // CommandsHandlers is a map of valid commands and their information.
 var CommandsHandlers = map[int]CommandInfo{
 	//1: {"PLAYER_LOGIN", processPlayerLogin} first case in if in ProcessMessage
@@ -182,15 +177,15 @@ func dissconectPlayer(player *models.Player) error {
 	return nil
 }
 
-func sendCurrentServerUpdateGameData(game *models.Game, player *models.Player) error {
+func sendCurrentServerUpdateGameData(game *models.Game, removePlayer *models.Player) error {
 	gameData, err := game.GetGameData()
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
 	}
 	playerList := game.GetPlayers()
-	if player != nil {
-		playerList = helpers.RemovePlayerFromList(playerList, player)
+	if removePlayer != nil {
+		playerList = helpers.RemovePlayerFromList(playerList, removePlayer)
 	}
 
 	err = network.CommunicationServerUpdateGameData(gameData, playerList)
@@ -767,14 +762,16 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 		return true, nil
 	}
 
-	//Send ServerUpdateGameData
-	err = sendCurrentServerUpdateGameData(game, turnPlayer)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("Error sending response: %w", err)
-	}
-
 	for {
+		turnNumber := game.GetTurnNum()
+		logger.Log.Debugf("Turn number: %d ,player: %s ", turnNumber, turnPlayer.GetNickname())
+		//Send ServerUpdateGameData
+		err = sendCurrentServerUpdateGameData(game, nil)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return false, fmt.Errorf("Error sending response: %w", err)
+		}
+
 		//My turn --ClientRollDice--> fork_my_turn
 		var message models.Message
 		message, isNextPlayerTurn, err = handleClientRollDice(turnPlayer)
@@ -792,8 +789,10 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
+		logger.Log.Debugf("Cube values: %v", cubeValues)
 
 		canBePlayed := cubesCanBePlayed(cubeValues)
+		logger.Log.Debugf("Can be played: %v", canBePlayed)
 		if !canBePlayed {
 			//--> ResponseServerEndTurn
 			err = network.SendResponseServerEndTurn(turnPlayer)
@@ -868,20 +867,14 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 			return true, nil
 		}
 
-		scoreIncrease, err := game.GetScoreIncrease(selectedCubesValues, turnPlayer)
+		score, err := game.GetNewScore(turnPlayer, selectedCubesValues)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
-		currentScore, err := game.GetPlayerScore(turnPlayer)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return false, fmt.Errorf("Error sending response: %w", err)
-		}
-		score := currentScore + scoreIncrease
 
 		// --> ResponseServerEndScore
-		if score >= cMaxScore {
+		if score >= constants.CMaxScore {
 
 			err = network.SendResponseServerEndScore(turnPlayer)
 			if err != nil {
@@ -890,7 +883,7 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 			}
 
 			//change player score
-			err = game.SetPlayerScore(turnPlayer, score)
+			err = game.SetPlayerScore(turnPlayer, selectedCubesValues)
 			if err != nil {
 				errorHandeling.PrintError(err)
 				return false, fmt.Errorf("Error sending response: %w", err)
@@ -899,6 +892,7 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 			//Send ServerUpdateEndScore
 			playerList := game.GetPlayers()
 			playerList = helpers.RemovePlayerFromList(playerList, turnPlayer)
+
 			err = network.CommunicationServerUpdateEndScore(playerList, turnPlayer.GetNickname())
 			if err != nil {
 				errorHandeling.PrintError(err)
@@ -916,22 +910,37 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 				return false, fmt.Errorf("error sending response: %w", err)
 			}
 
+			// ServerUpdateGameList
+			err = network.CommunicationServerUpdateGameList(models.GetInstancePlayerList().GetValuesArray(), models.GetInstanceGameList().GetValuesArray())
+			if err != nil {
+				errorHandeling.PrintError(err)
+				return false, fmt.Errorf("Error sending response: %w", err)
+			}
+
 			return false, nil
 		}
 
 		//--> ResponseServerDiceSuccess
+		err = game.SetPlayerScore(turnPlayer, selectedCubesValues)
+
 		err = network.SendResponseServerDiceSuccess(turnPlayer)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
-	}
 
-	//todo find why not working
-	//err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerDiceSuccess.Trigger)
-	//if err != nil {
-	//	return __handleFireError(turnPlayer, err)
-	//}
+		err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerDiceSuccess.Trigger)
+		if err != nil {
+			return __handleFireError(turnPlayer, err)
+		}
+
+		//ServerUpdateGameData
+		err = sendCurrentServerUpdateGameData(game, turnPlayer)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return false, fmt.Errorf("Error sending response: %w", err)
+		}
+	}
 
 	// next Player turn
 	return true, nil

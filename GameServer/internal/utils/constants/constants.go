@@ -43,7 +43,7 @@ const (
 	CConnType = "tcp"
 	CConnHost = "127.0.0.1"
 	CConnPort = "10000"
-	CTimeout  = time.Second
+	CTimeout  = 2 * time.Second
 )
 
 //endregion
@@ -201,3 +201,8 @@ func IsAlphaNumeric(name string) bool {
 }
 
 // region GLOBAL VARIABLES
+
+// region GLOBAL VARIABLES
+const (
+	CMaxScore = 200
+)

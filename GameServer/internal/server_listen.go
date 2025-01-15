@@ -112,16 +112,10 @@ func handleConnection(conn net.Conn) {
 				if playerGame != nil {
 					isPlayerTurn := playerGame.IsPlayerTurn(player)
 					if isPlayerTurn {
-						isNextPlayerTurn, err := command_processing.ProcessPlayerTurn(playerGame)
+						_, err := command_processing.ProcessPlayerTurn(playerGame)
 						if err != nil {
 							errorHandeling.PrintError(err)
 							fmt.Println("Error processing player turn:", err)
-							return
-						}
-						if !isNextPlayerTurn {
-							err := fmt.Errorf("Error processing player turn: isNextPlayerTurn is false")
-							errorHandeling.PrintError(err)
-							fmt.Println("Error processing player turn: isNextPlayerTurn is false")
 							return
 						}
 						err = playerGame.ShiftTurn()

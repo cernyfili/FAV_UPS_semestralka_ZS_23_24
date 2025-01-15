@@ -36,6 +36,7 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
         # Call the original tkraise method
         super().tkraise(aboveThis)
 
+        self._list = []
         self._lock = threading.Lock()  # Initialize the lock
         self._stop_event = threading.Event()
         self._update_thread = None

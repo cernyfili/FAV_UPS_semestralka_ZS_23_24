@@ -211,6 +211,10 @@ func readContinouslyWithPing(player *models.Player, command constants.Command) (
 			continue
 		}
 
+		if clientResponse.CommandID == constants.CGCommands.ResponseClientSuccess.CommandID {
+			continue
+		}
+
 		break
 	}
 	return clientResponse, nil
@@ -759,7 +763,9 @@ func CommunicationReadContinouslyWithPing(player *models.Player, command constan
 		errorHandeling.PrintError(err)
 		return models.Message{}, false, fmt.Errorf("error reading %w", err)
 	}
-
+	if clientResponse.CommandID == constants.CGCommands.ResponseClientSuccess.CommandID {
+		return clientResponse, true, nil
+	}
 	//check if client send ClientRollDice
 	if clientResponse.CommandID != command.CommandID {
 		err := helpers.RemovePlayerFromGame(player)

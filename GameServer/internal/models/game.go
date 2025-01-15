@@ -2,9 +2,9 @@ package models
 
 import (
 	"fmt"
+	"gameserver/internal/logger"
 	"gameserver/internal/utils/constants"
 	"gameserver/internal/utils/errorHandeling"
-	"math/rand"
 	"sync"
 )
 
@@ -31,8 +31,8 @@ const (
 )
 
 type Throw struct {
-	cubeValues           []int
-	selectedCubesIndexes []int
+	cubeValues          []int
+	selectedCubesValues []int
 }
 
 type Turn struct {
@@ -83,11 +83,23 @@ func CreateGame(name string, maxPlayers int) (*Game, error) {
 }
 
 func generateCubeValues(count int) []int {
+
+	valueInt := 4
 	array := make([]int, count)
 	for i := 0; i < count; i++ {
-		array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
+		//array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
+		//todo remove
+		array[i] = valueInt
 	}
 	return array
+}
+
+// get turn number
+func (g *Game) GetTurnNum() int {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	return g.turnNum
 }
 
 // nextTurn returns the next Player in turn.
@@ -281,10 +293,7 @@ func (g *Game) GetGameData() (GameData, error) {
 	return gameData, nil
 }
 
-func (g *Game) GetScoreIncrease(cubeValuesList []int, player *Player) (int, error) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
+func (g *Game) getScoreIncrease(cubeValuesList []int, player *Player) (int, error) {
 	playerLastThrowCubeValues, err := g.getLastThrowCubeValues(player)
 	if err != nil {
 		errorHandeling.PrintError(err)
@@ -324,10 +333,7 @@ func (g *Game) GetScoreIncrease(cubeValuesList []int, player *Player) (int, erro
 	return scoreIncrease, nil
 }
 
-func (g *Game) GetPlayerScore(player *Player) (int, error) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
+func (g *Game) getPlayerScore(player *Player) (int, error) {
 	playerGameData, err := g.getPlayerGameData(player)
 	if err != nil {
 		errorHandeling.PrintError(err)
@@ -443,7 +449,7 @@ func (g *Game) NewThrow(player *Player) ([]int, error) {
 		lastTurn := turnPlayerGameData.TurnHistory[len(turnPlayerGameData.TurnHistory)-1]
 		lastThrow := lastTurn.ThrowArr[len(lastTurn.ThrowArr)-1]
 
-		cubeCount = cMaxCubeCount - len(lastThrow.selectedCubesIndexes)
+		cubeCount = len(lastThrow.cubeValues) - len(lastThrow.selectedCubesValues)
 	}
 
 	cubeValues, err := g.addThrow(turnPlayer, cubeCount)
@@ -466,7 +472,7 @@ func (g *Game) addThrow(player *Player, count int) ([]int, error) {
 	var throw Throw
 
 	throw.cubeValues = generateCubeValues(count)
-	throw.selectedCubesIndexes = make([]int, 0)
+	throw.selectedCubesValues = make([]int, 0)
 
 	turnNum := g.turnNum
 
@@ -495,19 +501,63 @@ func (g *Game) addThrow(player *Player, count int) ([]int, error) {
 	return throw.cubeValues, nil
 }
 
-func (g *Game) SetPlayerScore(player *Player, score int) error {
+// get new score
+func (g *Game) getNewScore(player *Player, cubeValuesList []int) (int, error) {
+	currentScore, err := g.getPlayerScore(player)
+	if err != nil {
+		return 0, fmt.Errorf("player not found")
+	}
+	increaseScore, err := g.getScoreIncrease(cubeValuesList, player)
+	if err != nil {
+		return 0, fmt.Errorf("invalid cube value")
+	}
+	score := currentScore + increaseScore
+
+	return score, nil
+}
+
+// public GetNewScore
+func (g *Game) GetNewScore(player *Player, cubeValuesList []int) (int, error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	playerGameData, err := g.getPlayerGameData(player)
+	return g.getNewScore(player, cubeValuesList)
+}
+
+func (g *Game) SetPlayerScore(player *Player, selectedCubeValues []int) error {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	//set score
+	score, err := g.getNewScore(player, selectedCubeValues)
 	if err != nil {
 		errorHandeling.PrintError(err)
+		return fmt.Errorf("failed to set score")
+	}
+	logger.Log.Infof("Player score: %d", score)
+
+	isSet := false
+	for i, p := range g.playersGameDataArr {
+		if p.Player == player {
+			g.playersGameDataArr[i].Score = score
+			isSet = true
+		}
+	}
+	if !isSet {
 		return fmt.Errorf("player not found")
 	}
 
-	playerGameData.Score = score
+	//set selected cube values
+	for i, p := range g.playersGameDataArr {
+		if p.Player == player {
+			lastTurnIndex := len(g.playersGameDataArr[i].TurnHistory) - 1
+			lastThrowIndex := len(g.playersGameDataArr[i].TurnHistory[lastTurnIndex].ThrowArr) - 1
+			g.playersGameDataArr[i].TurnHistory[lastTurnIndex].ThrowArr[lastThrowIndex].selectedCubesValues = selectedCubeValues
+			return nil
+		}
+	}
 
-	return nil
+	return fmt.Errorf("player not found")
 }
 
 //endregion

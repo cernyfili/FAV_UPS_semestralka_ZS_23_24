@@ -40,4 +40,26 @@ func main() {
 
 	// Print the cube values
 	fmt.Println("Cube values:", cubeValues)
+
+	// select from cub values values where is 1 or 5
+	// Get the cube values that are 1 or 5
+	var selectedCubeValues []int
+	for _, value := range cubeValues {
+		if value == 1 || value == 5 {
+			selectedCubeValues = append(selectedCubeValues, value)
+		}
+	}
+
+	// set score
+	err = game.SetPlayerScore(turnPlayer, selectedCubeValues)
+	if err != nil {
+		panic(err)
+	}
+
+	// do new throw
+	cubeValues, err = game.NewThrow(turnPlayer)
+	if err != nil {
+		panic(err)
+	}
+
 }

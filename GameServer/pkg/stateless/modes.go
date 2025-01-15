@@ -2,7 +2,6 @@ package stateless
 
 import (
 	"context"
-	"gameserver/internal/utils/errorHandeling"
 	"sync"
 	"sync/atomic"
 )
@@ -54,7 +53,6 @@ func (f *fireModeQueued) Fire(ctx context.Context, trigger Trigger, args ...any)
 		}
 		err := f.execute(et)
 		if err != nil {
-			errorHandeling.PrintError(err)
 			return err
 		}
 	}

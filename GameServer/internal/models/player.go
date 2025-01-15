@@ -143,7 +143,9 @@ func (p *Player) FireStateMachine(trigger stateless.Trigger) error {
 		return err
 	}
 
-	logger.Log.Infof("Player changed trigger from %s with trigger %s", beforeState, trigger)
+	afterState := p.stateMachine.MustState()
+
+	logger.Log.Infof("Player %s changed state from %s : - %s - : %s", p.nickname, beforeState, trigger, afterState)
 	return nil
 }
 

@@ -119,3 +119,16 @@ func (pl *PlayerList) GetValuesArrayWithoutOnePlayer(player *Player) []*Player {
 
 	return values
 }
+
+// GetValuesArray
+func (pl *PlayerList) GetValuesArray() []*Player {
+	pl.list.mutex.Lock()
+	defer pl.list.mutex.Unlock()
+
+	var values []*Player
+	for _, v := range pl.list.data {
+		values = append(values, v.(*Player))
+	}
+
+	return values
+}

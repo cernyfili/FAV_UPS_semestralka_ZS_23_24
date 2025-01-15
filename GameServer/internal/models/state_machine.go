@@ -76,6 +76,7 @@ func initilize(stateMachine *stateless.StateMachine) {
 	stateMachine.Configure(stateMyTurn).
 		Permit(constants.CGCommands.ClientRollDice.Trigger, stateForkMyTurn).
 		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
+		PermitReentry(constants.CGCommands.ServerUpdateGameData.Trigger).
 		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorRunningGame)
 
 	stateMachine.Configure(stateForkMyTurn).
@@ -83,11 +84,11 @@ func initilize(stateMachine *stateless.StateMachine) {
 		Permit(constants.CGCommands.ResponseServerSelectCubes.Trigger, stateNextDice)
 
 	stateMachine.Configure(stateNextDice).
-		Permit(constants.CGCommands.ClientEndTurn.Trigger, stateRunningGame).
-		Permit(constants.CGCommands.ClientSelectedCubes.Trigger, stateMyTurn).
-		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger)
+		Permit(constants.CGCommands.ClientSelectedCubes.Trigger, stateForkNextDice).
+		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
+		PermitReentry(constants.CGCommands.ServerUpdateGameData.Trigger)
 
 	stateMachine.Configure(stateForkNextDice).
-		Permit(constants.CGCommands.ResponseServerEndScore.Trigger, stateRunningGame).
-		Permit(constants.CGCommands.ResponseServerDiceSuccess.Trigger, stateNextDice)
+		Permit(constants.CGCommands.ResponseServerEndScore.Trigger, stateLobby).
+		Permit(constants.CGCommands.ResponseServerDiceSuccess.Trigger, stateMyTurn)
 }
