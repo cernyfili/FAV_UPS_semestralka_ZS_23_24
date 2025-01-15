@@ -84,16 +84,17 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		player, err := getMessagePlayer(message)
+		var playerMessage *models.Player
+		playerMessage, err = getMessagePlayer(message)
 		if err != nil {
 			isClientResponseSuccessExpected = false
 		} else {
-			isClientResponseSuccessExpected = player.IsResponseSuccessExpected()
+			isClientResponseSuccessExpected = playerMessage.IsResponseSuccessExpected()
 		}
 
 		if isTimeout {
 			if isClientResponseSuccessExpected {
-				err = network.HandleTimeout(player)
+				err = network.HandleTimeout(playerMessage)
 				if err != nil {
 					errorHandeling.PrintError(err)
 					fmt.Println("Error handling timeout:", err)
@@ -104,12 +105,41 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 
+			// StartTurn
+			player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
+			if player != nil {
+				playerGame := models.GetInstanceGameList().GetPlayersGame(player)
+				if playerGame != nil {
+					isPlayerTurn := playerGame.IsPlayerTurn(player)
+					if isPlayerTurn {
+						isNextPlayerTurn, err := command_processing.ProcessPlayerTurn(playerGame)
+						if err != nil {
+							errorHandeling.PrintError(err)
+							fmt.Println("Error processing player turn:", err)
+							return
+						}
+						if !isNextPlayerTurn {
+							err := fmt.Errorf("Error processing player turn: isNextPlayerTurn is false")
+							errorHandeling.PrintError(err)
+							fmt.Println("Error processing player turn: isNextPlayerTurn is false")
+							return
+						}
+						err = playerGame.ShiftTurn()
+						if err != nil {
+							errorHandeling.PrintError(err)
+							fmt.Println("Error shifting turn:", err)
+							return
+						}
+					}
+				}
+			}
+
 			continue
 		}
 
 		if isClientResponseSuccessExpected {
 			if message.CommandID != constants.CGCommands.ResponseClientSuccess.CommandID {
-				err = network.HandleClienResponseNotSuccess(player)
+				err = network.HandleClienResponseNotSuccess(playerMessage)
 				if err != nil {
 					errorHandeling.PrintError(err)
 					fmt.Println("Error handling client response not success:", err)
@@ -120,7 +150,7 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 
-			player.DecreaseResponseSuccessExpected()
+			playerMessage.DecreaseResponseSuccessExpected()
 			continue
 		}
 
@@ -130,6 +160,7 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error processing message:", err)
 			return
 		}
+
 	}
 }
 

@@ -15,7 +15,7 @@ from tkinter import messagebox
 
 from backend.server_communication import ServerCommunication
 from frontend.page_interface import UpdateInterface
-from frontend.views.utils import PAGES_DIC, show_game_data, game_data_start_listening_for_updates
+from frontend.views.utils import PAGES_DIC, show_game_data, list_start_listening_for_updates
 from shared.constants import GameData, CCommandTypeEnum
 
 
@@ -45,6 +45,10 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
         logging.debug(f"Raising Page: {page_name}")
         # Call the original tkraise method
         super().tkraise(aboveThis)
+
+        self._lock = threading.Lock()
+        self._stop_event = threading.Event()
+
         # Custom behavior after raising the frame
         self._load_page_content()
 
@@ -55,8 +59,9 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
             CCommandTypeEnum.ServerStartTurn.value.id: self._process_start_turn,
             CCommandTypeEnum.ServerUpdateEndScore.value.id: self._process_update_end_score
         }
+        update_command = CCommandTypeEnum.ServerUpdateGameData.value
 
-        game_data_start_listening_for_updates(self, process_command)
+        list_start_listening_for_updates(self, process_command, update_command, [])
 
     def _load_page_content(self):
         # Clear the current content

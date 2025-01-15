@@ -5,39 +5,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="probably not stable but fixing bugs &#10;test Start -&gt; lobby">
-      <change afterPath="$PROJECT_DIR$/internal/network/network_utils/network_utils.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/server_listen.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/utils/constants/constants.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/utils/helpers/helpers.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/valid_name.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/game.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/scripts/dummy_server_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/scripts/dummy_server_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/command_processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/command_processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/parser.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/before_game_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/before_game_page.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/lobby_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/lobby_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_roll_dice_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_roll_dice_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_select_cubes_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_select_cubes_page.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/running_game_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/running_game_page.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/start_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/start_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/gameserver/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/gameserver/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/server_stavy.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/server_stavy.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing/command_processing.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/logger/logger.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logger/logger.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/data_structures.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/data_structures.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/command_processing/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing/command_processing.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/models/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/game_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/message_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/message_list.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/models/player.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/player.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/models/player_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/player_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/state_machine.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/state_machine.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network/network.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/parser/parser.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/constants.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/network/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network/network.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/parser/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/parser/parser.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/server_listen.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/server_listen.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/utils/constants/constants.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/constants/constants.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/stateless/modes.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/stateless/modes.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/valid_name.go" beforeDir="false" afterPath="$PROJECT_DIR$/tests/valid_name.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,33 +78,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultGoTemplateProperty": "Go Application",
-    "Go Build.go build gameserver/cmd/gameserver.executor": "Debug",
-    "Go Build.go build gameserver/scripts.executor": "Debug",
-    "Go Build.go build gameserver/tests.executor": "Debug",
-    "Notification.DisplayName-DoNotAsk-ai.commits.notification.general": "AI Commits general",
-    "Notification.DoNotAsk-ai.commits.notification.general": "true",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.automatic.dependencies.download": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "master",
-    "go.import.settings.migrated": "true",
-    "go.sdk.automatically.set": "true",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/filda/Documents/_github/FAV_UPS_semestralka_ZS_23_24/GameServer/internal",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "reference.settings.ide.settings.uml"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go Application&quot;,
+    &quot;Go Build.go build gameserver/cmd/gameserver.executor&quot;: &quot;Debug&quot;,
+    &quot;Go Build.go build gameserver/scripts.executor&quot;: &quot;Debug&quot;,
+    &quot;Go Build.go build gameserver/tests.executor&quot;: &quot;Debug&quot;,
+    &quot;Notification.DisplayName-DoNotAsk-ai.commits.notification.general&quot;: &quot;AI Commits general&quot;,
+    &quot;Notification.DoNotAsk-ai.commits.notification.general&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.automatic.dependencies.download&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/filda/Documents/_github/FAV_UPS_semestralka_ZS_23_24/GameServer/internal&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.ide.settings.uml&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="GoMoveDeclarationDialog.RECENT_KEY">
       <recent name="$PROJECT_DIR$/internal/parser" />

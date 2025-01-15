@@ -41,6 +41,10 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
         logging.debug(f"Raising Page: {page_name}")
         # Call the original tkraise method
         super().tkraise(aboveThis)
+        self._lock = threading.Lock()  # Initialize the lock
+        self._stop_event = threading.Event()
+        self._update_thread = None
+
         # Custom behavior after raising the frame
         self._load_page_content()
 
@@ -199,11 +203,15 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
                 is_connected, command = ServerCommunication().send_client_select_cubes(selected_dice_cubes_values)
                 if not is_connected:
                     process_is_not_connected(self)
-                if command == CCommandTypeEnum.ResponseServerDiceSuccess.value:
+
+                elif command == CCommandTypeEnum.ResponseServerDiceSuccess.value:
                     next_page_name = PAGES_DIC.MyTurnRollDicePage
+                    self.controller.show_page(next_page_name)
+
                 elif command == CCommandTypeEnum.ResponseServerEndScore.value:
                     messagebox.showinfo("!!! YOU WON !!!", "You have reached the score limit")
                     next_page_name = PAGES_DIC.LobbyPage
+                    self.controller.show_page(next_page_name)
                 else:
                     raise Exception("Unknown command")
             except Exception as e:
@@ -212,8 +220,6 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
                 raise e
             finally:
                 stop_loading_animation(self)
-
-            self.controller.show_page(next_page_name)
 
         # Get the selected dice cubes
         selected_dice_cubes_values = [self._cubes_values_list[i] for i in range(len(self.dice_cube_vars)) if

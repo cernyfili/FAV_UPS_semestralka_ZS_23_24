@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"gameserver/internal/utils/errorHandeling"
+	"net"
 	"sync"
 )
 
@@ -63,6 +64,21 @@ func (pl *PlayerList) HasItem(key string) bool {
 	}
 
 	return true
+}
+
+// GetPlayerByConnection
+func (pl *PlayerList) GetPlayerByConnection(connection net.Conn) *Player {
+	pl.list.mutex.Lock()
+	defer pl.list.mutex.Unlock()
+
+	for _, v := range pl.list.data {
+		player := v.(*Player)
+		if player.GetConnectionInfo().Connection == connection {
+			return player
+		}
+	}
+
+	return nil
 }
 
 // Has Item in list

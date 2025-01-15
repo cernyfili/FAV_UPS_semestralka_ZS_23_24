@@ -5,10 +5,10 @@ import time
 from datetime import datetime
 from typing import List
 
-from backend.parser import convert_message_to_network_string, parse_message
+from backend.parser import convert_message_to_network_string, parse_message, convert_list_cube_values_to_network_string
 from shared.constants import CMessageConfig, CCommandTypeEnum, \
     CNetworkConfig, GAME_STATE_MACHINE, Command, Param, NetworkMessage, GameList, reset_game_state_machine, PlayerList, \
-    CubeValuesList
+    CubeValuesList, GameData
 
 
 #
@@ -55,6 +55,9 @@ class ServerCommunication:
         self._receive_messages_list : List[NetworkMessage] = []
 
     def _close_connection(self):
+        # todo remove
+        raise NotImplementedError
+
         logging.info("Closing connection...")
         if self._s is not None:
             self._s.close()
@@ -151,17 +154,20 @@ class ServerCommunication:
                     self._s.settimeout(None)  # Reset timeout to default
 
             try:
-                parsed_message = self.__process_received_data(data)
+                is_connected, parsed_message_list = self.__process_received_data(data)
             except Exception as e:
                 is_valid_format = False
                 # todo remove
                 raise e
-            return is_valid_format, parsed_message
+            if len(parsed_message_list) != 1:
+                raise ValueError("Invalid number of messages received.")
 
-    def _receive_message_without_reconnect(self) -> tuple[bool, bool, NetworkMessage | None]:
+            return is_connected, parsed_message_list[0]
+
+    def _receive_message_without_reconnect(self) -> tuple[bool, bool, list[NetworkMessage] | None]:
         """
         :return:
-            bool - is valid format
+            bool - is connected
             bool - is timeout
             NetworkMessage - received message
         """
@@ -174,32 +180,51 @@ class ServerCommunication:
             try:
                 data = self.__receive_loop(data)
             except Exception as e:
-                return False, True, None
+                is_connected = True
+                is_timeout = True
+                return is_connected, is_timeout, None
             finally:
                 self._s.settimeout(None)  # Reset timeout to default
 
+            is_connected, parsed_message_list = self.__process_received_data(data)
+            is_timeout = False
+            return is_connected, is_timeout, parsed_message_list
+
+    def __process_received_data(self, received_data_list) -> tuple[bool, list[NetworkMessage] | None]:
+        received_data = received_data_list.decode()
+        if len(received_data) == 0:
+            raise ConnectionError("Received empty message.")
+        # split to array by end of message
+        received_data_list = received_data.split(CMessageConfig.END_OF_MESSAGE)
+
+        parsed_messages_list = []
+        for data in received_data_list:
+            if data == "":
+                continue
             try:
-                parsed_message = self.__process_received_data(data)
+                parsed_message = parse_message(data)
+                is_valid_format = self._is_header_valid(parsed_message)
+                if not is_valid_format:
+                    # is not valid format
+                    self._close_connection_processes()
+                    is_connected = False
+                    return is_connected, None
+                parsed_messages_list.append(parsed_message)
+                self._receive_messages_list.append(parsed_message)
+                logging.debug(f"Received message: {parsed_message}")
             except Exception as e:
-                is_valid_format = False
-                # todo remove
-                raise e
-            return is_valid_format, False, parsed_message
+                # is not valid format
+                self._close_connection_processes()
+                is_connected = False
+                return is_connected, None
 
-
-
-    def __process_received_data(self, data):
-        parsed_message = parse_message(data.decode())
-        if not self._is_header_valid(parsed_message):
-            raise ValueError("Invalid header in the received message.")
-        self._receive_messages_list.append(parsed_message)
-        logging.debug(f"Received message: {parsed_message}")
-        return parsed_message
+        is_connected = True
+        return is_connected, parsed_messages_list
 
     def __receive_loop(self, data):
-        logging.debug(f"Start receive loop")
+
         while True:
-            logging.debug("in while loop")
+            logging.debug(f"Receiving data: {data}")
             # todo change
             try:
                 part = self._s.recv(CNetworkConfig.BUFFER_SIZE)
@@ -207,12 +232,14 @@ class ServerCommunication:
                 raise e
             if part != b"":
                 logging.debug(f"Received part: {part}")
-            logging.debug(f"Received data: {part}")
+            logging.debug(f"Received part: {part}")
+
             data += part
             decoded_data = data.decode()
             if CMessageConfig.END_OF_MESSAGE in decoded_data or len(data) >= CNetworkConfig.MAX_MESSAGE_SIZE:
+                logging.debug(f"----Received data: {data}")
                 break
-        logging.debug(f"Received data: {data}")
+
         return data
     # endregion
 
@@ -259,9 +286,9 @@ class ServerCommunication:
 
         # region RESPONSE
         #self._can_receive = True
-        is_valid_format, received_message = self._receive_message()
-        if not is_valid_format:
-            return __disconnect(self)
+        is_connected, received_message = self._receive_message()
+        if not is_connected:
+            return False
 
         # Response other
         if received_message.command_id not in allowed_response_commands_id:
@@ -310,10 +337,10 @@ class ServerCommunication:
         # region RESPONSE
         #self._can_receive = True
         try:
-            is_valid_format, received_message = self._receive_message()
+            is_connected, received_message = self._receive_message()
 
-            if not is_valid_format:
-                return __disconnect(self)
+            if not is_connected:
+                return False, None
         except Exception as e:
             # NOT RECEIVED MESSAGE IN TIMEOUT -> DISCONNECT
             self._close_connection_processes()
@@ -406,10 +433,10 @@ class ServerCommunication:
 
         # region RESPONSE
         #self._can_receive = True
-        is_valid_format, received_message = self._receive_message()
+        is_connected, received_message = self._receive_message()
 
-        if not is_valid_format:
-            return __disconnect(self)
+        if not is_connected:
+            return False
         # Response other
         if received_message.command_id not in allowed_response_commands_id:
             return __disconnect(self)
@@ -445,14 +472,21 @@ class ServerCommunication:
         # endregion
 
         # region RESPONSE
-        is_valid_format, received_message = self._receive_message()
-        if not is_valid_format:
-            return __disconnect(self)
+
+        is_connected, received_message = self._receive_message()
+        if not is_connected:
+            return False, None, None
+        if received_message.command_id == CCommandTypeEnum.ServerPingPlayer.value.id:
+            is_connected, received_message = self._receive_message()
+            if not is_connected:
+                return False, None, None
+
 
         received_command = CCommandTypeEnum.get_command_by_id(received_message.command_id)
 
         # Response other
         if received_command.id not in allowed_response_commands_id:
+            logging.error("Invalid command")
             return __disconnect(self)
 
         # Response Error
@@ -480,7 +514,7 @@ class ServerCommunication:
 
         # endregion
 
-    def send_client_select_cubes(self, selected_cubes) -> tuple[bool, Command | None]:
+    def send_client_select_cubes(self, selected_cubes: list[int]) -> tuple[bool, Command | None]:
         def __disconnect(self):
             self._close_connection_processes()
             return False, None
@@ -497,14 +531,20 @@ class ServerCommunication:
         # region LOGIC
         # region SEND
         # Connect to the server
-        param_list = [Param("cubeValues", selected_cubes)]
+        value_cube_value = convert_list_cube_values_to_network_string(selected_cubes)
+
+        param_list = [Param("cubeValues", value_cube_value)]
         self._send_message(command, param_list)
         # endregion
 
         # region RESPONSE
-        is_valid_format, received_message = self._receive_message()
-        if not is_valid_format:
-            return __disconnect(self)
+        is_connected, received_message = self._receive_message()
+        if not is_connected:
+            return False, None
+        if received_message.command_id == CCommandTypeEnum.ServerPingPlayer.value.id:
+            is_connected, received_message = self._receive_message()
+            if not is_connected:
+                return False, None
 
         received_command = CCommandTypeEnum.get_command_by_id(received_message.command_id)
 
@@ -557,11 +597,15 @@ class ServerCommunication:
             return False, False, None
 
         # region LOGIC
-        is_valid_format, is_timeout, received_message = self._receive_message_without_reconnect()
+        is_connected, is_timeout, received_message_list = self._receive_message_without_reconnect()
         if is_timeout:
-            return True, True, None
-        if not is_valid_format:
-            return __disconnect(self)
+            return is_connected, is_timeout, None
+
+        if len(received_message_list) != 1:
+            raise ValueError("Invalid number of messages received.")
+
+        received_message = received_message_list[0]
+
 
         received_command_id = received_message.command_id
         received_command = CCommandTypeEnum.get_command_by_id(received_command_id)
@@ -572,6 +616,7 @@ class ServerCommunication:
 
         # Recieved Other
         if received_command_id != command.id:
+            logging.error("Invalid command")
             return __disconnect(self)
 
         # region SEND RESPONSE
@@ -583,47 +628,70 @@ class ServerCommunication:
         # endregion
 
         GAME_STATE_MACHINE.send_trigger(received_command.trigger)
-        return True, False, received_message
+        return is_connected, is_timeout, received_message
 
-    def _receive_standard_state_messages(self, allowed_commands : dict[int, callable]) -> tuple[bool, Command | None, any]:
+    def _receive_standard_state_messages(self, allowed_commands: dict[int, callable]) -> tuple[
+        bool, list[tuple[Command | None, any]] | None]:
+        """
+
+        :param allowed_commands:
+        :return:
+        bool - is connected
+        list of tuple:
+            Command | None - command
+            any - message data
+        """
         def __disconnect(self):
             self._close_connection_processes()
-            return False, None, None
+            return False, None
+
         allowed_commands_id = allowed_commands.keys()
 
         # region LOGIC
 
-        is_valid_format, is_timeout, received_message = self._receive_message_without_reconnect()
+        is_connected, is_timeout, received_message_list = self._receive_message_without_reconnect()
         if is_timeout:
-            return True, None, None
+            return is_connected, None
 
-        if not is_valid_format:
-            return __disconnect(self)
+        message_result_list = []
 
-        received_command_id = received_message.command_id
-        received_command = CCommandTypeEnum.get_command_by_id(received_command_id)
+        for received_message_info in received_message_list:
+            received_message = received_message_info
 
-        # check if statemachine can fire
-        if not GAME_STATE_MACHINE.can_fire(received_command.trigger.id):
-            raise ValueError("Invalid state machine transition.")
+            received_command_id = received_message.command_id
+            received_command = CCommandTypeEnum.get_command_by_id(received_command_id)
 
-        # Recieved Other
-        if received_command_id not in allowed_commands_id:
-            return __disconnect(self)
+            # check if statemachine can fire
+            if not GAME_STATE_MACHINE.can_fire(received_command.trigger.id):
+                raise ValueError("Invalid state machine transition.")
 
-        for command_id, process_function in allowed_commands.items():
-            if received_command_id == command_id:
-                return process_function(received_command, received_message)
+            # Recieved Other
+            if received_command_id not in allowed_commands_id:
+                return __disconnect(self)
 
-        raise ValueError("Invalid command ID for running game messages.")
+            is_processed = False
+            for command_id, process_function in allowed_commands.items():
+                if received_command_id == command_id:
+                    # process_function(received_command, received_message)
+                    command, message_data = process_function(received_command, received_message)
+                    message_result_list.append((command, message_data))
+                    is_processed = True
+                    break
+
+            if is_processed:
+                continue
+
+            raise ValueError("Invalid command ID for running game messages.")
+
+        return is_connected, message_result_list
 
     def _process_respond_successs(self, received_command):
         self._respond_client_success()
         GAME_STATE_MACHINE.send_trigger(received_command.trigger)
 
-    def _process_server_update_game_data(self, received_command, received_message):
+    def _process_server_update_list(self, received_command, received_message) -> tuple[Command | None, list]:
         self._process_respond_successs(received_command)
-        return True, received_command, received_message.get_array_param()
+        return received_command, received_message.get_array_param()
 
     # endregion
 
@@ -631,35 +699,74 @@ class ServerCommunication:
         command = CCommandTypeEnum.ServerUpdateGameList.value
         return self._receive_standard_update_command(command)
 
-    def receive_server_player_list_update(self) -> tuple[bool, PlayerList | None]:
-        logging.debug("Receiving player list update")
-        command = CCommandTypeEnum.ServerUpdatePlayerList.value
-        return self._receive_standard_update_command(command)
+    def receive_server_running_game_messages(self) -> tuple[bool, list[tuple[Command | None, GameData | None | str]]]:
+        """
 
-    def receive_server_running_game_messages(self) -> tuple[bool, Command | None, GameList | None]:
-        def __process_server_start_turn(received_command, received_message):
-            self._process_respond_successs(received_command)
-            return True, received_command, None
+        :return:
+        bool - is connected
 
-        def __process_server_update_end_score(received_command, received_message):
+        """
+
+        def __process_server_start_turn(received_command, received_message) -> tuple[Command | None, None]:
             self._process_respond_successs(received_command)
-            return True, received_command, received_message.get_single_param()
+            return received_command, None
+
+        def __process_server_update_end_score(received_command, received_message) -> tuple[Command | None, str | None]:
+            self._process_respond_successs(received_command)
+            return received_command, received_message.get_single_param()
 
         allowed_commands = {
-            CCommandTypeEnum.ServerUpdateGameData.value.id: self._process_server_update_game_data,
+            CCommandTypeEnum.ServerUpdateGameData.value.id: self._process_server_update_list,
             CCommandTypeEnum.ServerStartTurn.value.id: __process_server_start_turn,
             CCommandTypeEnum.ServerUpdateEndScore.value.id: __process_server_update_end_score
         }
 
         return self._receive_standard_state_messages(allowed_commands)
 
-    def receive_server_my_turn_messages(self) -> tuple[bool, Command | None, GameList | None]:
-        def __process_server_ping_player(received_command, received_message):
+    def receive_before_game_messages(self) -> tuple[bool, list[tuple[Command | None, PlayerList | None]]]:
+        """
+
+        :return:
+        bool - is timeout
+        list of tuple:
+            bool - is_connected
+            Command | None - command
+            PlayerList | None - message data
+        """
+
+        def __process_server_update_start_game(received_command, received_message) -> tuple[
+            Command | None, PlayerList | None]:
+            """
+
+            :param received_command:
+            :param received_message:
+            :return:
+                bool - is_connected
+                Command | None - command
+                PlayerList | None - message data
+            """
             self._process_respond_successs(received_command)
-            return True, received_command, None
+            return received_command, None
 
         allowed_commands = {
-            CCommandTypeEnum.ServerUpdateGameData.value.id: self._process_server_update_game_data,
+            CCommandTypeEnum.ServerUpdatePlayerList.value.id: self._process_server_update_list,
+            CCommandTypeEnum.ServerUpdateStartGame.value.id: __process_server_update_start_game
+        }
+
+        return self._receive_standard_state_messages(allowed_commands)
+
+    def receive_server_my_turn_messages(self) -> tuple[bool, list[tuple[Command | None, GameData | None]]]:
+        """
+
+        :return:
+        """
+
+        def __process_server_ping_player(received_command, received_message) -> tuple[Command | None, None]:
+            self._process_respond_successs(received_command)
+            return received_command, None
+
+        allowed_commands = {
+            CCommandTypeEnum.ServerUpdateGameData.value.id: self._process_server_update_list,
             CCommandTypeEnum.ServerPingPlayer.value.id: __process_server_ping_player
         }
 

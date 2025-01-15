@@ -130,7 +130,15 @@ func (g *Game) AddPlayer(pPlayer *Player) error {
 	return nil
 }
 
-// getTurnPlayer returns the current turn player
+// GetTurnPlayer returns the current turn player
+func (g *Game) GetTurnPlayer() (*Player, error) {
+	//lock
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	return g.getTurnPlayer()
+}
+
 func (g *Game) getTurnPlayer() (*Player, error) {
 
 	if len(g.playersGameDataArr) == 0 {
@@ -225,13 +233,44 @@ func (g *Game) GetPlayers() []*Player {
 	return players
 }
 
+// IsPlayerTurn returns true if it is the player's turn
+func (g *Game) IsPlayerTurn(player *Player) bool {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	turnPlayer, err := g.getTurnPlayer()
+	if err != nil {
+		return false
+	}
+
+	return turnPlayer == player
+}
+
+// ShiftTurn shifts the turn to the next player
+func (g *Game) ShiftTurn() error {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	return g.shiftTurn()
+}
+
+func (g *Game) shiftTurn() error {
+
+	_, err := g.nextTurn()
+	if err != nil {
+		return fmt.Errorf("failed to shift turn")
+	}
+
+	return nil
+}
+
 func (g *Game) GetGameData() (GameData, error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
 	var gameData GameData
 	gameData.PlayerGameDataArr = g.playersGameDataArr
-	turnPlayer, err := g.nextTurn()
+	turnPlayer, err := g.getTurnPlayer()
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return GameData{}, err
@@ -305,22 +344,19 @@ func (g *Game) IsFull() bool {
 	return len(g.playersGameDataArr) >= g.maxPlayers
 }
 
-func (g *Game) IsEnoughPlayers() bool {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
+func (g *Game) isEnoughPlayers() bool {
 	return len(g.playersGameDataArr) >= cMinimumPlayers
 }
 
-func (g *Game) getPlayerGameData(player *Player) (PlayerGameData, error) {
+func (g *Game) getPlayerGameData(player *Player) (*PlayerGameData, error) {
 
 	for _, gameData := range g.playersGameDataArr {
 		if gameData.Player == player {
-			return gameData, nil
+			return &gameData, nil
 		}
 	}
 
-	return PlayerGameData{}, fmt.Errorf("player not found")
+	return &PlayerGameData{}, fmt.Errorf("player not found")
 }
 
 // GetLastThrow returns the last throw of the player
@@ -355,6 +391,30 @@ func (g *Game) SetState(state GameState) {
 	defer g.mutex.Unlock()
 
 	g.gameStateValue = state
+}
+
+// start Game
+func (g *Game) StartGame() error {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	if g.gameStateValue != Created {
+		return fmt.Errorf("game has already started or ended")
+	}
+
+	if !g.isEnoughPlayers() {
+		return fmt.Errorf("not enough players to start the game")
+	}
+
+	g.gameStateValue = Running
+	g.turnNum = 0
+
+	err := g.shiftTurn()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (g *Game) NewThrow(player *Player) ([]int, error) {
@@ -408,22 +468,29 @@ func (g *Game) addThrow(player *Player, count int) ([]int, error) {
 	throw.cubeValues = generateCubeValues(count)
 	throw.selectedCubesIndexes = make([]int, 0)
 
-	//get the last turn
-	turnHistory := turnPlayerGameData.TurnHistory
-	if len(turnHistory) == 0 {
-		turnHistory = make([]Turn, 0)
+	turnNum := g.turnNum
+
+	// Add new turn if it is the first throw of the turn
+	if len(turnPlayerGameData.TurnHistory) < turnNum {
+		emptyTurn := Turn{}
+		emptyTurn.ThrowArr = make([]Throw, 0)
+		turnPlayerGameData.TurnHistory = append(turnPlayerGameData.TurnHistory, emptyTurn)
 	}
-	turn := turnHistory[len(turnHistory)-1]
-	throwArr := turn.ThrowArr
-	if len(throwArr) == 0 {
-		throwArr = make([]Throw, 0)
+	if len(turnPlayerGameData.TurnHistory) != turnNum {
+		return nil, fmt.Errorf("failed to add throw")
 	}
 
-	//set the new throw
-	throwArr = append(throwArr, throw)
-	turn.ThrowArr = throwArr
-	turnHistory[len(turnHistory)-1] = turn
-	turnPlayerGameData.TurnHistory = turnHistory
+	array := turnPlayerGameData.TurnHistory[turnNum-1].ThrowArr
+	array = append(array, throw)
+	turnPlayerGameData.TurnHistory[turnNum-1].ThrowArr = array
+
+	// Set the updated turn history in the game playersGameDataArr
+	for i, p := range g.playersGameDataArr {
+		if p.Player == player {
+			g.playersGameDataArr[i].TurnHistory = turnPlayerGameData.TurnHistory
+			break
+		}
+	}
 
 	return throw.cubeValues, nil
 }

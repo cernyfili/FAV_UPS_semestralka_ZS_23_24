@@ -15,7 +15,15 @@ response_queue = queue.Queue()
 nickname = "Player1"
 
 
-
+def create_response_dice_success():
+    response = NetworkMessage(
+        signature=CMessageConfig.SIGNATURE,
+        command_id=CCommandTypeEnum.ResponseServerDiceSuccess.value.id,
+        timestamp="2025-01-05 12:00:00.000000",
+        player_nickname=nickname,
+        parameters=[]
+    )
+    return response
 
 
 def simulate_server_response():
@@ -117,7 +125,21 @@ def simulate_server_response():
 
                 elif client_selected_cubes in request_message:
                     # ResponseServerEndScore
-                    response = create_response_server_end_score()
+                    # response = create_response_server_end_score()
+                    # send_message(client_socket, response)
+
+                    # ServerResponseDiceSuccess
+                    response = create_response_dice_success()
+                    send_message(client_socket, response)
+
+                    # ServerPingPlayer
+                    time.sleep(5)
+                    response = create_server_ping_player()
+                    send_message(client_socket, response)
+
+                    # ServerPingPlayer
+                    time.sleep(5)
+                    response = create_server_ping_player()
                     send_message(client_socket, response)
 
 

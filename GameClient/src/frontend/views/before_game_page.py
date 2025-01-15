@@ -14,8 +14,8 @@ from abc import ABC
 
 from backend.server_communication import ServerCommunication
 from frontend.page_interface import UpdateInterface
-from frontend.views.utils import PAGES_DIC
-from shared.constants import CGameConfig, PlayerList
+from frontend.views.utils import PAGES_DIC, list_start_listening_for_updates
+from shared.constants import CGameConfig, PlayerList, CCommandTypeEnum
 
 
 class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
@@ -33,7 +33,7 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         return 'stateGame'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_server_player_list_update
+        return ServerCommunication().receive_before_game_messages
 
     def _set_update_thread(self, param):
         self._update_thread = param
@@ -43,10 +43,21 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         logging.debug(f"Raising Page: {page_name}")
         # Call the original tkraise method
         super().tkraise(aboveThis)
+
+        self._lock = threading.Lock()
+        self._stop_event = threading.Event()
         # Custom behavior after raising the frame
         self._load_page_content()
 
         self._start_listening_for_updates()
+
+    def _start_listening_for_updates(self):
+        process_command: dict[int, callable] = {
+            CCommandTypeEnum.ServerUpdateStartGame.value.id: self._process_start_game
+        }
+        update_command = CCommandTypeEnum.ServerUpdatePlayerList.value
+
+        list_start_listening_for_updates(self, process_command, update_command, [])
 
     def _load_page_content(self):
         def show_players_list():
@@ -88,3 +99,8 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
 
         return self.button_action_standard(tk=tk, send_function=ServerCommunication().send_client_start_game,
                                            next_page_name=PAGES_DIC.RunningGamePage, param_list=[])
+
+    def _process_start_game(self):
+        next_page_name = PAGES_DIC.RunningGamePage
+
+        self.controller.show_page(next_page_name)

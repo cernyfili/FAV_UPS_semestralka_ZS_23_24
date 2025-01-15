@@ -127,16 +127,9 @@ def parse_message(input_str: str) -> NetworkMessage:
 
     start = 0
 
-    # Check if the message ends with the end of message character
-    if input_str[-1] != CMessageConfig.END_OF_MESSAGE:
-        raise ValueError("Invalid message format")
-
     # Check if not more end of message characters
     if input_str[:-1].find(CMessageConfig.END_OF_MESSAGE) != -1:
         raise ValueError("Buffer read multiple messages")
-
-    # remove the end of message character
-    input_str = input_str[:-1]
 
     # Read Signature
     signature = input_str[start : start + signature_size]
@@ -217,6 +210,26 @@ def convert_message_to_network_string(message: NetworkMessage) -> str:
     network_string += CMessageConfig.END_OF_MESSAGE
 
     return network_string
+
+
+def convert_list_cube_values_to_network_string(selected_cubes: List[int]) -> str:
+    # [{"gameName":"Game1","maxPlayers":"4","connectedPlayers":"2"};{"gameName":"Game2","maxPlayers":"4","connectedPlayers":"2"}]
+    name_value = "value"
+
+    selected_cubes_str = CMessageConfig.ARRAY_BRACKETS.opening
+    for cube in selected_cubes:
+        selected_cubes_str += CMessageConfig.PARAMS_BRACKETS.opening
+        selected_cubes_str += CMessageConfig.PARAMS_WRAPPER + name_value + CMessageConfig.PARAMS_WRAPPER
+        selected_cubes_str += CMessageConfig.PARAMS_KEY_VALUE_DELIMITER
+        selected_cubes_str += CMessageConfig.PARAMS_WRAPPER + str(cube) + CMessageConfig.PARAMS_WRAPPER
+        selected_cubes_str += CMessageConfig.PARAMS_BRACKETS.closing
+        selected_cubes_str += CMessageConfig.PARAMS_ARRAY_DELIMITER
+    selected_cubes_str = selected_cubes_str.rstrip(
+        CMessageConfig.PARAMS_ARRAY_DELIMITER)  # remove the trailing delimiter
+    selected_cubes_str += CMessageConfig.ARRAY_BRACKETS.closing
+
+    return selected_cubes_str
+
 
 #
 # def parse_game(game_str):

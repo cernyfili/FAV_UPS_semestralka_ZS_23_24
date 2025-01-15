@@ -164,20 +164,15 @@ func ConvertParamClientJoinGame(params []constants.Params, names []string) (stri
 
 func ConvertParamClientSelectedCubes(params []constants.Params, names []string) ([]int, error) {
 	//nested function isValidCubeValueList
-	isValidCubeValueList := func(cubeValuesList []int) bool {
-		for _, cubeValue := range cubeValuesList {
-			isScoreValue := false
-			for _, scoreCube := range constants.CGScoreCubeValues {
-				if cubeValue == scoreCube.Value {
-					isScoreValue = true
-					break
-				}
-			}
-			if !isScoreValue {
-				return false
+	isValidCubeValueList := func(cubeValue int) bool {
+
+		for _, scoreCube := range constants.CGScoreCubeValues {
+			if cubeValue == scoreCube.Value {
+				return true
 			}
 		}
-		return true
+
+		return false
 	}
 
 	var cubeValueList []int
@@ -205,7 +200,8 @@ func ConvertParamClientSelectedCubes(params []constants.Params, names []string) 
 					errorHandeling.PrintError(err)
 					return cubeValueList, fmt.Errorf("invalid number of arguments")
 				}
-				if isValidCubeValueList(cubeValueList) {
+
+				if !isValidCubeValueList(intValue) {
 					err := fmt.Errorf("not valid cube values")
 					errorHandeling.PrintError(err)
 					return cubeValueList, err
@@ -222,6 +218,8 @@ func ConvertParamClientSelectedCubes(params []constants.Params, names []string) 
 }
 
 func parseParamValueArray(value string) ([]string, error) {
+	elementName := "value"
+
 	var valueArray []string
 
 	if len(value) == 0 {
@@ -238,10 +236,28 @@ func parseParamValueArray(value string) ([]string, error) {
 
 	value = value[1 : len(value)-1]
 
-	valuesStr := strings.Split(value, constants.CParamsDelimiter)
+	valuesStr := strings.Split(value, constants.CParamsListElementDelimiter)
 
 	for _, valueStr := range valuesStr {
-		valueArray = append(valueArray, valueStr)
+		paramsArray, err := parseParamsStr(valueStr)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return valueArray, fmt.Errorf("invalid valueArray format")
+		}
+		if len(paramsArray) != 1 {
+			err := fmt.Errorf("invalid valueArray format")
+			errorHandeling.PrintError(err)
+			return valueArray, err
+		}
+		if paramsArray[0].Name != elementName {
+			err := fmt.Errorf("invalid valueArray format")
+			errorHandeling.PrintError(err)
+			return valueArray, err
+		}
+
+		parsedValue := paramsArray[0].Value
+
+		valueArray = append(valueArray, parsedValue)
 	}
 
 	return valueArray, nil
@@ -289,13 +305,7 @@ func parseParam(str string) (constants.Params, error) {
 		return parameter, nil
 	}
 
-	paramKeyValue := strings.Split(str, constants.CParamsKeyValueDelimiter)
-
-	if len(paramKeyValue) != 2 {
-		err := fmt.Errorf("invalid param format")
-		errorHandeling.PrintError(err)
-		return parameter, err
-	}
+	paramKeyValue := strings.SplitN(str, constants.CParamsKeyValueDelimiter, 2)
 
 	parameter.Name = paramKeyValue[0]
 	if parameter.Name[0] != constants.CParamsWrapper[0] {

@@ -182,13 +182,18 @@ func dissconectPlayer(player *models.Player) error {
 	return nil
 }
 
-func sendCurrentServerUpdateGameData(game *models.Game) error {
+func sendCurrentServerUpdateGameData(game *models.Game, player *models.Player) error {
 	gameData, err := game.GetGameData()
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
 	}
-	err = network.CommunicationServerUpdateGameData(gameData, game.GetPlayers())
+	playerList := game.GetPlayers()
+	if player != nil {
+		playerList = helpers.RemovePlayerFromList(playerList, player)
+	}
+
+	err = network.CommunicationServerUpdateGameData(gameData, playerList)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
@@ -466,6 +471,7 @@ func processAddPlayerToGame(player *models.Player, game *models.Game) error {
 //endregion
 
 func processClientStartGame(player *models.Player, params []constants.Params, command constants.Command) error {
+
 	responseInfo := models.MessageInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
 		PlayerNickname: player.GetNickname(),
@@ -494,27 +500,11 @@ func processClientStartGame(player *models.Player, params []constants.Params, co
 		return nil
 	}
 
-	// Check if the playersGame has already started
-	if playersGame.GetState() != models.Created {
-		err = dissconectPlayer(player)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		return nil
+	err = playersGame.StartGame()
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("Error sending response: %w", err)
 	}
-
-	//Check if minimum players
-	if !playersGame.IsEnoughPlayers() {
-		err = dissconectPlayer(player)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		return nil
-	}
-
-	playersGame.SetState(models.Running)
 
 	// Send the response
 	err = network.SendResponseServerSuccess(responseInfo)
@@ -546,24 +536,11 @@ func processClientStartGame(player *models.Player, params []constants.Params, co
 	//region Running_Game
 
 	//send ServerUpdateGameData
-	err = sendCurrentServerUpdateGameData(playersGame)
+	err = sendCurrentServerUpdateGameData(playersGame, nil)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
 	}
-
-	//region TURN logic
-	//Running_Game --ServerStartTurn--> my_turn
-	var isNextPlayerTurn = true
-	for isNextPlayerTurn {
-		isNextPlayerTurn, err = startPlayerTurn(playersGame)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-	}
-
-	//endregion
 
 	//endregion
 
@@ -723,33 +700,15 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 	return nil
 }
 
-//region func startPlayerTurn
-
-func startPlayerTurn(game *models.Game) (bool, error) {
-
-	//nested function
-	__handleFireError := func(player *models.Player, err error) (bool, error) {
-		err = fmt.Errorf("Error sending response: %w", err)
-		errorHandeling.PrintError(err)
-
-		errCannotFire := _handleCannotFire(player)
-		return true, errCannotFire
-	}
-
-	gameData, err := game.GetGameData()
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("Error sending response: %w", err)
-	}
-	turnPlayer := gameData.TurnPlayer
+// region func ProcessPlayerTurn
+func handleServerStartTurn(turnPlayer *models.Player) (bool, error) {
 	isSuccess, err := network.CommunicationServerStartTurn(turnPlayer)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("Error sending response: %w", err)
 	}
-
 	if !isSuccess {
-		//next Player turn
+		// next Player turn
 		return true, nil
 	}
 
@@ -759,198 +718,220 @@ func startPlayerTurn(game *models.Game) (bool, error) {
 		return false, fmt.Errorf("Error sending response: %w", err)
 	}
 
-	//My turn --ClientRollDice--> fork_my_turn
-	message, isSuccess, err := network.CommunicationReadClientRollDice(turnPlayer)
+	return false, nil
+}
+
+func handleClientRollDice(turnPlayer *models.Player) (models.Message, bool, error) {
+	command := constants.CGCommands.ClientRollDice
+	message, isSuccess, err := network.CommunicationReadContinouslyWithPing(turnPlayer, command)
 	if err != nil {
 		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("Error sending response: %w", err)
+		return message, false, fmt.Errorf("Error sending response: %w", err)
 	}
 	if !isSuccess {
-		//next Player turn
-		return true, nil
+		// next Player turn
+		return message, true, nil
 	}
 
 	err = turnPlayer.FireStateMachine(constants.CGCommands.ClientRollDice.Trigger)
 	if err != nil {
-		return __handleFireError(turnPlayer, err)
+		isSuccess, err = __handleFireError(turnPlayer, err)
+		return message, isSuccess, err
 	}
 
-	//fork_my_turn --> ResponseServerEndTurn
-	//             --> ResponseServerSelectCubes
-	cubeValues, err := game.NewThrow(turnPlayer)
+	return message, false, nil
+}
+
+func __handleFireError(player *models.Player, err error) (bool, error) {
+	err = fmt.Errorf("Error sending response: %w", err)
+	errorHandeling.PrintError(err)
+
+	errCannotFire := _handleCannotFire(player)
+	return true, errCannotFire
+}
+
+func ProcessPlayerTurn(game *models.Game) (bool, error) {
+
+	turnPlayer, err := game.GetTurnPlayer()
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return false, fmt.Errorf("Error sending response: %w", err)
 	}
 
-	canBePlayed := cubesCanBePlayed(cubeValues)
-	if !canBePlayed {
-		//--> ResponseServerEndTurn
-		err = network.SendResponseServerEndTurn(cubeValues, turnPlayer, message)
+	// ServerStartTurn
+	isNextPlayerTurn, err := handleServerStartTurn(turnPlayer)
+	if err != nil {
+		return false, fmt.Errorf("Error sending response: %w", err)
+	}
+	if isNextPlayerTurn {
+		return true, nil
+	}
+
+	//Send ServerUpdateGameData
+	err = sendCurrentServerUpdateGameData(game, turnPlayer)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return false, fmt.Errorf("Error sending response: %w", err)
+	}
+
+	for {
+		//My turn --ClientRollDice--> fork_my_turn
+		var message models.Message
+		message, isNextPlayerTurn, err = handleClientRollDice(turnPlayer)
+		if err != nil {
+			return false, fmt.Errorf("Error sending response: %w", err)
+		}
+		if isNextPlayerTurn {
+			return true, nil
+		}
+
+		//fork_my_turn --> ResponseServerEndTurn
+		//             --> ResponseServerSelectCubes
+		cubeValues, err := game.NewThrow(turnPlayer)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
 
-		//ServerUpdateGameData
-		err = sendCurrentServerUpdateGameData(game)
+		canBePlayed := cubesCanBePlayed(cubeValues)
+		if !canBePlayed {
+			//--> ResponseServerEndTurn
+			err = network.SendResponseServerEndTurn(turnPlayer)
+			if err != nil {
+				errorHandeling.PrintError(err)
+				return false, fmt.Errorf("Error sending response: %w", err)
+			}
+
+			//ServerUpdateGameData
+			err = sendCurrentServerUpdateGameData(game, turnPlayer)
+			if err != nil {
+				errorHandeling.PrintError(err)
+				return false, fmt.Errorf("Error sending response: %w", err)
+			}
+
+			err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerEndTurn.Trigger)
+			if err != nil {
+				return __handleFireError(turnPlayer, err)
+			}
+
+			// next Player turn
+			return true, nil
+		}
+
+		//-->ResponseServerSelectCubes
+		err = network.SendResponseServerSelectCubes(cubeValues, turnPlayer, message)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
 
-		err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerEndTurn.Trigger)
+		err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerSelectCubes.Trigger)
 		if err != nil {
 			return __handleFireError(turnPlayer, err)
 		}
 
-		// next Player turn
-		return true, nil
-	}
+		//Next_dice --> Running_Game
+		//           --> Fork_next_dice
 
-	//-->ResponseServerSelectCubes
-	err = network.SendResponseServerSelectCubes(cubeValues, turnPlayer, message)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("Error sending response: %w", err)
-	}
-
-	err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerSelectCubes.Trigger)
-	if err != nil {
-		return __handleFireError(turnPlayer, err)
-	}
-
-	//Next_dice --> Running_Game
-	//           --> Fork_next_dice
-	message, isSuccess, err = network.CommunicationReadClient(turnPlayer)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("Error sending response: %w", err)
-	}
-	if !isSuccess {
-		//next Player turn
-		return true, nil
-	}
-
-	if message.CommandID == constants.CGCommands.ClientEndTurn.CommandID {
-		//--> Running_Game
-
-		//Send Success
-		responseInfo := models.MessageInfo{
-			ConnectionInfo: models.ConnectionInfo{
-				Connection: turnPlayer.GetConnectionInfo().Connection,
-				TimeStamp:  message.TimeStamp,
-			},
-			PlayerNickname: message.PlayerNickname,
-		}
-		err = network.SendResponseServerSuccess(responseInfo)
+		var isSuccess bool
+		command := constants.CGCommands.ClientSelectedCubes
+		message, isSuccess, err = network.CommunicationReadContinouslyWithPing(turnPlayer, command)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
-
-		//Send GameUpdate
-		err = sendCurrentServerUpdateGameData(game)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return false, fmt.Errorf("Error sending response: %w", err)
+		if !isSuccess {
+			//next Player turn
+			return true, nil
 		}
 
-		err = turnPlayer.FireStateMachine(constants.CGCommands.ClientEndTurn.Trigger)
+		if message.CommandID != constants.CGCommands.ClientSelectedCubes.CommandID {
+			return false, fmt.Errorf("Error sending response")
+		}
+
+		err = turnPlayer.FireStateMachine(constants.CGCommands.ClientSelectedCubes.Trigger)
 		if err != nil {
 			return __handleFireError(turnPlayer, err)
 		}
 
-		//next Player turn
-		return true, nil
-	}
+		//Fork_next_dice --> ResponseServerEndScore
+		//               --> ResponseServerDiceSuccess
+		selectedCubesValues, err := parser.ConvertParamClientSelectedCubes(message.Parameters, constants.CGCommands.ClientSelectedCubes.ParamsNames)
+		if err != nil {
+			errDissconnect := dissconectPlayer(turnPlayer)
+			if errDissconnect != nil {
+				errorHandeling.PrintError(errDissconnect)
+				return false, fmt.Errorf("Error sending response: %w", errDissconnect)
+			}
 
-	//--> Fork_next_dice
-	if message.CommandID != constants.CGCommands.ClientSelectedCubes.CommandID {
-		return false, fmt.Errorf("Error sending response")
-	}
-
-	err = turnPlayer.FireStateMachine(constants.CGCommands.ClientSelectedCubes.Trigger)
-	if err != nil {
-		return __handleFireError(turnPlayer, err)
-	}
-
-	//Fork_next_dice --> ResponseServerEndScore
-	//               --> ResponseServerDiceSuccess
-	selectedCubesValues, err := parser.ConvertParamClientSelectedCubes(message.Parameters, constants.CGCommands.ClientSelectedCubes.ParamsNames)
-	if err != nil {
-		errDissconnect := dissconectPlayer(turnPlayer)
-		if errDissconnect != nil {
-			errorHandeling.PrintError(errDissconnect)
-			return false, fmt.Errorf("Error sending response: %w", errDissconnect)
+			errorHandeling.PrintError(err)
+			return true, nil
 		}
 
-		errorHandeling.PrintError(err)
-		return true, nil
-	}
-
-	scoreIncrease, err := game.GetScoreIncrease(selectedCubesValues, turnPlayer)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("Error sending response: %w", err)
-	}
-	currentScore, err := game.GetPlayerScore(turnPlayer)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("Error sending response: %w", err)
-	}
-	score := currentScore + scoreIncrease
-
-	// --> ResponseServerEndScore
-	if score >= cMaxScore {
-
-		err = network.SendResponseServerEndScore(turnPlayer)
+		scoreIncrease, err := game.GetScoreIncrease(selectedCubesValues, turnPlayer)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
-
-		//change player score
-		err = game.SetPlayerScore(turnPlayer, score)
+		currentScore, err := game.GetPlayerScore(turnPlayer)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
+		score := currentScore + scoreIncrease
 
-		//Send ServerUpdateEndScore
-		playerList := game.GetPlayers()
-		playerList = helpers.RemovePlayerFromList(playerList, turnPlayer)
-		err = network.CommunicationServerUpdateEndScore(playerList, turnPlayer.GetNickname())
+		// --> ResponseServerEndScore
+		if score >= cMaxScore {
+
+			err = network.SendResponseServerEndScore(turnPlayer)
+			if err != nil {
+				errorHandeling.PrintError(err)
+				return false, fmt.Errorf("Error sending response: %w", err)
+			}
+
+			//change player score
+			err = game.SetPlayerScore(turnPlayer, score)
+			if err != nil {
+				errorHandeling.PrintError(err)
+				return false, fmt.Errorf("Error sending response: %w", err)
+			}
+
+			//Send ServerUpdateEndScore
+			playerList := game.GetPlayers()
+			playerList = helpers.RemovePlayerFromList(playerList, turnPlayer)
+			err = network.CommunicationServerUpdateEndScore(playerList, turnPlayer.GetNickname())
+			if err != nil {
+				errorHandeling.PrintError(err)
+				return false, fmt.Errorf("Error sending response: %w", err)
+			}
+
+			err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerEndScore.Trigger)
+			if err != nil {
+				return __handleFireError(turnPlayer, err)
+			}
+
+			err = models.GetInstanceGameList().RemoveItem(game)
+			if err != nil {
+				errorHandeling.PrintError(err)
+				return false, fmt.Errorf("error sending response: %w", err)
+			}
+
+			return false, nil
+		}
+
+		//--> ResponseServerDiceSuccess
+		err = network.SendResponseServerDiceSuccess(turnPlayer)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return false, fmt.Errorf("Error sending response: %w", err)
 		}
-
-		err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerEndScore.Trigger)
-		if err != nil {
-			return __handleFireError(turnPlayer, err)
-		}
-
-		err = models.GetInstanceGameList().RemoveItem(game)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return false, fmt.Errorf("error sending response: %w", err)
-		}
-
-		return false, nil
 	}
 
-	//--> ResponseServerDiceSuccess
-	err = network.SendResponseServerDiceSuccess(turnPlayer)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return false, fmt.Errorf("Error sending response: %w", err)
-	}
-
-	err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerDiceSuccess.Trigger)
-	if err != nil {
-		return __handleFireError(turnPlayer, err)
-	}
+	//todo find why not working
+	//err = turnPlayer.FireStateMachine(constants.CGCommands.ResponseServerDiceSuccess.Trigger)
+	//if err != nil {
+	//	return __handleFireError(turnPlayer, err)
+	//}
 
 	// next Player turn
 	return true, nil

@@ -50,6 +50,8 @@ func (p *Player) GetNickname() string {
 	p.lock()
 	defer p.unlock()
 
+	logger.Log.Infof("Got nickname of player %s", p.nickname)
+
 	return p.nickname
 }
 
@@ -129,19 +131,19 @@ func (p *Player) DecreaseResponseSuccessExpected() {
 }
 
 // Fires the state machine
-func (p *Player) FireStateMachine(state stateless.State) error {
+func (p *Player) FireStateMachine(trigger stateless.Trigger) error {
 	p.lock()
 	defer p.unlock()
 
 	beforeState := p.stateMachine.MustState()
 
-	err := p.stateMachine.Fire(state)
+	err := p.stateMachine.Fire(trigger)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return err
 	}
 
-	logger.Log.Infof("Player changed state from %s to %s", beforeState, state)
+	logger.Log.Infof("Player changed trigger from %s with trigger %s", beforeState, trigger)
 	return nil
 }
 
