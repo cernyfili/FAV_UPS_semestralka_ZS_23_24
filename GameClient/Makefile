@@ -7,9 +7,12 @@ REQUIREMENTS = requirements.txt
 # Default target to create virtual environment, install dependencies, and run the application
 all: install run
 
-# Create virtual environment
+# Create virtual environment and ensure pip is installed
 $(VENV_DIR)/bin/activate: $(REQUIREMENTS)
-	python3 -m venv $(VENV_DIR)
+	python -m venv --without-pip $(VENV_DIR)
+	curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+	$(VENV_DIR)/bin/python get-pip.py
+	rm get-pip.py
 	$(VENV_DIR)/bin/pip install --upgrade pip
 	$(VENV_DIR)/bin/pip install -r $(REQUIREMENTS)
 
