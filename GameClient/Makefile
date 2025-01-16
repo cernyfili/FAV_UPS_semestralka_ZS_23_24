@@ -9,7 +9,7 @@ all: install run
 
 # Create virtual environment and ensure pip is installed
 $(VENV_DIR)/scripts/activate: $(REQUIREMENTS)
-	python -m venv $(VENV_DIR)
+	python3 -m venv $(VENV_DIR)
 	$(VENV_DIR)/scripts/pip install --upgrade pip
 	$(VENV_DIR)/scripts/pip install -r $(REQUIREMENTS)
 
@@ -19,7 +19,7 @@ install: $(VENV_DIR)/scripts/activate
 
 # Run the application
 run: $(VENV_DIR)/scripts/activate
-	$(VENV_DIR)/scripts/python -m main
+	$(VENV_DIR)/scripts/python3 -m main
 
 # Clean the virtual environment (optional)
 clean:

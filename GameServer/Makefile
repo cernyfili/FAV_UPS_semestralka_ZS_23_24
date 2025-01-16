@@ -6,11 +6,11 @@ TARGET = GameServer
 
 # Default: tidy, build, and run the server
 run: tidy build
-	$(GO) run cmd/gameserver/main.go
+	./$(TARGET)
 
 # Tidy the module dependencies
 tidy:
-	$(GO) mod tidy
+	$(GO) mod tidy -e
 
 # Build the executable
 build:
