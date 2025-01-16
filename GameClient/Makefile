@@ -1,4 +1,4 @@
 .PHONY: run
 
 run:
-	python src/main.py
+	python -m src/main.py
