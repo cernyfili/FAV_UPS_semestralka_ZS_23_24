@@ -54,18 +54,6 @@ func InitLogger(config LoggerConfig) error {
 				absPath, _ := filepath.Abs(f.File)
 				return "", fmt.Sprintf("%s:%d", absPath, f.Line)
 			},
-			//SortingFunc: func(keys []string) {
-			//	// make it sorted like: level, time, msg, caller
-			//	sortKeys := []string{"level", "msg", "func", "time"}
-			//	for i, key := range sortKeys {
-			//		for _, k := range keys {
-			//			if k == key {
-			//				keys[i] = k
-			//				break
-			//			}
-			//		}
-			//	}
-			//},
 		})
 	}
 
@@ -74,6 +62,12 @@ func InitLogger(config LoggerConfig) error {
 
 	// Set output
 	if config.LogToFile && config.FilePath != "" {
+		// Create the log file if it doesn't exist
+		err := os.MkdirAll(filepath.Dir(config.FilePath), 0755)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return err
+		}
 		file, err := os.OpenFile(config.FilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			errorHandeling.PrintError(err)

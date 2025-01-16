@@ -5,7 +5,7 @@ GO = go
 TARGET = GameServer
 
 # Default: build and run the server
-run:
+run: build
 	$(GO) run cmd/gameserver/main.go
 
 # Build the executable
