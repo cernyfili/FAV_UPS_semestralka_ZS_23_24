@@ -90,6 +90,14 @@ func (p *Player) IsResponseSuccessExpected() bool {
 
 //region SETTERS
 
+// Reset ResponseSuccessExpected
+func (p *Player) ResetResponseSuccessExpected() {
+	p.lock()
+	defer p.unlock()
+
+	p.responseSuccessExpected = 0
+}
+
 // SetConnectionInfo sets the connection info of the Player
 func (p *Player) SetConnectionInfo(connectionInfo ConnectionInfo) {
 	p.lock()

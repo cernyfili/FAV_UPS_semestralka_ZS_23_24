@@ -93,6 +93,10 @@ func (pl *PlayerList) RemoveItem(player *Player) error {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
 
+	if player == nil {
+		return fmt.Errorf("player is nil")
+	}
+
 	key := player.GetNickname()
 
 	err := pl.list.RemoveItem(key)

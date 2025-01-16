@@ -486,7 +486,7 @@ class CMessageConfig:
 
 @dataclass(frozen=True)
 class CNetworkConfig:
-    RECEIVE_TIMEOUT = 5
+    RECEIVE_TIMEOUT = 1
     BUFFER_SIZE: Final = 1024
     MAX_MESSAGE_SIZE: Final = 1024
     RECONNECT_ATTEMPTS: Final = 1  #todo change

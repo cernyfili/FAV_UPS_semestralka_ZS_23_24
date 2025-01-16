@@ -510,6 +510,8 @@ func SendResponseServerEndScore(player *models.Player) error {
 
 // region SEND FUNCTIONS
 func sendStandardUpdateToAllMessage(playerList []*models.Player, command constants.Command, params []constants.Params) error {
+	time.Sleep(1 * time.Second)
+
 	//todo remove
 	//reverse the order of the list
 	newList := make([]*models.Player, len(playerList))

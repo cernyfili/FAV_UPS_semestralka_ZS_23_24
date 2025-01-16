@@ -904,10 +904,16 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 				return __handleFireError(turnPlayer, err)
 			}
 
+			//LOGIC
 			err = models.GetInstanceGameList().RemoveItem(game)
 			if err != nil {
 				errorHandeling.PrintError(err)
 				return false, fmt.Errorf("error sending response: %w", err)
+			}
+
+			// set player response succes client 0 for each player
+			for _, p := range game.GetPlayers() {
+				p.ResetResponseSuccessExpected()
 			}
 
 			// ServerUpdateGameList

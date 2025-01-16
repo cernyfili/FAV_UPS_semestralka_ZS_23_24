@@ -43,7 +43,7 @@ const (
 	CConnType = "tcp"
 	CConnHost = "127.0.0.1"
 	CConnPort = "10000"
-	CTimeout  = 2 * time.Second
+	CTimeout  = 1 * time.Second
 )
 
 //endregion
