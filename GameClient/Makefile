@@ -8,17 +8,17 @@ REQUIREMENTS = requirements.txt
 all: install run
 
 # Create virtual environment and ensure pip is installed
-$(VENV_DIR)/scripts/activate: $(REQUIREMENTS)
+$(VENV_DIR)/bin/activate: $(REQUIREMENTS)
 	python3 -m venv $(VENV_DIR)
-	$(VENV_DIR)/scripts/pip install -r $(REQUIREMENTS)
+	$(VENV_DIR)/bin/pip install -r $(REQUIREMENTS)
 
 # Install dependencies (activate the virtual environment first)
-install: $(VENV_DIR)/scripts/activate
+install: $(VENV_DIR)/bin/activate
 	@echo "Virtual environment and dependencies installed!"
 
 # Run the application
-run: $(VENV_DIR)/scripts/activate
-	$(VENV_DIR)/scripts/python3 -m main
+run: $(VENV_DIR)/bin/activate
+	$(VENV_DIR)/bin/python3 -m main
 
 # Clean the virtual environment (optional)
 clean:
