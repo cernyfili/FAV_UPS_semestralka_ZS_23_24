@@ -5,8 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="run on school PC updates">
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/command_processing/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing/command_processing.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/network/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network/network.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/constants/constants.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/constants/constants.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

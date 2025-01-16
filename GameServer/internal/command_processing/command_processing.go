@@ -482,9 +482,6 @@ func processClientStartGame(player *models.Player, params []constants.Params, co
 		return _handleCannotFire(player)
 	}
 
-	//region LOGIC
-
-	// Check if player got playersGame
 	playersGame := models.GetInstanceGameList().GetPlayersGame(player)
 	if playersGame == nil {
 		err = dissconectPlayer(player)
@@ -495,27 +492,34 @@ func processClientStartGame(player *models.Player, params []constants.Params, co
 		return nil
 	}
 
-	err = playersGame.StartGame()
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("Error sending response: %w", err)
-	}
+	//region LOGIC
 
-	// Send the response
+	//region SendResponseServerSuccess
+
 	err = network.SendResponseServerSuccess(responseInfo)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
 	}
 
-	// Send update to all players
+	//endregion
 
-	//list which is an copy of players in game
+	//region CommmunicationServerUpdateStartGame
+
 	playersList := playersGame.GetPlayers()
-	//remove player from list
+	// remove player from list
 	playersList = helpers.RemovePlayerFromList(playersList, player)
 
 	err = network.CommunicationServerUpdateStartGame(playersList)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("Error sending response: %w", err)
+	}
+
+	//endregion
+
+	//region StartGame
+	err = playersGame.StartGame()
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
@@ -527,15 +531,15 @@ func processClientStartGame(player *models.Player, params []constants.Params, co
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
 	}
+	//endregion
 
-	//region Running_Game
-
-	//send ServerUpdateGameData
+	//region ServerUpdateGameData
 	err = sendCurrentServerUpdateGameData(playersGame, nil)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
 	}
+	//endregion
 
 	//endregion
 
@@ -912,9 +916,9 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 			}
 
 			// set player response succes client 0 for each player
-			for _, p := range game.GetPlayers() {
-				p.ResetResponseSuccessExpected()
-			}
+			//for _, p := range game.GetPlayers() {
+			//	p.ResetResponseSuccessExpected()
+			//}
 
 			// ServerUpdateGameList
 			err = network.CommunicationServerUpdateGameList(models.GetInstancePlayerList().GetValuesArray(), models.GetInstanceGameList().GetValuesArray())

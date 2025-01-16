@@ -735,8 +735,7 @@ class ServerCommunication:
             PlayerList | None - message data
         """
 
-        def __process_server_update_start_game(received_command, received_message) -> tuple[
-            Command | None, PlayerList | None]:
+        def __process_server_update_start_game(received_command, received_message) -> tuple[Command | None, PlayerList | None]:
             """
 
             :param received_command:

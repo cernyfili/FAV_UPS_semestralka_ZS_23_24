@@ -514,11 +514,11 @@ func sendStandardUpdateToAllMessage(playerList []*models.Player, command constan
 
 	//todo remove
 	//reverse the order of the list
-	newList := make([]*models.Player, len(playerList))
-	for i := 0; i < len(playerList); i++ {
-		newList[i] = playerList[len(playerList)-1-i]
-	}
-	playerList = newList
+	//newList := make([]*models.Player, len(playerList))
+	//for i := 0; i < len(playerList); i++ {
+	//	newList[i] = playerList[len(playerList)-1-i]
+	//}
+	//playerList = newList
 
 	for _, player := range playerList {
 		err := sendUpdateList(player, command, params)
