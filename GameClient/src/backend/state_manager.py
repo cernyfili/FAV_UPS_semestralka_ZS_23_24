@@ -1,9 +1,5 @@
 # Now you can import the package
-import sys
 import threading
-
-sys.path.append('lib/python_statemachine-2.1.2/statemachine')
-
 
 from statemachine import StateMachine, State
 
