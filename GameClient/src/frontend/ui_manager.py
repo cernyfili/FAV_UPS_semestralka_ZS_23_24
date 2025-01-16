@@ -1,12 +1,12 @@
 import tkinter as tk
 from dataclasses import dataclass
 
-from frontend.views.before_game_page import BeforeGamePage
-from frontend.views.lobby_page import LobbyPage
-from frontend.views.my_turn_roll_dice_page import MyTurnRollDicePage
-from frontend.views.my_turn_select_cubes_page import MyTurnSelectCubesPage
-from frontend.views.running_game_page import RunningGamePage
-from frontend.views.start_page import StartPage
+from src.frontend.views.before_game_page import BeforeGamePage
+from src.frontend.views.lobby_page import LobbyPage
+from src.frontend.views.my_turn_roll_dice_page import MyTurnRollDicePage
+from src.frontend.views.my_turn_select_cubes_page import MyTurnSelectCubesPage
+from src.frontend.views.running_game_page import RunningGamePage
+from src.frontend.views.start_page import StartPage
 
 START_PAGE = StartPage.__name__
 

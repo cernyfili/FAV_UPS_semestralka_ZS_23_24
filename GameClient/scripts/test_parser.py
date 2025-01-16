@@ -1,6 +1,8 @@
 import unittest
-from shared.constants import CMessageConfig, NetworkMessage, Param
-from backend.parser import parse_message
+
+from src.backend.parser import parse_message
+from src.shared.constants import NetworkMessage, Param
+
 
 class TestParseMessage(unittest.TestCase):
     def test_parse_message_valid(self):

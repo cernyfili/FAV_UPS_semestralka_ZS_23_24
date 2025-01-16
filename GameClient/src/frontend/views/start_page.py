@@ -12,9 +12,9 @@ import threading
 import time
 import tkinter as tk
 
-from backend.server_communication import ServerCommunication
-from frontend.views.utils import PAGES_DIC, show_loading_animation, stop_loading_animation
-from frontend.views.utils import process_is_not_connected
+from src.backend.server_communication import ServerCommunication
+from src.frontend.views.utils import PAGES_DIC, show_loading_animation, stop_loading_animation
+from src.frontend.views.utils import process_is_not_connected
 
 
 class StartPage(tk.Frame):

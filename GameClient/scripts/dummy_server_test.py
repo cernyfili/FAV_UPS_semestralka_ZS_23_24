@@ -4,9 +4,9 @@ import socket
 import threading
 import time
 
-from backend.parser import convert_message_to_network_string
-from frontend.ui_manager import MyApp
-from shared.constants import CMessageConfig, CCommandTypeEnum, NetworkMessage, Param
+from src.backend.parser import convert_message_to_network_string
+from src.frontend.ui_manager import MyApp
+from src.shared.constants import CMessageConfig, CCommandTypeEnum, NetworkMessage, Param
 
 WAIT_TIME = 0.5
 

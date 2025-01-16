@@ -1,6 +1,6 @@
 import logging
 
-from frontend.ui_manager import MyApp
+from src.frontend.ui_manager import MyApp
 
 
 def main():

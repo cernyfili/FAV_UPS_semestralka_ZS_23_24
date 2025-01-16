@@ -13,10 +13,10 @@ import tkinter as tk
 from abc import ABC
 from tkinter import messagebox
 
-from backend.server_communication import ServerCommunication
-from frontend.page_interface import UpdateInterface
-from frontend.views.utils import PAGES_DIC, show_game_data, list_start_listening_for_updates, process_is_not_connected
-from shared.constants import GameData, CCommandTypeEnum, Command, GAME_STATE_MACHINE
+from src.backend.server_communication import ServerCommunication
+from src.frontend.page_interface import UpdateInterface
+from src.frontend.views.utils import PAGES_DIC, show_game_data, process_is_not_connected
+from src.shared.constants import GameData, CCommandTypeEnum, Command, GAME_STATE_MACHINE
 
 
 class RunningGamePage(tk.Frame, UpdateInterface, ABC):

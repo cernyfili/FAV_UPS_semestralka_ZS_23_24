@@ -7,8 +7,8 @@ Created: 02.01.2025
 Version: 1.0
 Description: 
 """
-from frontend.ui_manager import MyApp
-from shared.constants import Game, GameList, Player, PlayerList, PlayerGameData, GameData, CubeValuesList
+from src.frontend.ui_manager import MyApp
+from src.shared.constants import Game, GameList, Player, PlayerList, PlayerGameData, GameData, CubeValuesList
 
 
 def lobby_page():

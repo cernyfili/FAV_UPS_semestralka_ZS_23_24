@@ -13,12 +13,13 @@ import tkinter as tk
 from abc import ABC
 from tkinter import messagebox
 
-from backend.server_communication import ServerCommunication
-from frontend.page_interface import UpdateInterface
-from frontend.views.utils import PAGES_DIC, show_game_data, my_turn_start_listening_for_updates, show_loading_animation, \
+from src.backend.server_communication import ServerCommunication
+from src.frontend.page_interface import UpdateInterface
+from src.frontend.views.utils import PAGES_DIC, show_game_data, my_turn_start_listening_for_updates, \
+    show_loading_animation, \
     stop_loading_animation
-from frontend.views.utils import process_is_not_connected, stop_update_thread
-from shared.constants import CCommandTypeEnum, GameData
+from src.frontend.views.utils import process_is_not_connected, stop_update_thread
+from src.shared.constants import CCommandTypeEnum, GameData
 
 
 class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):

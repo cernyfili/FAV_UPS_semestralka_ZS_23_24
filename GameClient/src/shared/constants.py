@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Final, List
 
-from backend.state_manager import GameStateMachine
+from src.backend.state_manager import GameStateMachine
 
 
 # region DATA STRUCTURES

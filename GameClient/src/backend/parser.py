@@ -1,6 +1,6 @@
 from typing import List
 
-from shared.constants import CMessagePartsSizes, CMessageConfig, CCommandTypeEnum, Param, NetworkMessage
+from src.shared.constants import CMessagePartsSizes, CMessageConfig, CCommandTypeEnum, Param, NetworkMessage
 
 
 def parse_message(input_str: str) -> NetworkMessage:

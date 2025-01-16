@@ -1,5 +1,5 @@
 # # Command Handlers
-# from shared.constants import CCommandTypeEnum
+# from  src.shared.constants import CCommandTypeEnum
 #
 # command_handlers = {
 #     CCommandTypeEnum.ClientCreateGame.value.id: {"handler": process_client_create_game, "command": CCommandTypeEnum.ClientCreateGame.value},

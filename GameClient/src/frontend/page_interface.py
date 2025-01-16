@@ -12,10 +12,10 @@ import threading
 from abc import ABC, abstractmethod
 from tkinter import messagebox
 
-from backend.server_communication import ServerCommunication
-from frontend.views.utils import stop_update_thread, PAGES_DIC, process_is_not_connected, show_loading_animation, \
+from src.backend.server_communication import ServerCommunication
+from src.frontend.views.utils import stop_update_thread, PAGES_DIC, process_is_not_connected, show_loading_animation, \
     stop_loading_animation
-from shared.constants import GAME_STATE_MACHINE
+from src.shared.constants import GAME_STATE_MACHINE
 
 
 class PageInterface(ABC):

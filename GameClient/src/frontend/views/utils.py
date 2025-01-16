@@ -12,8 +12,8 @@ import threading
 from tkinter import messagebox
 from types import SimpleNamespace
 
-from backend.server_communication import ServerCommunication
-from shared.constants import GAME_STATE_MACHINE, CCommandTypeEnum, Command
+from src.backend.server_communication import ServerCommunication
+from src.shared.constants import GAME_STATE_MACHINE, CCommandTypeEnum, Command
 
 pages_names = {
     "StartPage": "StartPage",

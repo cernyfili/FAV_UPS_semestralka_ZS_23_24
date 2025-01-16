@@ -12,10 +12,10 @@ import threading
 import tkinter as tk
 from abc import ABC
 
-from backend.server_communication import ServerCommunication
-from frontend.page_interface import UpdateInterface
-from frontend.views.utils import PAGES_DIC, list_start_listening_for_updates
-from shared.constants import CGameConfig, PlayerList, CCommandTypeEnum
+from src.backend.server_communication import ServerCommunication
+from src.frontend.page_interface import UpdateInterface
+from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates
+from src.shared.constants import CGameConfig, PlayerList, CCommandTypeEnum
 
 
 class BeforeGamePage(tk.Frame, UpdateInterface, ABC):

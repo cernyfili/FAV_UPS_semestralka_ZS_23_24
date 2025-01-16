@@ -5,8 +5,9 @@ import time
 from datetime import datetime
 from typing import List
 
-from backend.parser import convert_message_to_network_string, parse_message, convert_list_cube_values_to_network_string
-from shared.constants import CMessageConfig, CCommandTypeEnum, \
+from src.backend.parser import convert_message_to_network_string, parse_message, \
+    convert_list_cube_values_to_network_string
+from src.shared.constants import CMessageConfig, CCommandTypeEnum, \
     CNetworkConfig, GAME_STATE_MACHINE, Command, Param, NetworkMessage, GameList, reset_game_state_machine, PlayerList, \
     CubeValuesList, GameData
 

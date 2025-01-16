@@ -12,10 +12,10 @@ import threading
 import tkinter as tk
 from abc import ABC
 
-from backend.server_communication import ServerCommunication
-from frontend.page_interface import UpdateInterface
-from frontend.views.utils import PAGES_DIC
-from shared.constants import CGameConfig, CMessageConfig, Game, Param
+from src.backend.server_communication import ServerCommunication
+from src.frontend.page_interface import UpdateInterface
+from src.frontend.views.utils import PAGES_DIC
+from src.shared.constants import CGameConfig, CMessageConfig, Game, Param
 
 
 class LobbyPage(tk.Frame, UpdateInterface, ABC):
