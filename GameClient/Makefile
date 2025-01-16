@@ -19,7 +19,7 @@ install: $(VENV_DIR)/scripts/activate
 
 # Run the application
 run: $(VENV_DIR)/scripts/activate
-	$(VENV_DIR)/bin/python -m src.main
+	$(VENV_DIR)/scripts/python -m main
 
 # Clean the virtual environment (optional)
 clean:
