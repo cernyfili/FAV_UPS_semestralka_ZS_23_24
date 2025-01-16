@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="All workinggg" />
+    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="run on school PC updates" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -213,7 +213,8 @@
     <MESSAGE value="small changes" />
     <MESSAGE value="probably not stable but fixing bugs &#10;test Start -&gt; lobby" />
     <MESSAGE value="All workinggg" />
-    <option name="LAST_COMMIT_MESSAGE" value="All workinggg" />
+    <MESSAGE value="run on school PC updates" />
+    <option name="LAST_COMMIT_MESSAGE" value="run on school PC updates" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
