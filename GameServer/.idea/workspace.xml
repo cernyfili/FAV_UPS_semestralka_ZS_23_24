@@ -4,19 +4,9 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="probably not stable but fixing bugs &#10;test Start -&gt; lobby">
-      <change afterPath="$PROJECT_DIR$/../GameClient/Makefile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../GameClient/readme.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/ui_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/ui_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_roll_dice_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_roll_dice_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_select_cubes_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_select_cubes_page.py" afterDir="false" />
+    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="All workinggg">
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/command_processing/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing/command_processing.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/server_listen.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/server_listen.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/tests/game.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -225,7 +215,8 @@
     <MESSAGE value="done development&#10;before testing" />
     <MESSAGE value="small changes" />
     <MESSAGE value="probably not stable but fixing bugs &#10;test Start -&gt; lobby" />
-    <option name="LAST_COMMIT_MESSAGE" value="probably not stable but fixing bugs &#10;test Start -&gt; lobby" />
+    <MESSAGE value="All workinggg" />
+    <option name="LAST_COMMIT_MESSAGE" value="All workinggg" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

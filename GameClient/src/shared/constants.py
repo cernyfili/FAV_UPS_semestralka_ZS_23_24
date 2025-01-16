@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Final, List
 
-import timestamp
-
 from backend.state_manager import GameStateMachine
 
 
@@ -108,7 +106,7 @@ class CubeValuesList(list):
 @dataclass
 class NetworkMessage:
 
-    def __init__(self, signature: str, command_id: int, timestamp: timestamp, player_nickname: str, parameters: List[
+    def __init__(self, signature: str, command_id: int, timestamp, player_nickname: str, parameters: List[
         Param]):
         def process_signature(signature: str) -> str:
             if signature != CMessageConfig.SIGNATURE:
@@ -146,7 +144,7 @@ class NetworkMessage:
         return self._command_id
 
     @property
-    def timestamp(self) -> timestamp:
+    def timestamp(self):
         return self._timestamp
 
     @property
