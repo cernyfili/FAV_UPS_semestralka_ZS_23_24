@@ -8,20 +8,17 @@ REQUIREMENTS = requirements.txt
 all: install run
 
 # Create virtual environment and ensure pip is installed
-$(VENV_DIR)/bin/activate: $(REQUIREMENTS)
-	python -m venv --without-pip $(VENV_DIR)
-	curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-	$(VENV_DIR)/bin/python get-pip.py
-	rm get-pip.py
-	$(VENV_DIR)/bin/pip install --upgrade pip
-	$(VENV_DIR)/bin/pip install -r $(REQUIREMENTS)
+$(VENV_DIR)/scripts/activate: $(REQUIREMENTS)
+	python -m venv $(VENV_DIR)
+	$(VENV_DIR)/scripts/pip install --upgrade pip
+	$(VENV_DIR)/scripts/pip install -r $(REQUIREMENTS)
 
 # Install dependencies (activate the virtual environment first)
-install: $(VENV_DIR)/bin/activate
+install: $(VENV_DIR)/scripts/activate
 	@echo "Virtual environment and dependencies installed!"
 
 # Run the application
-run: $(VENV_DIR)/bin/activate
+run: $(VENV_DIR)/scripts/activate
 	$(VENV_DIR)/bin/python -m src.main
 
 # Clean the virtual environment (optional)
