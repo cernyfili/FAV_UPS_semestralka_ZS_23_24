@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"gameserver/internal/utils/constants"
 	"gameserver/internal/utils/errorHandeling"
-	"math/rand"
 	"sync"
-	"time"
 )
 
 // region CONSTANTS
@@ -84,30 +82,28 @@ func CreateGame(name string, maxPlayers int) (*Game, error) {
 }
 
 func generateCubeValues(count int) []int {
-	rand.Seed(time.Now().UnixNano())
-	array := make([]int, count)
-	hasFive := rand.Intn(2) // Randomly decide if there will be a five (0 or 1)
-
-	for i := 0; i < count; i++ {
-		if hasFive == 1 && i == 0 {
-			array[i] = 5
-		} else {
-			array[i] = 4
-		}
-	}
-
-	return array
-
-	//
-	//
-	//valueInt := 4
+	//rand.Seed(time.Now().UnixNano())
 	//array := make([]int, count)
+	//hasFive := rand.Intn(2) // Randomly decide if there will be a five (0 or 1)
+	//
 	//for i := 0; i < count; i++ {
-	//	//array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
-	//	//todo remove
-	//	array[i] = valueInt
+	//	if hasFive == 1 && i == 0 {
+	//		array[i] = 5
+	//	} else {
+	//		array[i] = 4
+	//	}
 	//}
+	//
 	//return array
+
+	valueInt := 5
+	array := make([]int, count)
+	for i := 0; i < count; i++ {
+		//array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
+		//todo remove
+		array[i] = valueInt
+	}
+	return array
 }
 
 // get turn number

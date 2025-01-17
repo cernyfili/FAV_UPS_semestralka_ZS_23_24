@@ -271,11 +271,7 @@ class CGameConfig:
 class Convertor:
     @staticmethod
     def _validate_name(name: str) -> bool:
-        if not name:
-            return False
-        if not CMessageConfig.is_valid_name(name):
-            return False
-        return True
+        return CMessageConfig.is_valid_name(name)
 
     @staticmethod
     def convert_param_list_to_game_list(param_array : List[List[Param]]) -> GameList:
@@ -489,5 +485,5 @@ class CNetworkConfig:
     RECEIVE_TIMEOUT = 5
     BUFFER_SIZE: Final = 1024
     MAX_MESSAGE_SIZE: Final = 1024
-    RECONNECT_ATTEMPTS: Final = 1  #todo change
+    RECONNECT_ATTEMPTS: Final = 3  # todo change
     RECONNECT_TIMEOUT_SEC: Final = 2

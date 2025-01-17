@@ -15,6 +15,7 @@ import tkinter as tk
 from src.backend.server_communication import ServerCommunication
 from src.frontend.views.utils import PAGES_DIC, show_loading_animation, stop_loading_animation
 from src.frontend.views.utils import process_is_not_connected
+from src.shared.constants import CMessageConfig
 
 
 class StartPage(tk.Frame):
@@ -70,8 +71,7 @@ class StartPage(tk.Frame):
 
     @staticmethod
     def _validate_nickname(nickname):
-        # Check if nickname is not empty
-        return bool(nickname)
+        return CMessageConfig.is_valid_name(nickname)
 
     def _button_action_connect(self, ip : str, port : int, nickname : str):
 

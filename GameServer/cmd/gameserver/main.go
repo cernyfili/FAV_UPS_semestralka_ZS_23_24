@@ -5,6 +5,7 @@ import (
 	"gameserver/internal/logger"
 	"gameserver/internal/utils/constants"
 	"gameserver/internal/utils/errorHandeling"
+	"gameserver/internal/utils/helpers"
 	"log"
 )
 
@@ -26,7 +27,22 @@ func initLogger() {
 	}
 }
 
+func setServerConfig(filepath string) {
+	ip, port, err := helpers.ReadConfigFile(filepath)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		log.Fatalf("Failed to read server config: %v", err)
+	}
+
+	// Set the server configuration using the read IP and port
+	constants.CConIPadress = ip
+	constants.CConnPort = port
+}
+
 func main() {
+
+	setServerConfig(constants.CConfigFilePath)
+
 	initLogger()
 
 	logger.Log.Info("Starting server...")

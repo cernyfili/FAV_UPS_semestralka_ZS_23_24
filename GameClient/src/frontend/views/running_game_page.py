@@ -64,18 +64,22 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
 
         def listen_for_updates(state_name: str, update_function: callable, process_command_dic: dict[int, callable],
                                continue_commands_list: list[Command]):
-            logging.debug("Listening for updates")
+            # logging.debug("Listening for updates")
             current_state = GAME_STATE_MACHINE.get_current_state()
             while current_state == state_name and not self._stop_event.is_set():
                 # while not self._stop_event.is_set():
-                logging.debug("Listening for Data updates")
+                # logging.debug("Listening for Data updates")
                 try:
                     is_connected, message_info_list = update_function()
                     if self._stop_event.is_set():
+                        page_name = self.winfo_name()
+                        logging.debug(f"Stopped listening for updates on page: {page_name}")
                         return
 
                     if not is_connected:
                         process_is_not_connected(self)
+                        page_name = self.winfo_name()
+                        logging.debug(f"Stopped listening for updates on page: {page_name}")
                         return
 
                     if not message_info_list:
@@ -90,6 +94,8 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
                                 handler()
                                 is_last_message = i == len(message_info_list) - 1
                                 if is_last_message:
+                                    page_name = self.winfo_name()
+                                    logging.debug(f"Stopped listening for updates on page: {page_name}")
                                     return
 
                         is_continue_command = False
@@ -100,7 +106,7 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
                             continue
                         if command.id == CCommandTypeEnum.ServerUpdateEndScore.value.id:
                             self._process_update_end_score(message_data)
-                            continue
+                            return
 
                         if command == update_command:
                             self.update_data(message_data)
@@ -112,11 +118,15 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
                     # todo change
                     messagebox.showerror("Error", str(e))
                     break
+            page_name = self.winfo_name()
+            logging.debug(f"Stopped listening for updates on page: {page_name}")
+
 
         state_name = self._get_state_name()
         update_function = self._get_update_function()
 
-        logging.debug("Starting to listen for updates")
+        page_name = self.winfo_name()
+        logging.debug(f"Starting listening for updates on page: {page_name}")
         # Wait for the update thread to finish
         self._set_update_thread(
             threading.Thread(target=listen_for_updates,
