@@ -218,7 +218,7 @@ func processPlayerLogin(playerNickname string, connectionInfo models.ConnectionI
 	}
 
 	//Check if playerNickname in list
-	if models.GetInstancePlayerList().HasItem(playerNickname) {
+	if models.GetInstancePlayerList().HasItemName(playerNickname) {
 		err := network.SendResponseServerErrDuplicitNickname(responseInfo)
 		if err != nil {
 			errorHandeling.PrintError(err)
@@ -261,6 +261,7 @@ func processClientCreateGame(player *models.Player, params []constants.Params, c
 		PlayerNickname: player.GetNickname(),
 	}
 
+	//State machine check
 	canFire, err := player.GetStateMachine().CanFire(command.Trigger)
 	if err != nil {
 		errorHandeling.PrintError(err)
@@ -271,7 +272,7 @@ func processClientCreateGame(player *models.Player, params []constants.Params, c
 	}
 
 	//Convert params
-	name, maxPlayers, err := parser.ConvertParamClientCreateGame(params, command.ParamsNames)
+	gameName, maxPlayers, err := parser.ConvertParamClientCreateGame(params, command.ParamsNames)
 	if err != nil {
 		errDissconnect := dissconectPlayer(player)
 		if errDissconnect != nil {
@@ -283,7 +284,18 @@ func processClientCreateGame(player *models.Player, params []constants.Params, c
 		return nil
 	}
 
-	err = processCreateGame(player, name, maxPlayers)
+	//Check if playerNickname in list
+	if models.GetInstanceGameList().HasItemName(gameName) {
+		err := network.SendResponseServerErrorDuplicitGameName(responseInfo)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		return nil
+	}
+
+	// Initialize the game
+	err = initGame(player, gameName, maxPlayers)
 	if err != nil {
 		return err
 	}
@@ -313,6 +325,7 @@ func processClientCreateGame(player *models.Player, params []constants.Params, c
 
 	//player list wit only one element player
 	playerList := []*models.Player{player}
+
 	err = network.CommunicationServerUpdatePlayerList(playerList)
 	if err != nil {
 		errorHandeling.PrintError(err)
@@ -322,7 +335,7 @@ func processClientCreateGame(player *models.Player, params []constants.Params, c
 	return nil
 }
 
-func processCreateGame(player *models.Player, name string, maxPlayers int) error {
+func initGame(player *models.Player, name string, maxPlayers int) error {
 	// Create the game
 	game, err := models.CreateGame(name, maxPlayers)
 	if err != nil {

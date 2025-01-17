@@ -1,4 +1,5 @@
 # Now you can import the package
+import logging
 import threading
 
 from statemachine import StateMachine, State
@@ -72,7 +73,10 @@ class GameStateMachine(StateMachine):
 
     def send_trigger(self, trigger: str):
         with self._lock:
+            before = self.current_state_value
             self.send(trigger)
+            after = self.current_state_value
+            logging.debug(f"State transition: {before} -> {trigger} -> {after}")
 
     def get_current_state(self):
         with self._lock:

@@ -67,8 +67,9 @@ class UpdateInterface(ABC):
         state_name = self._get_state_name()
         list_update_function = self._get_update_function()
 
-        logging.debug("Starting to listen for updates")
-        def listen_for_updates():
+        logging.debug(f"Starting to listen for updates in state: {state_name}")
+
+        def listen_for_updates(state_name, list_update_function):
             current_state = GAME_STATE_MACHINE.get_current_state()
             while current_state == state_name and not self._stop_event.is_set():
                 logging.debug("Listening for list updates")
@@ -88,8 +89,10 @@ class UpdateInterface(ABC):
                     #todo change
                     messagebox.showerror("Error", str(e))
                     break
+
         # Wait for the update thread to finish
-        self._set_update_thread(threading.Thread(target=listen_for_updates, daemon=True))
+        self._set_update_thread(
+            threading.Thread(target=listen_for_updates, args=(state_name, list_update_function), daemon=True))
         self._update_thread.start()
 
     def button_action_standard(self, tk, send_function, next_page_name, param_list):

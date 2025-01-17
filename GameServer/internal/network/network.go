@@ -158,7 +158,7 @@ func sendUpdateList(player *models.Player, command constants.Command, params []c
 	}
 
 	// set for player expected ClientResponseSuccess which is handled in server_listen.go
-	player.IncreaseResponseSuccessExpected()
+	player.IncreaseResponseSuccessExpected(command)
 
 	err = player.FireStateMachine(command.Trigger)
 	if err != nil {
@@ -399,6 +399,16 @@ func SendResponseServerErrDuplicitNickname(responseInfo models.MessageInfo) erro
 	return nil
 }
 
+// SendResponseServerErrorDupolicitGameName
+func SendResponseServerErrorDuplicitGameName(responseInfo models.MessageInfo) error {
+	err := SendResponseServerError(responseInfo, fmt.Errorf("error duplicate game name"))
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error sending response %w", err)
+	}
+	return nil
+}
+
 func SendResponseServerError(responseInfo models.MessageInfo, paramsValues error) error {
 	command := constants.CGCommands.ResponseServerError
 
@@ -510,6 +520,7 @@ func SendResponseServerEndScore(player *models.Player) error {
 
 // region SEND FUNCTIONS
 func sendStandardUpdateToAllMessage(playerList []*models.Player, command constants.Command, params []constants.Params) error {
+
 	time.Sleep(1 * time.Second)
 
 	//todo remove
@@ -521,6 +532,9 @@ func sendStandardUpdateToAllMessage(playerList []*models.Player, command constan
 	//playerList = newList
 
 	for _, player := range playerList {
+		//null responseExpected
+		player.ResetResponseSuccessExpected()
+
 		err := sendUpdateList(player, command, params)
 		if err != nil {
 			errorHandeling.PrintError(err)

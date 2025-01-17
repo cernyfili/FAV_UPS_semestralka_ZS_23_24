@@ -43,7 +43,7 @@ func (pl *PlayerList) GetItem(key string) (*Player, error) {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
 
-	item, err := pl.list.GetItem(key)
+	item, err := pl.list.GetItemWithoutLock(key)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +54,11 @@ func (pl *PlayerList) GetItem(key string) (*Player, error) {
 	return player, nil
 }
 
-func (pl *PlayerList) HasItem(key string) bool {
+func (pl *PlayerList) HasItemName(playerName string) bool {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
 
-	_, err := pl.list.GetItem(key)
+	_, err := pl.list.GetItemWithoutLock(playerName)
 	if err != nil {
 		return false
 	}

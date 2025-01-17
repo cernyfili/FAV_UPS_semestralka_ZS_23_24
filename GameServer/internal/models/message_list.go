@@ -54,12 +54,12 @@ func (pl *MessageList) AddItem(message Message) error {
 	return nil
 }
 
-//func (pl *MessageList) GetItem(nickname string, timestamp string) (Message, error) {
+//func (pl *MessageList) GetItemWithoutLock(nickname string, timestamp string) (Message, error) {
 //	pl.list.mutex.Lock()
 //	defer pl.list.mutex.Unlock()
 //
 //	key := nickname + timestamp
-//	item, err := pl.list.GetItem(key)
+//	item, err := pl.list.GetItemWithoutLock(key)
 //	if err != nil {
 //		errorHandeling.PrintError(err)
 //		return Message{}, err

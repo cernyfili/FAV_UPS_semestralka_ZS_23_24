@@ -18,7 +18,7 @@ func StartServer() {
 
 // RunServer starts a TCP server that listens on the specified port.
 func RunServer() {
-	ln, err := net.Listen(constants.CConnType, constants.CConnHost+":"+constants.CConnPort)
+	ln, err := net.Listen(constants.CConnType, constants.CConIPadress+":"+constants.CConnPort)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		fmt.Println("Error listening:", err)

@@ -39,16 +39,24 @@ const (
 //endregion
 
 // region Network Constants
+var (
+	CConIPadress string
+	CConnPort    string
+)
+
 const (
 	CConnType = "tcp"
-	CConnHost = "127.0.0.1"
-	CConnPort = "10000"
 	CTimeout  = 1 * time.Second
 )
 
 //endregion
 
+//region FilePaths
+
 const CLogFilePath string = "logs/app.log"
+const CConfigFilePath string = "config.json"
+
+//endregion
 
 var (
 	CGScoreCubeValues = []ScoreCube{

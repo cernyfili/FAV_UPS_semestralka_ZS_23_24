@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"gameserver/internal/logger"
+	"gameserver/internal/utils/constants"
 	"gameserver/internal/utils/errorHandeling"
 	"gameserver/pkg/stateless"
 	"sync"
@@ -10,13 +11,15 @@ import (
 
 //region DATA STRUCTURES
 
+// struct response succes element
+
 // Player represents a Player with a unique ID and nickname.
 type Player struct {
 	nickname                string
 	isConnected             bool
 	connectionInfo          ConnectionInfo
 	stateMachine            *stateless.StateMachine
-	responseSuccessExpected int
+	responseSuccessExpected []constants.Command
 	mutex                   sync.Mutex
 }
 
@@ -28,7 +31,7 @@ func CreatePlayer(nickname string, isConnected bool, connectionInfo ConnectionIn
 		nickname:                nickname,
 		isConnected:             isConnected,
 		connectionInfo:          connectionInfo,
-		responseSuccessExpected: 0,
+		responseSuccessExpected: []constants.Command{},
 		stateMachine:            CreateStateMachine(),
 	}
 }
@@ -83,7 +86,13 @@ func (p *Player) IsResponseSuccessExpected() bool {
 	p.lock()
 	defer p.unlock()
 
-	return p.responseSuccessExpected > 0
+	lenList := len(p.responseSuccessExpected)
+
+	if lenList >= 2 {
+		logger.Log.Infof("Player %s has %d responses expected", p.nickname, lenList)
+	}
+
+	return lenList > 0
 }
 
 //endregion
@@ -95,7 +104,7 @@ func (p *Player) ResetResponseSuccessExpected() {
 	p.lock()
 	defer p.unlock()
 
-	p.responseSuccessExpected = 0
+	p.responseSuccessExpected = []constants.Command{}
 }
 
 // SetConnectionInfo sets the connection info of the Player
@@ -115,27 +124,36 @@ func (p *Player) SetConnected(isConnected bool) {
 }
 
 // increase the number of expected responses
-func (p *Player) IncreaseResponseSuccessExpected() {
+func (p *Player) IncreaseResponseSuccessExpected(command constants.Command) {
 	p.lock()
 	defer p.unlock()
-	//if p.responseSuccessExpected+1 > 1 {
-	//	err := fmt.Errorf("Player has already expected a response")
-	//	errorHandeling.PrintError(err)
-	//}
+	lenList := len(p.responseSuccessExpected)
 
-	p.responseSuccessExpected++
+	if lenList+1 >= 2 {
+		logger.Log.Infof("When Increased Player %s has %d responses expected", p.nickname, lenList+1)
+	}
+
+	//Add to list
+	p.responseSuccessExpected = append(p.responseSuccessExpected, command)
 }
 
 // decrease the number of expected responses
 func (p *Player) DecreaseResponseSuccessExpected() {
 	p.lock()
 	defer p.unlock()
-	if p.responseSuccessExpected-1 < 0 {
+	len_list := len(p.responseSuccessExpected)
+	if len_list >= 2 {
+		//player has that many responses expected
+		logger.Log.Infof("Player %s has %d responses expected", p.nickname, len_list)
+	}
+
+	if len_list-1 < 0 {
 		err := fmt.Errorf("Player has already expected a response")
 		errorHandeling.PrintError(err)
 	}
 
-	p.responseSuccessExpected--
+	//Remove last from list
+	p.responseSuccessExpected = p.responseSuccessExpected[:len_list-1]
 }
 
 // Fires the state machine

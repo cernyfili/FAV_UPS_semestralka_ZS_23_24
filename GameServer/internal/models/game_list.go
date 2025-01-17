@@ -34,7 +34,7 @@ func (gl *GameList) AddItem(game *Game) (int, error) {
 	defer gl.list.mutex.Unlock()
 
 	key, err := gl.list.AddItem(game)
-	gameItem, err := gl.list.GetItem(key)
+	gameItem, err := gl.list.GetItemWithoutLock(key)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return -1, err
@@ -43,6 +43,28 @@ func (gl *GameList) AddItem(game *Game) (int, error) {
 	game.gameID = key
 
 	return key, nil
+}
+
+// has item
+func (gl *GameList) HasItemName(gameName string) bool {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
+	game, err := gl.getItemByName(gameName)
+	return err == nil && game != nil
+}
+
+func (gl *GameList) getItemByName(gameName string) (*Game, error) {
+	for _, v := range gl.list.data {
+		game, ok := v.(*Game)
+		if !ok {
+			return nil, fmt.Errorf("item is not a game")
+		}
+		if game.name == gameName {
+			return game, nil
+		}
+	}
+	return nil, fmt.Errorf("game not found")
 }
 
 // remove item
@@ -65,7 +87,7 @@ func (gl *GameList) GetItem(key int) (*Game, error) {
 	gl.list.mutex.Lock()
 	defer gl.list.mutex.Unlock()
 
-	item, err := gl.list.GetItem(key)
+	item, err := gl.list.GetItemWithoutLock(key)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return nil, err
