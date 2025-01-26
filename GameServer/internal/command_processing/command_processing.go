@@ -930,7 +930,7 @@ func ProcessPlayerTurn(game *models.Game) (bool, error) {
 
 			// set player response succes client 0 for each player
 			//for _, p := range game.GetPlayers() {
-			//	p.ResetResponseSuccessExpected()
+			//	p.resetResponseSuccessExpected()
 			//}
 
 			// ServerUpdateGameList

@@ -48,12 +48,12 @@ func (p *Player) GetStateMachine() *stateless.StateMachine {
 
 // GetNickname returns the nickname of the Player
 func (p *Player) GetNickname() string {
-	logger.Log.Infof("Getting nickname of player ")
+	logger.Log.Debugf("Getting nickname of player ")
 
 	p.lock()
 	defer p.unlock()
 
-	logger.Log.Infof("Got nickname of player %s", p.nickname)
+	logger.Log.Debugf("Got nickname of player %s", p.nickname)
 
 	return p.nickname
 }
@@ -89,7 +89,7 @@ func (p *Player) IsResponseSuccessExpected() bool {
 	lenList := len(p.responseSuccessExpected)
 
 	if lenList >= 2 {
-		logger.Log.Infof("Player %s has %d responses expected", p.nickname, lenList)
+		logger.Log.Infof("RESPONSE_EXPECTED: Player %s has %d responses expected", p.nickname, lenList)
 	}
 
 	return lenList > 0
@@ -100,9 +100,8 @@ func (p *Player) IsResponseSuccessExpected() bool {
 //region SETTERS
 
 // Reset ResponseSuccessExpected
-func (p *Player) ResetResponseSuccessExpected() {
-	p.lock()
-	defer p.unlock()
+func (p *Player) resetResponseSuccessExpected() {
+	logger.Log.Infof("RESPONSE_EXPECTED: Reseting Player %s has %d responses expected", p.nickname, len(p.responseSuccessExpected))
 
 	p.responseSuccessExpected = []constants.Command{}
 }
@@ -130,7 +129,7 @@ func (p *Player) IncreaseResponseSuccessExpected(command constants.Command) {
 	lenList := len(p.responseSuccessExpected)
 
 	if lenList+1 >= 2 {
-		logger.Log.Infof("When Increased Player %s has %d responses expected", p.nickname, lenList+1)
+		logger.Log.Infof("RESPONSE_EXPECTED: When Increased Player %s has %d responses expected", p.nickname, lenList+1)
 	}
 
 	//Add to list
@@ -144,7 +143,7 @@ func (p *Player) DecreaseResponseSuccessExpected() {
 	len_list := len(p.responseSuccessExpected)
 	if len_list >= 2 {
 		//player has that many responses expected
-		logger.Log.Infof("Player %s has %d responses expected", p.nickname, len_list)
+		logger.Log.Infof("RESPONSE_EXPECTED: Player %s has %d responses expected", p.nickname, len_list)
 	}
 
 	if len_list-1 < 0 {
@@ -170,6 +169,11 @@ func (p *Player) FireStateMachine(trigger stateless.Trigger) error {
 	}
 
 	afterState := p.stateMachine.MustState()
+
+	//reset the expected responses
+	if beforeState != afterState {
+		//p.resetResponseSuccessExpected()
+	}
 
 	logger.Log.Infof("Player %s changed state from %s : - %s - : %s", p.nickname, beforeState, trigger, afterState)
 	return nil

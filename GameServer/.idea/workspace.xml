@@ -4,19 +4,15 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="run on school PC updates">
-      <change afterPath="$PROJECT_DIR$/config.json" afterDir="false" />
+    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="FIX BUG: second game after one ended">
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/state_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/state_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/running_game_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/running_game_page.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/gameserver/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/gameserver/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/command_processing/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing/command_processing.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/models/player.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/player.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/network/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network/network.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/server_listen.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/server_listen.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/constants/constants.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/constants/constants.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/helpers/helpers.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/helpers/helpers.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -88,7 +84,7 @@
     &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
     &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/filda/Documents/_github/FAV_UPS_semestralka_ZS_23_24/GameServer/internal/utils/constants/constants.go&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/filda/Documents/_github/FAV_UPS_semestralka_ZS_23_24/.gitignore&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
@@ -227,7 +223,8 @@
     <MESSAGE value="probably not stable but fixing bugs &#10;test Start -&gt; lobby" />
     <MESSAGE value="All workinggg" />
     <MESSAGE value="run on school PC updates" />
-    <option name="LAST_COMMIT_MESSAGE" value="run on school PC updates" />
+    <MESSAGE value="FIX BUG: second game after one ended" />
+    <option name="LAST_COMMIT_MESSAGE" value="FIX BUG: second game after one ended" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
@@ -242,5 +239,11 @@
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <watches-manager>
+      <configuration name="GoApplicationRunConfiguration">
+        <watch expression="network_utils.GReceivedMessageList" language="go" />
+        <watch expression="network_utils.GSendMessageList" language="go" />
+      </configuration>
+    </watches-manager>
   </component>
 </project>

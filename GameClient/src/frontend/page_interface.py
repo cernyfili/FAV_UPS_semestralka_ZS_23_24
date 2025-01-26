@@ -74,15 +74,15 @@ class UpdateInterface(ABC):
             while current_state == state_name and not self._stop_event.is_set():
                 logging.debug("Listening for list updates")
                 try:
-                    is_connected, update_list = list_update_function()
+                    is_connected, received_list = list_update_function()
                     if self._stop_event.is_set():
                         break
                     if not is_connected:
                         process_is_not_connected(self)
                         break
-                    if not update_list:
+                    if not received_list:
                         continue
-                    self.update_data(update_list)
+                    self.update_data(received_list)
                     continue
                 except Exception as e:
                     raise e

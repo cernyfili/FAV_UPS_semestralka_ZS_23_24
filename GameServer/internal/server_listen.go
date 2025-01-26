@@ -33,7 +33,7 @@ func RunServer() {
 			fmt.Println("Error closing listener:", err)
 		}
 	}()
-	fmt.Println("Server is listening on port " + constants.CConnPort)
+	fmt.Println("Server is listening on " + constants.CConIPadress + ":" + constants.CConnPort)
 
 	for {
 		conn, err := ln.Accept()

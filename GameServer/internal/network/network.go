@@ -533,8 +533,6 @@ func sendStandardUpdateToAllMessage(playerList []*models.Player, command constan
 
 	for _, player := range playerList {
 		//null responseExpected
-		player.ResetResponseSuccessExpected()
-
 		err := sendUpdateList(player, command, params)
 		if err != nil {
 			errorHandeling.PrintError(err)

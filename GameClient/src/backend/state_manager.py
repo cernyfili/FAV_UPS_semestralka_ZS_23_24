@@ -76,7 +76,7 @@ class GameStateMachine(StateMachine):
             before = self.current_state_value
             self.send(trigger)
             after = self.current_state_value
-            logging.debug(f"State transition: {before} -> {trigger} -> {after}")
+            logging.info(f"AUTOMATA: State transition: {before} -> {trigger} -> {after}")
 
     def get_current_state(self):
         with self._lock:
