@@ -230,8 +230,10 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
     - ResponseServerError
 - **ClientReconnect**
   `CommandID: 8, Params: []`
-
-  - todo
+  - **Response**
+    - ResponseServerReconnectBeforeGame
+    - ResponseServerReconnectRunningGame
+    - ResponseServerError
 
 ---
 
@@ -258,6 +260,11 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
   `CommandID: 36, Params: []`
 - **ResponseServerDiceSuccess(ResponseServerNextDiceSuccess)**
   `CommandID: 37, Params: []`
+-
+- **ResponseServerReconnectBeforeGame(ResponseServerNextDiceSuccess)**
+  `CommandID: 46, Params: ["gameList"] List`
+- **ResponseServerReconnectRunningGame(ResponseServerNextDiceSuccess)**
+  `CommandID: 47, Params: ["gameData"] List`
 
 ---
 
@@ -273,6 +280,10 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
     - ResponseClientSuccess
 - **ServerUpdateEndScore**
   `CommandID: 42, Params: ["playerName"]`
+  - **Response**
+    - ResponseClientSuccess
+- **ServerUpdateNotEnoughPlayers**
+  `CommandID: 51, Params: ["playerName"]`
   - **Response**
     - ResponseClientSuccess
 
@@ -293,21 +304,6 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 
 ### SERVER -> ONE CLIENT
 
-- **ServerReconnectGameList**
-  `CommandID: 46, Params: ["gameList"] List`
-
-  - **Response**
-    - ResponseClientSuccess
-- **ServerReconnectGameData**
-  `CommandID: 47, Params: ["gameData"] List`
-
-  - **Response**
-    - ResponseClientSuccess
-- **ServerReconnectPlayerList**
-  `CommandID: 48, Params: ["playersList"] List `
-
-  - **Response**
-    - ResponseClientSuccess
 - **ServerStartTurn**
   `CommandID: 49, Params: []`
 
@@ -330,53 +326,40 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
 
 ---
 
-## Errors
-
-- **ErrorPlayerUnreachable**
-  `CommandID: 70, Params: []`
-
----
 
 # Player Finite Automata
 
 ```mermaid
 stateDiagram
   Start --> Lobby: ClientLogin
+  Start --> Reconnect: ClientReconnect
+  
+  Reconnect --> Game: ResponseServerReconnectBeforeGame
+  Reconnect --> Running_Game: ResponseServerReconnectRunnigGame
+  Reconnect --> Lobby: ResponseServerGameList
   
   Lobby --> Lobby: ServerUpdateGameList
   Lobby --> Lobby: ServerPingPlayer
   Lobby --> Game: ClientJoinGame
   Lobby --> Game: ClientCreateGame
-  Lobby --> Error_lobby: ErrorPlayerUnreachable
-
-  Error_lobby --> Lobby: ServerReconnectGameList
   
   Game --> Running_Game: ClientStartGame
   Game --> Running_Game: ServerUpdateStartGame
   Game --> Game: ServerUpdatePlayerList
   Game --> Game: ServerPingPlayer
-  Game --> Error_game: ErrorPlayerUnreachable
-  
-  Error_game --> Game: ServerReconnectPlayerList
-  Error_game --> Error_running_Game: ServerUpdateStartGame
 
   Running_Game --> Lobby: ServerUpdateEndScore
+  Running_Game --> Lobby: ServerUpdateNotEnoughPlayers
   Running_Game --> My_turn_roll_dice: ServerStartTurn
   Running_Game --> Running_Game: ServerUpdateGameData
   Running_Game --> Running_Game: ServerPingPlayer
-  Running_Game --> Error_running_Game: ErrorPlayerUnreachable
-  
-  Error_running_Game --> Running_Game: ServerReconnectGameData
-  Error_running_Game --> Error_game: ServerUpdateEndScore
 
   My_turn_roll_dice --> Fork_my_turn: ClientRollDice
   My_turn_roll_dice --> My_turn_roll_dice: ServerPingPlayer
   My_turn_roll_dice --> My_turn_roll_dice: ServerUpdateGameData
-  My_turn_roll_dice --> Error_running_Game: ErrorPlayerUnreachable
   
   Fork_my_turn --> Running_Game: ResponseServerEndTurn
   Fork_my_turn --> My_turn_select_cubes: ResponseServerSelectCubes
-  Fork_my_turn --> Fork_my_turn: ServerPingPlayer
 
   My_turn_select_cubes --> Fork_dice_(Fork_next_dice): ClientSelectedCubes
   My_turn_select_cubes --> My_turn_select_cubes: ServerPingPlayer
@@ -384,7 +367,6 @@ stateDiagram
   
   Fork_dice_(Fork_next_dice) --> My_turn_roll_dice: ResponseServerDiceSuccess
   Fork_dice_(Fork_next_dice) --> Lobby: ResponseServerEndScore
-  Fork_dice_(Fork_next_dice) --> Fork_dice_(Fork_next_dice): ServerPingPlayer
 ```
 
 ```mermaid

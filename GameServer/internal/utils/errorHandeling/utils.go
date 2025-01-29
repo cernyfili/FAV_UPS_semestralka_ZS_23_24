@@ -8,3 +8,9 @@ func PrintError(err error) {
 		panic(err)
 	}
 }
+
+func AssertError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

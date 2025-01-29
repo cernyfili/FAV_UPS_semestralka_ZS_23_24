@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"gameserver/internal/logger"
+	"gameserver/internal/models/state_machine"
 	"gameserver/internal/utils/constants"
 	"gameserver/internal/utils/errorHandeling"
 	"gameserver/pkg/stateless"
@@ -12,12 +13,26 @@ import (
 
 //region DATA STRUCTURES
 
-// struct response succes element
+// struct connection states
+
+type ConnectionStateType int
+
+type ConnectionStateStruct struct {
+	Connected       ConnectionStateType
+	Disconnected    ConnectionStateType
+	TotalDisconnect ConnectionStateType
+}
+
+var ConnectionStates = ConnectionStateStruct{
+	Connected:       0,
+	Disconnected:    1,
+	TotalDisconnect: 2,
+}
 
 // Player represents a Player with a unique ID and nickname.
 type Player struct {
 	nickname                string
-	isConnected             bool
+	connectionState         ConnectionStateType
 	connectionInfo          ConnectionInfo
 	stateMachine            *stateless.StateMachine
 	responseSuccessExpected []Message
@@ -27,13 +42,13 @@ type Player struct {
 //endregion
 
 // CreatePlayer creates a new Player with a unique ID and nickname.
-func CreatePlayer(nickname string, isConnected bool, connectionInfo ConnectionInfo) *Player {
+func CreatePlayer(nickname string, connectionInfo ConnectionInfo) *Player {
 	return &Player{
 		nickname:                nickname,
-		isConnected:             isConnected,
+		connectionState:         ConnectionStates.Connected,
 		connectionInfo:          connectionInfo,
 		responseSuccessExpected: []Message{},
-		stateMachine:            CreateStateMachine(),
+		stateMachine:            state_machine.CreateStateMachine(),
 	}
 }
 
@@ -45,6 +60,14 @@ func (p *Player) GetStateMachine() *stateless.StateMachine {
 	defer p.unlock()
 
 	return p.stateMachine
+}
+
+// GetConnectionState returns the connection state of the Player
+func (p *Player) GetConnectionState() ConnectionStateType {
+	p.lock()
+	defer p.unlock()
+
+	return p.connectionState
 }
 
 // GetNickname returns the nickname of the Player
@@ -72,7 +95,7 @@ func (p *Player) IsConnected() bool {
 	p.lock()
 	defer p.unlock()
 
-	return p.isConnected
+	return p.connectionState == ConnectionStates.Connected
 }
 
 //func (p *Player) GetResponseSuccessExpected() int {
@@ -115,12 +138,17 @@ func (p *Player) SetConnectionInfo(connectionInfo ConnectionInfo) {
 	p.connectionInfo = connectionInfo
 }
 
-// SetConnected sets the connection status of the Player
-func (p *Player) SetConnected(isConnected bool) {
+// SetConnectedByBool sets the connection status of the Player
+func (p *Player) SetConnectedByBool(isConnected bool) {
 	p.lock()
 	defer p.unlock()
 
-	p.isConnected = isConnected
+	switch isConnected {
+	case true:
+		p.connectionState = ConnectionStates.Connected
+	case false:
+		p.connectionState = ConnectionStates.Disconnected
+	}
 }
 
 // is response expected timeout
@@ -209,6 +237,28 @@ func (p *Player) FireStateMachine(trigger stateless.Trigger) error {
 	return nil
 }
 
+// Get current state name
+func (p *Player) GetCurrentStateName() string {
+	p.lock()
+	defer p.unlock()
+
+	currentState := p.stateMachine.MustState()
+	currentStateName, ok := currentState.(string)
+	if !ok {
+		errorHandeling.AssertError(fmt.Errorf("cannot assert state name"))
+	}
+
+	return currentStateName
+}
+
+// Reset State Machine
+func (p *Player) ResetStateMachine() {
+	p.lock()
+	defer p.unlock()
+
+	p.stateMachine = state_machine.CreateStateMachine()
+}
+
 // lock the player
 func (p *Player) lock() {
 	//logger.Log.Infof("Locking player")
@@ -222,14 +272,28 @@ func (p *Player) unlock() {
 }
 
 func (p *Player) IsInTurn() bool {
-	allowedStates := []stateless.State{stateMyTurn, stateForkMyTurn, stateForkNextDice, stateNextDice}
-	currentState := p.GetStateMachine().MustState()
-	for _, state := range allowedStates {
-		if currentState == state {
+	allowedStatesName := []string{
+		state_machine.StateNameMap.StateMyTurn,
+		state_machine.StateNameMap.StateForkMyTurn,
+		state_machine.StateNameMap.StateNextDice,
+		state_machine.StateNameMap.StateForkNextDice,
+	}
+
+	currentStateName := p.GetCurrentStateName()
+
+	for _, state := range allowedStatesName {
+		if currentStateName == state {
 			return true
 		}
 	}
 	return false
+}
+
+func (p *Player) SetConnected(state ConnectionStateType) {
+	p.lock()
+	defer p.unlock()
+
+	p.connectionState = state
 }
 
 //endregion

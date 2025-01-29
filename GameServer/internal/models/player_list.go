@@ -25,6 +25,22 @@ func GetInstancePlayerList() *PlayerList {
 	return instancePL
 }
 
+// get player list where player is in state in argument
+func (pl *PlayerList) GetActivePlayersInState(state string) []*Player {
+	pl.list.mutex.Lock()
+	defer pl.list.mutex.Unlock()
+
+	var players []*Player
+	for _, v := range pl.list.data {
+		player := v.(*Player)
+		if player.GetCurrentStateName() == state && player.IsConnected() {
+			players = append(players, player)
+		}
+	}
+
+	return players
+}
+
 func (pl *PlayerList) AddItem(player *Player) error {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
@@ -48,9 +64,7 @@ func (pl *PlayerList) GetItem(key string) (*Player, error) {
 	}
 
 	item := pl.list.GetItemWithoutLock(key)
-	if item == nil {
-		return nil, fmt.Errorf("item not found")
-	}
+
 	player, ok := item.(*Player)
 	if !ok {
 		return nil, fmt.Errorf("item is not a Player")

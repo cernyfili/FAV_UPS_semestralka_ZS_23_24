@@ -11,11 +11,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = game.AddPlayer(models.CreatePlayer("player1", true, models.ConnectionInfo{}))
+	err = game.AddPlayer(models.CreatePlayer("player1", models.ConnectionInfo{}))
 	if err != nil {
 		return
 	}
-	err = game.AddPlayer(models.CreatePlayer("player2", true, models.ConnectionInfo{}))
+	err = game.AddPlayer(models.CreatePlayer("player2", models.ConnectionInfo{}))
 	if err != nil {
 		return
 	}

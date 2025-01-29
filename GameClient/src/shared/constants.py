@@ -392,7 +392,9 @@ class CCommandTypeEnum(Enum):
     ClientStartGame: Command = Command(4, GAME_STATE_MACHINE.ClientStartGame, [], None)
     ClientRollDice: Command = Command(5, GAME_STATE_MACHINE.ClientRollDice, [], None)
     ClientLogout: Command = Command(7, None, [], None)
-    # ClientReconnect: Command = Command(8, G_game_state_machine.ClientReconnect, [], None)
+
+    ClientReconnect: Command = Command(8, GAME_STATE_MACHINE.ClientReconnect, [], None)
+
     ClientSelectedCubes: Command = Command(61, GAME_STATE_MACHINE.ClientNextDice, ["cubeValues"], cube_values_info)
     ClientEndTurn: Command = Command(62, GAME_STATE_MACHINE.ClientEndTurn, [], None)
 
@@ -400,7 +402,8 @@ class CCommandTypeEnum(Enum):
     ResponseServerSuccess: Command = Command(30, None, [], None)
     ResponseServerError: Command = Command(32, None, ["message"], None)
 
-    ResponseServerGameList: Command = Command(33, None, ["gameList"], game_list_info)
+    ResponseServerGameList: Command = Command(33, GAME_STATE_MACHINE.ResponseServerGameList, ["gameList"],
+                                              game_list_info)
 
     ResponseServerSelectCubes: Command = Command(34, GAME_STATE_MACHINE.ResponseServerDiceNext, ["cubeValues"], cube_values_info)
     ResponseServerEndTurn: Command = Command(35, GAME_STATE_MACHINE.ResponseServerDiceEndTurn, [], None)
@@ -408,30 +411,30 @@ class CCommandTypeEnum(Enum):
     ResponseServerEndScore: Command = Command(36, GAME_STATE_MACHINE.ResponseServerNextDiceEndScore, [], None)
     ResponseServerDiceSuccess: Command = Command(37, GAME_STATE_MACHINE.ResponseServerNextDiceSuccess, [], None)
 
+    ## Reconnect
+    ResponseServerReconnectBeforeGame: Command = Command(46, GAME_STATE_MACHINE.ResponseServerReconnectBeforeGame,
+                                                         ["gameList"],
+                                                         game_list_info)
+    ResponseServerReconnectRunningGame: Command = Command(47, GAME_STATE_MACHINE.ResponseServerReconnectRunningGame,
+                                                          ["gameData"],
+                                                          game_data_info)
+
     # SERVER->CLIENT
     ## SERVER -> ALL CLIENTS
     ServerUpdateStartGame: Command = Command(41, GAME_STATE_MACHINE.ServerUpdateStartGame, [], None)
     ServerUpdateEndScore: Command = Command(42, GAME_STATE_MACHINE.ServerUpdateEndScore, ["playerName"], None)
+    ServerUpdateNotEnoughPlayers: Command = Command(51, GAME_STATE_MACHINE.ServerUpdateNotEnoughPlayers, [], None)
 
     ServerUpdateGameData: Command = Command(43, GAME_STATE_MACHINE.ServerUpdateGameData, ["gameData"], game_data_info)
     ServerUpdateGameList: Command = Command(44, GAME_STATE_MACHINE.ServerUpdateGameList, ["gameList"], game_list_info)
     ServerUpdatePlayerList: Command = Command(45, GAME_STATE_MACHINE.ServerUpdatePlayerList, ["playerList"], player_list_info)
 
     ## SERVER -> SINGLE CLIENT
-    ServerReconnectGameList: Command = Command(46, GAME_STATE_MACHINE.ServerReconnectGameList, ["gameList"],
-                                               game_list_info)  # todo implement
-    ServerReconnectGameData: Command = Command(47, GAME_STATE_MACHINE.ServerReconnectGameData, ["gameData"],
-                                               game_data_info)  # todo implement
-    ServerReconnectPlayerList: Command = Command(48, GAME_STATE_MACHINE.ServerReconnectPlayerList, ["playerList"],
-                                                 player_list_info)  # todo implement
-
     ServerStartTurn: Command = Command(49, GAME_STATE_MACHINE.ServerStartTurn, [], None)
     ServerPingPlayer: Command = Command(50, GAME_STATE_MACHINE.ServerPingPlayer, [], None)
 
     # RESPONSES CLIENT->SERVER
     ResponseClientSuccess: Command = Command(60, None, [], None)
-
-    ErrorPlayerUnreachable: Command = Command(70, GAME_STATE_MACHINE.ErrorPlayerUnreachable, [], None)
 
     @staticmethod
     def is_command_id_in_enum(command_id: int) -> bool:

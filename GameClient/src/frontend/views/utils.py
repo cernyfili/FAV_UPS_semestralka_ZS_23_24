@@ -127,16 +127,15 @@ def show_game_data(self, tk, player_list):
 def list_start_listening_for_updates(self, process_command_dic: dict[int, callable], update_command: Command,
                                      continue_commands: list[Command]):
     def listen_for_updates(state_name: str, update_function: callable, process_command_dic: dict[int, callable],
-                           continue_commands_list: list[Command]):
+                           update_command: Command, continue_commands_list: list[Command], stop_event: threading.Event):
         logging.debug("Listening for updates")
         current_state = GAME_STATE_MACHINE.get_current_state()
-        while current_state == state_name and not self._stop_event.is_set():
-            # while not self._stop_event.is_set():
+        while current_state == state_name and not stop_event.is_set():
             logging.debug("Listening for Data updates")
             try:
                 is_connected, message_info_list = update_function()
 
-                if self._stop_event.is_set():
+                if stop_event.is_set():
                     return
 
 
@@ -184,12 +183,15 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
 
     state_name = self._get_state_name()
     update_function = self._get_update_function()
+    stop_event = threading.Event()
+    self._stop_event = stop_event
 
     logging.debug("Starting to listen for updates")
     # Wait for the update thread to finish
     self._set_update_thread(
         threading.Thread(target=listen_for_updates,
-                         args=(state_name, update_function, process_command_dic, continue_commands), daemon=True))
+                         args=(state_name, update_function, process_command_dic, update_command, continue_commands,
+                               stop_event), daemon=True))
     self._update_thread.start()
 
     # if command == CCommandTypeEnum.ServerPingPlayer.value:

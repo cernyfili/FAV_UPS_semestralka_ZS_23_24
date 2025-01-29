@@ -135,7 +135,8 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
     def _start_listening_for_updates(self):
         process_command = {
             CCommandTypeEnum.ServerStartTurn.value.id: self._process_start_turn,
-            CCommandTypeEnum.ServerUpdateEndScore.value.id: self._process_update_end_score
+            CCommandTypeEnum.ServerUpdateEndScore.value.id: self._process_update_end_score,
+            CCommandTypeEnum.ServerUpdateNotEnoughPlayers.value.id: self._process_update_not_enough_players
         }
         continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
         update_command = CCommandTypeEnum.ServerUpdateGameData.value
@@ -164,3 +165,8 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
         messagebox.showinfo("End of game", f"Player {player_name} has WON")
         self.controller.show_page(next_page_name)
 
+    def _process_update_not_enough_players(self):
+        next_page_name = PAGES_DIC.LobbyPage
+
+        messagebox.showinfo("End of game", "Not enough players to continue")
+        self.controller.show_page(next_page_name)

@@ -165,6 +165,26 @@ func (gl *GameList) GetValuesArray() []*Game {
 	return values
 }
 
+// GetCreatedGameList
+func (gl *GameList) GetCreatedGameList() []*Game {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
+	var values []*Game
+	for _, v := range gl.list.data {
+		game, ok := v.(*Game)
+		if !ok {
+			panic("item is not a game")
+			return nil
+		}
+		if game.gameStateValue == Created {
+			values = append(values, game)
+		}
+	}
+
+	return values
+}
+
 // GetPlayersGame returns the game of the player
 func (gl *GameList) GetPlayersGame(player *Player) *Game {
 	gl.list.mutex.Lock()

@@ -46,14 +46,14 @@ func RunServer() {
 	}
 }
 
-func getMessagePlayer(message models.Message) (*models.Player, error) {
-	playerList := models.GetInstancePlayerList()
-	player, err := playerList.GetItem(message.PlayerNickname)
-	if err != nil {
-		return nil, fmt.Errorf("Error getting player: %w", err)
-	}
-	return player, nil
-}
+//func getMessagePlayer(message models.Message) (*models.Player, error) {
+//	playerList := models.GetInstancePlayerList()
+//	player, err := playerList.GetItem(message.PlayerNickname)
+//	if err != nil {
+//		return nil, fmt.Errorf("Error getting player: %w", err)
+//	}
+//	return player, nil
+// }
 
 func _tryStartTurn(conn net.Conn) error {
 	player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
@@ -102,7 +102,7 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 		if isResponseTimeout {
-			err := network.DisconnectPlayerConnection(player)
+			err := disconnectPlayer(player)
 			if err != nil {
 				err = fmt.Errorf("Error disconnecting player: %w", err)
 				errorHandeling.PrintError(err)
@@ -134,7 +134,7 @@ func handleConnection(conn net.Conn) {
 			}
 
 			//if error when reading client message
-			err = network.DisconnectPlayerConnection(player)
+			err = disconnectPlayer(player)
 			if err != nil {
 				err = fmt.Errorf("Error disconnecting player: %w", err)
 				errorHandeling.PrintError(err)
@@ -168,6 +168,21 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 	}
+}
+
+func disconnectPlayer(player *models.Player) error {
+	if player == nil {
+		errorHandeling.AssertError(fmt.Errorf("Error disconnecting player: player is nil"))
+	}
+
+	err := network.DisconnectPlayerConnection(player)
+	if err != nil {
+		err = fmt.Errorf("Error disconnecting player: %w", err)
+		errorHandeling.PrintError(err)
+		return err
+	}
+
+	return nil
 }
 
 //func connectionRead(connection net.Conn) (models.Message, error) {

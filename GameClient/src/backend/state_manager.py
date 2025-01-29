@@ -10,9 +10,6 @@ class GameStateMachine(StateMachine):
     _lock = threading.Lock()
 
     # Define states
-    stateErrorGame = State('ErrorGame')
-    stateErrorLobby = State('ErrorLobby')
-    stateErrorRunningGame = State('ErrorRunning_Game')
     stateForkMyTurn = State('ForkMyTurn')
     stateGame = State('game')
     stateLobby = State('Lobby')
@@ -21,37 +18,51 @@ class GameStateMachine(StateMachine):
     stateRunningGame = State('Running_Game')
     stateStart = State('Start', initial=True)
     stateForkNextDice = State('ForkNextDice')
+    stateReconnect = State('Reconnect')
 
-    # todo check if this is correct
+
     # Define transitions
-    ClientLogin = stateStart.to(stateLobby)
+    ClientLogin = (
+        stateStart.to(stateLobby)
+    )
+
+    # region Reconnect
+    ClientReconnect = (
+        stateStart.to(stateReconnect)
+    )
+    ResponseServerReconnectBeforeGame = (
+        stateReconnect.to(stateGame)
+    )
+    ResponseServerReconnectRunningGame = (
+        stateReconnect.to(stateRunningGame)
+    )
+    ResponseServerGameList = (
+        stateReconnect.to(stateLobby)
+    )
+    # endregion
+
     ServerUpdateGameList = stateLobby.to(stateLobby)
     ClientJoinGame = stateLobby.to(stateGame)
     ClientCreateGame = stateLobby.to(stateGame)
 
-    ServerReconnectGameList = stateErrorLobby.to(stateLobby)
-
     ClientStartGame = stateGame.to(stateRunningGame)
-    ServerUpdateStartGame = (stateGame.to(stateRunningGame)
-                             | stateErrorGame.to(stateErrorRunningGame)
-                             )
+    ServerUpdateStartGame = (
+        stateGame.to(stateRunningGame)
+    )
     ServerUpdatePlayerList = stateGame.to(stateGame)
-    ErrorPlayerUnreachable = (stateGame.to(stateErrorGame)
-                              | stateMyTurn.to(stateErrorRunningGame)
-                              | stateRunningGame.to(stateErrorRunningGame)
-                              | stateLobby.to(stateErrorLobby)
-                              )
-    ServerReconnectPlayerList = stateErrorGame.to(stateGame)
+
 
     ServerUpdateEndScore = (stateRunningGame.to(stateLobby)
-                            | stateErrorRunningGame.to(stateErrorGame))
+                            )
+    ServerUpdateNotEnoughPlayers = (
+        stateRunningGame.to(stateLobby)
+    )
+
     ServerStartTurn = stateRunningGame.to(stateMyTurn)
     ServerUpdateGameData = (stateRunningGame.to(stateRunningGame)
                             | stateMyTurn.to(stateMyTurn)
                             | stateNextDice.to(stateNextDice)
                             )
-
-    ServerReconnectGameData = stateErrorRunningGame.to(stateRunningGame)
 
     ClientRollDice = stateMyTurn.to(stateForkMyTurn)
     ServerPingPlayer = (
@@ -59,9 +70,7 @@ class GameStateMachine(StateMachine):
             stateNextDice.to(stateNextDice) |
             stateGame.to(stateGame) |
             stateRunningGame.to(stateRunningGame) |
-            stateLobby.to(stateLobby)  # |
-        # stateForkMyTurn.to(stateForkMyTurn) |
-        # stateForkNextDice.to(stateForkNextDice)
+            stateLobby.to(stateLobby)
     )
 
     ResponseServerDiceEndTurn = stateForkMyTurn.to(stateRunningGame)

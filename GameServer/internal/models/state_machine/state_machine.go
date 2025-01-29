@@ -1,4 +1,4 @@
-package models
+package state_machine
 
 import (
 	"gameserver/internal/utils/constants"
@@ -10,19 +10,43 @@ import (
 	onceSM     sync.Once
 )*/
 
+type StateName struct {
+	StateEnd          string
+	StateForkMyTurn   string
+	StateGame         string
+	StateLobby        string
+	StateMyTurn       string
+	StateNextDice     string
+	StateRunningGame  string
+	StateStart        string
+	StateForkNextDice string
+	StateReconnect    string
+}
+
+var StateNameMap = StateName{
+	StateEnd:          "End",
+	StateForkMyTurn:   "ForkMyTurn",
+	StateGame:         "Game",
+	StateLobby:        "Lobby",
+	StateMyTurn:       "MyTurn",
+	StateNextDice:     "NextDice",
+	StateRunningGame:  "Running_Game",
+	StateStart:        "Start",
+	StateForkNextDice: "ForkNextDice",
+	StateReconnect:    "Reconnect",
+}
+
 var (
-	stateEnd              = stateless.State("End")
-	stateErrorGame        = stateless.State("ErrorGame")
-	stateErrorLobby       = stateless.State("ErrorLobby")
-	stateErrorRunningGame = stateless.State("ErrorRunning_Game")
-	stateForkMyTurn       = stateless.State("ForkMyTurn")
-	stateGame             = stateless.State("game")
-	stateLobby            = stateless.State("Lobby")
-	stateMyTurn           = stateless.State("MyTurn")
-	stateNextDice         = stateless.State("NextDice")
-	stateRunningGame      = stateless.State("Running_Game")
-	stateStart            = stateless.State("Start")
-	stateForkNextDice     = stateless.State("ForkNextDice")
+	stateEnd          = stateless.State(StateNameMap.StateEnd)
+	stateForkMyTurn   = stateless.State(StateNameMap.StateForkMyTurn)
+	stateGame         = stateless.State(StateNameMap.StateGame)
+	stateLobby        = stateless.State(StateNameMap.StateLobby)
+	stateMyTurn       = stateless.State(StateNameMap.StateMyTurn)
+	stateNextDice     = stateless.State(StateNameMap.StateNextDice)
+	stateRunningGame  = stateless.State(StateNameMap.StateRunningGame)
+	stateStart        = stateless.State(StateNameMap.StateStart)
+	stateForkNextDice = stateless.State(StateNameMap.StateForkNextDice)
+	stateReconnect    = stateless.State(StateNameMap.StateReconnect)
 )
 
 /*func GetInstanceStateMachine() *stateless.stateMachine {
@@ -41,51 +65,42 @@ func CreateStateMachine() *stateless.StateMachine {
 func initilize(stateMachine *stateless.StateMachine) {
 
 	stateMachine.Configure(stateStart).
-		Permit(constants.CGCommands.ClientLogin.Trigger, stateLobby)
+		Permit(constants.CGCommands.ClientLogin.Trigger, stateLobby).
+		Permit(constants.CGCommands.ClientReconnect.Trigger, stateReconnect)
+
+	stateMachine.Configure(stateReconnect).
+		Permit(constants.CGCommands.ResponseServerReconnectBeforeGame.Trigger, stateGame).
+		Permit(constants.CGCommands.ResponseServerReconnectRunningGame.Trigger, stateRunningGame).
+		Permit(constants.CGCommands.ResponseServerGameList.Trigger, stateLobby)
 
 	stateMachine.Configure(stateLobby).
 		Permit(constants.CGCommands.ClientLogout.Trigger, stateEnd).
 		PermitReentry(constants.CGCommands.ServerUpdateGameList.Trigger).
 		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
 		Permit(constants.CGCommands.ClientJoinGame.Trigger, stateGame).
-		Permit(constants.CGCommands.ClientCreateGame.Trigger, stateGame).
-		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorLobby)
-
-	stateMachine.Configure(stateErrorLobby).
-		Permit(constants.CGCommands.ServerReconnectGameList.Trigger, stateLobby)
+		Permit(constants.CGCommands.ClientCreateGame.Trigger, stateGame)
 
 	stateMachine.Configure(stateGame).
 		Permit(constants.CGCommands.ClientStartGame.Trigger, stateRunningGame).
 		Permit(constants.CGCommands.ServerUpdateStartGame.Trigger, stateRunningGame).
 		PermitReentry(constants.CGCommands.ServerUpdatePlayerList.Trigger).
-		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
-		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorGame)
-
-	stateMachine.Configure(stateErrorGame).
-		Permit(constants.CGCommands.ServerReconnectPlayerList.Trigger, stateGame).
-		Permit(constants.CGCommands.ServerUpdateStartGame.Trigger, stateErrorRunningGame)
+		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger)
 
 	stateMachine.Configure(stateRunningGame).
 		Permit(constants.CGCommands.ServerUpdateEndScore.Trigger, stateLobby).
 		Permit(constants.CGCommands.ServerStartTurn.Trigger, stateMyTurn).
+		Permit(constants.CGCommands.ServerUpdateNotEnoughPlayers.Trigger, stateLobby).
 		PermitReentry(constants.CGCommands.ServerUpdateGameData.Trigger).
-		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
-		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorRunningGame)
-
-	stateMachine.Configure(stateErrorRunningGame).
-		Permit(constants.CGCommands.ServerReconnectGameData.Trigger, stateRunningGame).
-		Permit(constants.CGCommands.ServerUpdateEndScore.Trigger, stateErrorGame)
+		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger)
 
 	stateMachine.Configure(stateMyTurn).
 		Permit(constants.CGCommands.ClientRollDice.Trigger, stateForkMyTurn).
 		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
-		PermitReentry(constants.CGCommands.ServerUpdateGameData.Trigger).
-		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorRunningGame)
+		PermitReentry(constants.CGCommands.ServerUpdateGameData.Trigger)
 
 	stateMachine.Configure(stateForkMyTurn).
 		Permit(constants.CGCommands.ResponseServerEndTurn.Trigger, stateRunningGame).
 		Permit(constants.CGCommands.ResponseServerSelectCubes.Trigger, stateNextDice)
-	//PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger)
 
 	stateMachine.Configure(stateNextDice).
 		Permit(constants.CGCommands.ClientSelectedCubes.Trigger, stateForkNextDice).
@@ -95,5 +110,4 @@ func initilize(stateMachine *stateless.StateMachine) {
 	stateMachine.Configure(stateForkNextDice).
 		Permit(constants.CGCommands.ResponseServerEndScore.Trigger, stateLobby).
 		Permit(constants.CGCommands.ResponseServerDiceSuccess.Trigger, stateMyTurn)
-	//PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger)
 }

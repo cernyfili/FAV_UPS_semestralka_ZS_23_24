@@ -15,7 +15,7 @@ import tkinter as tk
 from src.backend.server_communication import ServerCommunication
 from src.frontend.views.utils import PAGES_DIC, show_loading_animation, stop_loading_animation
 from src.frontend.views.utils import process_is_not_connected
-from src.shared.constants import CMessageConfig
+from src.shared.constants import CMessageConfig, CCommandTypeEnum
 
 
 class StartPage(tk.Frame):
@@ -75,22 +75,35 @@ class StartPage(tk.Frame):
 
     def _button_action_connect(self, ip : str, port : int, nickname : str):
 
-        next_page_name = PAGES_DIC.LobbyPage
-
         def run_send_function(ip, port, nickname):
+            next_page_name_dic: dict[int, str] = {
+                CCommandTypeEnum.ResponseServerReconnectBeforeGame.value.id: PAGES_DIC.BeforeGamePage,
+                CCommandTypeEnum.ResponseServerReconnectRunningGame.value.id: PAGES_DIC.RunningGamePage,
+                CCommandTypeEnum.ResponseServerGameList.value.id: PAGES_DIC.LobbyPage
+            }
 
             try:
-                is_connected, game_list = ServerCommunication().send_client_login(ip, port, nickname)
+                is_connected, response_command, update_list = ServerCommunication().send_connect_message(ip, port,
+                                                                                                         nickname)
                 if not is_connected:
                     process_is_not_connected(self)
             except Exception as e:
                 process_is_not_connected(self)
                 # todo remove
-                raise e
+                raise
             finally:
                 stop_loading_animation(self)
 
-            self.controller.show_page(next_page_name, game_list)
+            next_page_name = None
+            for key, value in next_page_name_dic.items():
+                if response_command.command_id != key:
+                    continue
+                next_page_name = value
+                break
+            if not next_page_name:
+                raise Exception("Unknown command")
+
+            self.controller.show_page(next_page_name, update_list)
 
         show_loading_animation(self, tk)
 

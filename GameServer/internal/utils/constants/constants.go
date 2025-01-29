@@ -45,9 +45,10 @@ var (
 )
 
 const (
-	CConnType = "tcp"
-	CTimeout  = 5 * time.Second
-	CPingTime = 5 * time.Second
+	CConnType            = "tcp"
+	CTimeout             = 5 * time.Second
+	CPingTime            = 5 * time.Second
+	CTotalDisconnectTime = 10 * time.Second
 )
 
 //endregion
@@ -88,6 +89,7 @@ type Command struct {
 }
 
 type CommandType struct {
+	//CLIENT->SERVER
 	ClientCreateGame Command
 	ClientJoinGame   Command
 	ClientLogin      Command
@@ -95,13 +97,15 @@ type CommandType struct {
 	ClientRollDice   Command
 	ClientStartGame  Command
 
-	ErrorPlayerUnreachable Command
-
 	ClientEndTurn       Command
 	ClientSelectedCubes Command
 
+	ClientReconnect Command
+
+	//RESPONSES CLIENT->SERVER
 	ResponseClientSuccess Command
 
+	//RESPONSES SERVER->CLIENT
 	ResponseServerEndScore    Command
 	ResponseServerEndTurn     Command
 	ResponseServerSelectCubes Command
@@ -111,21 +115,22 @@ type CommandType struct {
 	ResponseServerGameList    Command
 	ResponseServerDiceSuccess Command
 
+	ResponseServerReconnectRunningGame Command
+	ResponseServerReconnectBeforeGame  Command
+
+	// SERVER->SINGLE CLIENT
 	ServerPingPlayer Command
+	ServerStartTurn  Command
 
-	ServerReconnectGameData   Command
-	ServerReconnectGameList   Command
-	ServerReconnectPlayerList Command
+	// SERVER->MULTIPLE CLIENTS - ONCE
+	ServerUpdateEndScore         Command
+	ServerUpdateStartGame        Command
+	ServerUpdateNotEnoughPlayers Command
 
-	ServerStartTurn Command
-
-	ServerUpdateEndScore   Command
-	ServerUpdateStartGame  Command
+	// SERVER->MULTIPLE CLIENTS - CONTINUOUSLY
 	ServerUpdateGameData   Command
 	ServerUpdateGameList   Command
 	ServerUpdatePlayerList Command
-
-	ClientReconnect Command //todo check if works
 }
 
 //endregion
@@ -139,7 +144,9 @@ var CGCommands = CommandType{
 	ClientStartGame:  Command{4, stateless.Trigger("ClientStartGame"), []string{""}},
 	ClientRollDice:   Command{5, stateless.Trigger("ClientRollDice"), []string{""}},
 	ClientLogout:     Command{7, stateless.Trigger("ClientLogout"), []string{""}},
-	//ClientReconnect:  Command{8, stateless.Trigger("ClientReconnect"), []string{""}},
+
+	ClientReconnect: Command{8, stateless.Trigger("ClientReconnect"), []string{""}},
+
 	ClientSelectedCubes: Command{61, stateless.Trigger("ClientSelectedCubes"), []string{"cubeValues"}}, //check everywhere
 	ClientEndTurn:       Command{62, stateless.Trigger("ClientEndTurn"), []string{""}},
 
@@ -155,27 +162,27 @@ var CGCommands = CommandType{
 	ResponseServerEndScore:    Command{36, stateless.Trigger("ResponseServerEndScore"), []string{""}},
 	ResponseServerDiceSuccess: Command{37, stateless.Trigger("ResponseServerDiceSuccess"), []string{""}},
 
+	ResponseServerReconnectBeforeGame:  Command{46, stateless.Trigger("ResponseServerReconnectBeforeGame"), []string{"gameList"}},
+	ResponseServerReconnectRunningGame: Command{47, stateless.Trigger("ResponseServerReconnectRunningGame"), []string{"gameData"}},
+
 	// SERVER->CLIENT
 	//// SERVER -> ALL CLIENTS
-	ServerUpdateStartGame: Command{41, stateless.Trigger("ServerUpdateStartGame"), []string{""}},
-	ServerUpdateEndScore:  Command{42, stateless.Trigger("ServerUpdateEndScore"), []string{"playerName"}},
+	////// ONCE
+	ServerUpdateStartGame:        Command{41, stateless.Trigger("ServerUpdateStartGame"), []string{""}},
+	ServerUpdateEndScore:         Command{42, stateless.Trigger("ServerUpdateEndScore"), []string{"playerName"}},
+	ServerUpdateNotEnoughPlayers: Command{51, stateless.Trigger("ServerUpdateNotEnoughPlayers"), []string{""}},
 
+	////// CONTINUOUSLY
 	ServerUpdateGameData:   Command{43, stateless.Trigger("ServerUpdateGameData"), []string{"gameData"}},
 	ServerUpdateGameList:   Command{44, stateless.Trigger("ServerUpdateGameList"), []string{"gameList"}},
 	ServerUpdatePlayerList: Command{45, stateless.Trigger("ServerUpdatePlayerList"), []string{"playerList"}},
 
 	//// SERVER -> SINGLE CLIENT
-	ServerReconnectGameList:   Command{46, stateless.Trigger("ServerReconnectGameList"), []string{"gameList"}},     //todo implement
-	ServerReconnectGameData:   Command{47, stateless.Trigger("ServerReconnectGameData"), []string{"gameData"}},     //todo implement
-	ServerReconnectPlayerList: Command{48, stateless.Trigger("ServerReconnectPlayerList"), []string{"playerList"}}, //todo implement
-
 	ServerStartTurn:  Command{49, stateless.Trigger("ServerStartTurn"), []string{""}},
 	ServerPingPlayer: Command{50, stateless.Trigger("ServerPingPlayer"), []string{""}},
 
 	//RESPONSES CLIENT->SERVER
 	ResponseClientSuccess: Command{60, stateless.Trigger("ResponseClientSuccess"), []string{""}},
-
-	ErrorPlayerUnreachable: Command{70, stateless.Trigger("ErrorPlayerUnreachable"), []string{""}},
 }
 
 func GetCommandName(commandID int) string {

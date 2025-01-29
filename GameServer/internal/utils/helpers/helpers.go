@@ -116,3 +116,34 @@ func isValidPort(port int) bool {
 func isValidIP(ip string) bool {
 	return net.ParseIP(ip) != nil
 }
+
+func Contains(states []string, name string) bool {
+	for _, s := range states {
+		if s == name {
+			return true
+		}
+	}
+	return false
+}
+
+func PlayerListGetActivePlayersInState(list []*models.Player, stateName string) []*models.Player {
+	var activePlayers []*models.Player
+	for _, p := range list {
+		if p.IsConnected() && p.GetCurrentStateName() == stateName {
+			activePlayers = append(activePlayers, p)
+		}
+	}
+	return activePlayers
+
+}
+
+func PlayerListGetActivePlayers(list []*models.Player) []*models.Player {
+	var activePlayers []*models.Player
+	for _, p := range list {
+		if p.IsConnected() {
+			activePlayers = append(activePlayers, p)
+		}
+	}
+	return activePlayers
+
+}

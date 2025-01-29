@@ -137,12 +137,25 @@ func (g *Game) nextPlayerTurn() (*Player, error) {
 		return nil, fmt.Errorf("game is not running")
 	}
 
-	currentPlayerIndex := g.turnCount % len(g.playersGameDataArr)
-	nextPlayerIndex := (currentPlayerIndex + 1) % len(g.playersGameDataArr)
+	startCurrentPlayerIndex := g.turnCount % len(g.playersGameDataArr)
 
-	g.turnCount++
+	var nextPlayer *Player
+	for {
 
-	return g.playersGameDataArr[nextPlayerIndex].Player, nil
+		currentPlayerIndex := startCurrentPlayerIndex
+		nextPlayerIndex := (currentPlayerIndex + 1) % len(g.playersGameDataArr)
+		g.turnCount++
+
+		nextPlayer = g.playersGameDataArr[nextPlayerIndex].Player
+
+		if nextPlayerIndex == startCurrentPlayerIndex {
+			//we did whole cycle
+			return nil, fmt.Errorf("no active players in the game")
+		}
+		if nextPlayer.IsConnected() {
+			return nextPlayer, nil
+		}
+	}
 }
 
 //region PLAYER
@@ -597,6 +610,21 @@ func (g *Game) SetPlayerScore(player *Player, selectedCubeValues []int) error {
 	}
 
 	return fmt.Errorf("player not found")
+}
+
+func (g *Game) IsEnoughPlayersToContinueGame() bool {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	connectedPlayersCount := 0
+	for _, p := range g.playersGameDataArr {
+		playerConnectionState := p.Player.GetConnectionState()
+		if playerConnectionState != ConnectionStates.TotalDisconnect {
+			connectedPlayersCount++
+		}
+	}
+
+	return connectedPlayersCount >= cMinimumPlayers
 }
 
 //endregion
