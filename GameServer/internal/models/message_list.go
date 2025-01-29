@@ -54,6 +54,23 @@ func (pl *MessageList) AddItem(message Message) error {
 	return nil
 }
 
+func (pl *MessageList) GetMessagesByPlayer(nickname string) ([]Message, error) {
+	pl.list.mutex.Lock()
+	defer pl.list.mutex.Unlock()
+
+	var messages []Message
+	for _, item := range pl.list.data {
+		message, ok := item.(Message)
+		if !ok {
+			return nil, fmt.Errorf("item is not a message")
+		}
+		if message.PlayerNickname == nickname {
+			messages = append(messages, message)
+		}
+	}
+	return messages, nil
+}
+
 //func (pl *MessageList) GetItemWithoutLock(nickname string, timestamp string) (Message, error) {
 //	pl.list.mutex.Lock()
 //	defer pl.list.mutex.Unlock()

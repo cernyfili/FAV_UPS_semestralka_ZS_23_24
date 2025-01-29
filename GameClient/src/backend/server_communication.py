@@ -106,9 +106,7 @@ class ServerCommunication:
             except (socket.error, ConnectionError) as e:
                 logging.error(f"Failed to send message: {e}")
                 if attempt < max_retries - 1:
-                    logging.info("Attempting to reconnect...")
-                    self._connect_to_server(self._ip, self._port)
-                    time.sleep(CNetworkConfig.RECONNECT_TIMEOUT_SEC)
+                    self.__reconnect()
                 else:
                     raise ConnectionError("Failed to send message after multiple attempts.")
 
@@ -123,49 +121,115 @@ class ServerCommunication:
             return False
         return True
 
+    def __reconnect(self):
+        logging.info("Attempting to reconnect...")
+        self._connect_to_server(self._ip, self._port)
+        time.sleep(CNetworkConfig.RECONNECT_TIMEOUT_SEC)
+
+    def _process_reconnect(self, attempt, max_retries) -> bool:
+        """
+
+        :param self:
+        :return:
+        is_connected: bool
+        """
+        if attempt < max_retries - 1:
+            try:
+                self.__reconnect()
+                return True
+            except Exception as e:
+                # reconnect failed
+                self._close_connection_processes()
+                return False
+        else:
+            self._close_connection_processes()
+            return False
+
     # region receive message
-    def _receive_message(self) -> tuple[bool, NetworkMessage]:
+    def _receive_message(self) -> tuple[bool, NetworkMessage | None]:
         """
             :return:
-                bool - is valid format
+                bool - is connected
                 NetworkMessage - received message
         """
 
-        def __reconnect():
-            logging.info("Attempting to reconnect...")
-            self._connect_to_server(self._ip, self._port)
-            time.sleep(CNetworkConfig.RECONNECT_TIMEOUT_SEC)
-
-        with self._lock:
-            is_valid_format = True
+        # todo vytvorit list prijatych odpovedi a pri zavolani tyhle funkce vybrat prvni z listu pokud tam je jinak cist
+        def __receive_one_messages(self):
             self._s.settimeout(CNetworkConfig.RECEIVE_TIMEOUT)
             data = b""
             max_retries = CNetworkConfig.RECONNECT_ATTEMPTS
             for attempt in range(max_retries):
                 try:
-                    data = self.__receive_loop(data)
+                    data = self._receive_loop(data)
+                    if not data:
+                        # no received data -> closed connection from server - trying to recconect
+                        is_connected = self._process_reconnect(attempt, max_retries)
+                        if not is_connected:
+                            return False, None
+                        continue
                     break
-                except socket.timeout:
+                except Exception as e:
+                    # exception -> closed connection from server - trying to recconect
                     logging.error("Server did not respond in time.")
-                    if attempt < max_retries - 1:
-                        __reconnect()
-                    else:
-                        raise ConnectionError("Server did not respond after multiple attempts.")
+                    is_connected = self._process_reconnect(attempt, max_retries)
+                    if not is_connected:
+                        return False, None
+                    continue
                 finally:
                     self._s.settimeout(None)  # Reset timeout to default
-
-            try:
-                is_connected, parsed_message_list = self.__process_received_data(data)
-            except Exception as e:
-                is_valid_format = False
-                # todo remove
-                raise e
+            is_connected, parsed_message_list = self._process_received_data(data)
             if len(parsed_message_list) != 1:
                 raise ValueError("Invalid number of messages received.")
+            received_message = parsed_message_list[0]
+            return is_connected, parsed_message_list, received_message
 
-            return is_connected, parsed_message_list[0]
 
-    def _receive_message_without_reconnect(self) -> tuple[bool, bool, list[NetworkMessage] | None]:
+        with self._lock:
+            while True:
+                is_connected, parsed_message_list, received_message = __receive_one_messages(self)
+                if not is_connected:
+                    return False, None
+
+                # process ServerPingPlayer
+                received_command = CCommandTypeEnum.get_command_by_id(received_message.command_id)
+                if received_command.id == CCommandTypeEnum.ServerPingPlayer.value.id:
+                    self._process_respond_successs(received_command)
+                    continue
+
+                break
+
+            return is_connected, received_message
+
+    # def receive_messages(self):
+    #     self._s.settimeout(CNetworkConfig.RECEIVE_TIMEOUT)
+    #     data = b""
+    #     max_retries = CNetworkConfig.RECONNECT_ATTEMPTS
+    #     for attempt in range(max_retries):
+    #         try:
+    #             data = self._receive_loop(data)
+    #             if not data:
+    #                 # no received data -> closed connection from server - trying to recconect
+    #                 is_connected = self._process_reconnect(attempt, max_retries)
+    #                 if not is_connected:
+    #                     return False, None
+    #                 continue
+    #             break
+    #         except Exception as e:
+    #             # exception -> closed connection from server - trying to recconect
+    #             logging.error("Server did not respond in time.")
+    #             is_connected = self._process_reconnect(attempt, max_retries)
+    #             if not is_connected:
+    #                 return False, None
+    #             continue
+    #         finally:
+    #             self._s.settimeout(None)  # Reset timeout to default
+    #     is_connected, parsed_message_list = self._process_received_data(data)
+    #     if len(parsed_message_list) != 1:
+    #         raise ValueError("Invalid number of messages received.")
+    #     received_message = parsed_message_list[0]
+    #     return is_connected, parsed_message_list, received_message
+
+    def _receive_message_with_timeout_return(self) -> tuple[bool, bool, list[NetworkMessage] | None]:
         """
         :return:
             bool - is connected
@@ -174,24 +238,36 @@ class ServerCommunication:
         """
         logging.debug("Receiving message without reconnect...")
         with self._lock:
-            logging.debug("Receiving message without reconnect... with lock")
-            is_valid_format = True
             self._s.settimeout(CNetworkConfig.RECEIVE_TIMEOUT)
             data = b""
-            try:
-                data = self.__receive_loop(data)
-            except Exception as e:
-                is_connected = True
-                is_timeout = True
-                return is_connected, is_timeout, None
-            finally:
-                self._s.settimeout(None)  # Reset timeout to default
+            max_retries = CNetworkConfig.RECONNECT_ATTEMPTS
+            for attempt in range(max_retries):
+                try:
+                    data = self._receive_loop(data)
+                    if not data:
+                        is_connected = self._process_reconnect(attempt, max_retries)
+                        if not is_connected:
+                            return False, False, None
+                        continue
+                    break
+                except socket.timeout:
+                    is_connected = True
+                    is_timeout = True
+                    return is_connected, is_timeout, None
+                except Exception as e:
+                    logging.error("Server did not respond in time.")
+                    is_connected = self._process_reconnect(attempt, max_retries)
+                    if not is_connected:
+                        return False, False, None
+                    continue
+                finally:
+                    self._s.settimeout(None)  # Reset timeout to default
 
-            is_connected, parsed_message_list = self.__process_received_data(data)
+            is_connected, parsed_message_list = self._process_received_data(data)
             is_timeout = False
             return is_connected, is_timeout, parsed_message_list
 
-    def __process_received_data(self, received_data_list) -> tuple[bool, list[NetworkMessage] | None]:
+    def _process_received_data(self, received_data_list) -> tuple[bool, list[NetworkMessage] | None]:
         received_data = received_data_list.decode()
         if len(received_data) == 0:
             raise ConnectionError("Received empty message.")
@@ -222,10 +298,11 @@ class ServerCommunication:
         is_connected = True
         return is_connected, parsed_messages_list
 
-    def __receive_loop(self, data):
+    def _receive_loop(self, data):
 
+        logging.debug(f"Receiving data: {data}")
         while True:
-            logging.debug(f"Receiving data: {data}")
+            #            logging.debug(f"Receiving data: {data}")
             # todo change
             try:
                 part = self._s.recv(CNetworkConfig.BUFFER_SIZE)
@@ -233,7 +310,9 @@ class ServerCommunication:
                 raise e
             if part != b"":
                 logging.debug(f"Received part: {part}")
-            logging.debug(f"Received part: {part}")
+            if not part:
+                break
+            #logging.debug(f"Received part: {part}")
 
             data += part
             decoded_data = data.decode()
@@ -263,7 +342,7 @@ class ServerCommunication:
 
     # region PRIVATE FUNCTIONS
     @staticmethod
-    def __state_machine_send_triggers(send_command, received_command):
+    def _state_machine_send_triggers(send_command, received_command):
         GAME_STATE_MACHINE.send_trigger(send_command.trigger)
         GAME_STATE_MACHINE.send_trigger(received_command.trigger)
 
@@ -472,6 +551,9 @@ class ServerCommunication:
         self._send_message(command)
         # endregion
 
+        GAME_STATE_MACHINE.send_trigger(command.trigger)
+
+
         # region RESPONSE
 
         is_connected, received_message = self._receive_message()
@@ -499,7 +581,7 @@ class ServerCommunication:
         expected_command = CCommandTypeEnum.ResponseServerSelectCubes.value
         if received_command.id == expected_command.id:
             received_command = expected_command
-            self.__state_machine_send_triggers(command, received_command)
+            GAME_STATE_MACHINE.send_trigger(received_command.trigger)
             return_value = received_message.get_array_param()
             return True, received_command,return_value
 
@@ -507,9 +589,10 @@ class ServerCommunication:
         expected_command = CCommandTypeEnum.ResponseServerEndTurn.value
         if received_command.id == expected_command.id:
             received_command = expected_command
-            self.__state_machine_send_triggers(command, received_command)
+            GAME_STATE_MACHINE.send_trigger(received_command.trigger)
             return True, received_command,None
 
+        # unreacheble
         raise ValueError("Invalid command ID for roll dice.")
         # endregion
 
@@ -562,7 +645,7 @@ class ServerCommunication:
             raise ValueError("Invalid command ID for select cubes.")
 
         # Response Dice Success or EndScore
-        self.__state_machine_send_triggers(command, received_command)
+        self._state_machine_send_triggers(command, received_command)
         return True, received_command
 
         # endregion
@@ -573,63 +656,67 @@ class ServerCommunication:
 
     # region RECEIVE
     # region PRIVATE FUNCTIONS
-    def _receive_standard_update_command(self, command : Command) -> tuple[bool, any]:
-        """
+    # def _receive_standard_update_command(self, command : Command) -> tuple[bool, any]:
+    #     """
+    #
+    #     :param command:
+    #     :return: list of updated values
+    #     """
+    #     is_connected, is_timeout, recieved_message = self.__receive_update_command(command)
+    #     if is_timeout:
+    #         return is_connected, None
+    #     return is_connected, recieved_message.get_array_param()
 
-        :param command:
-        :return: list of updated values
-        """
-        is_connected, is_timeout, recieved_message = self.__receive_update_command(command)
-        if is_timeout:
-            return is_connected, None
-        return is_connected, recieved_message.get_array_param()
+    # def __receive_update_command(self, command: Command) -> tuple[bool, bool, NetworkMessage | None]:
+    #     """
+    #     :param command: Command object to be processed
+    #     :return: tuple containing:
+    #         - bool: is_connected
+    #         - bool: is_timeout
+    #         - NetworkMessage | None: the received message or None if not received
+    #     """
+    #
+    #     def __disconnect(self):
+    #         self._close_connection_processes()
+    #         return False, False, None
+    #
+    #     # region LOGIC
+    #     is_connected, is_timeout, received_message_list = self._receive_message_with_timeout_return()
+    #     if is_timeout:
+    #         return is_connected, is_timeout, None
+    #
+    #     for received_message in received_message_list:
+    #
+    #         received_command_id = received_message.command_id
+    #         received_command = CCommandTypeEnum.get_command_by_id(received_command_id)
+    #
+    #         # check if statemachine can fire
+    #         if not GAME_STATE_MACHINE.can_fire(received_command.trigger.id):
+    #             raise ValueError("Invalid state machine transition.")
+    #
+    #         # Recieved Other
+    #         if received_command_id != command.id:
+    #             logging.error("Invalid command")
+    #             return __disconnect(self)
+    #
+    #         # region SEND RESPONSE
+    #
+    #         self._respond_client_success()
+    #
+    #         # endregion
+    #
+    #         # endregion
+    #
+    #         GAME_STATE_MACHINE.send_trigger(received_command.trigger)
+    #
+    #     #received_message is the last if received_message_list is not len 0
+    #     return_received_message = received_message_list[-1] if received_message_list else None
+    #
+    #     return is_connected, is_timeout, return_received_message
 
-    def __receive_update_command(self, command: Command) -> tuple[bool, bool, NetworkMessage | None]:
-        """
-        :param command: Command object to be processed
-        :return: tuple containing:
-            - bool: is_connected
-            - bool: is_timeout
-            - NetworkMessage | None: the received message or None if not received
-        """
-
-        def __disconnect(self):
-            self._close_connection_processes()
-            return False, False, None
-
-        # region LOGIC
-        is_connected, is_timeout, received_message_list = self._receive_message_without_reconnect()
-        if is_timeout:
-            return is_connected, is_timeout, None
-
-        for received_message in received_message_list:
-
-            received_command_id = received_message.command_id
-            received_command = CCommandTypeEnum.get_command_by_id(received_command_id)
-
-            # check if statemachine can fire
-            if not GAME_STATE_MACHINE.can_fire(received_command.trigger.id):
-                raise ValueError("Invalid state machine transition.")
-
-            # Recieved Other
-            if received_command_id != command.id:
-                logging.error("Invalid command")
-                return __disconnect(self)
-
-            # region SEND RESPONSE
-
-            self._respond_client_success()
-
-            # endregion
-
-            # endregion
-
-            GAME_STATE_MACHINE.send_trigger(received_command.trigger)
-
-        #received_message is the last if received_message_list is not len 0
-        return_received_message = received_message_list[-1] if received_message_list else None
-
-        return is_connected, is_timeout, return_received_message
+    def _process_server_ping_player(self, received_command, received_message) -> tuple[Command | None, None]:
+        self._process_respond_successs(received_command)
+        return received_command, None
 
     def _receive_standard_state_messages(self, allowed_commands: dict[int, callable]) -> tuple[
         bool, list[tuple[Command | None, any]] | None]:
@@ -650,7 +737,7 @@ class ServerCommunication:
 
         # region LOGIC
 
-        is_connected, is_timeout, received_message_list = self._receive_message_without_reconnect()
+        is_connected, is_timeout, received_message_list = self._receive_message_with_timeout_return()
         if is_timeout:
             return is_connected, None
 
@@ -686,7 +773,7 @@ class ServerCommunication:
 
         return is_connected, message_result_list
 
-    def _process_respond_successs(self, received_command):
+    def _process_respond_successs(self, received_command: Command):
         self._respond_client_success()
         GAME_STATE_MACHINE.send_trigger(received_command.trigger)
 
@@ -696,9 +783,9 @@ class ServerCommunication:
 
     # endregion
 
-    def receive_server_game_list_update(self) -> tuple[bool, GameList | None]:
-        command = CCommandTypeEnum.ServerUpdateGameList.value
-        return self._receive_standard_update_command(command)
+    # def receive_server_game_list_update(self) -> tuple[bool, GameList | None]:
+    #     command = CCommandTypeEnum.ServerUpdateGameList.value
+    #     return self._receive_standard_update_command(command)
 
     def receive_server_running_game_messages(self) -> tuple[bool, list[tuple[Command | None, GameData | None | str]]]:
         """
@@ -719,10 +806,29 @@ class ServerCommunication:
         allowed_commands = {
             CCommandTypeEnum.ServerUpdateGameData.value.id: self._process_server_update_list,
             CCommandTypeEnum.ServerStartTurn.value.id: __process_server_start_turn,
-            CCommandTypeEnum.ServerUpdateEndScore.value.id: __process_server_update_end_score
+            CCommandTypeEnum.ServerUpdateEndScore.value.id: __process_server_update_end_score,
+            CCommandTypeEnum.ServerPingPlayer.value.id: self._process_server_ping_player
         }
 
         return self._receive_standard_state_messages(allowed_commands)
+
+    def receive_lobby_messages(self) -> tuple[bool, list[tuple[Command | None, PlayerList | None]]]:
+        """
+        :return:
+        bool - is timeout
+        list of tuple:
+            bool - is_connected
+            Command | None - command
+            PlayerList | None - message data
+        """
+
+        allowed_commands = {
+            CCommandTypeEnum.ServerUpdateGameList.value.id: self._process_server_update_list,
+            CCommandTypeEnum.ServerPingPlayer.value.id: self._process_server_ping_player
+        }
+
+        return self._receive_standard_state_messages(allowed_commands)
+
 
     def receive_before_game_messages(self) -> tuple[bool, list[tuple[Command | None, PlayerList | None]]]:
         """
@@ -750,24 +856,21 @@ class ServerCommunication:
 
         allowed_commands = {
             CCommandTypeEnum.ServerUpdatePlayerList.value.id: self._process_server_update_list,
-            CCommandTypeEnum.ServerUpdateStartGame.value.id: __process_server_update_start_game
+            CCommandTypeEnum.ServerUpdateStartGame.value.id: __process_server_update_start_game,
+            CCommandTypeEnum.ServerPingPlayer.value.id: self._process_server_ping_player
         }
 
         return self._receive_standard_state_messages(allowed_commands)
 
-    def receive_server_my_turn_messages(self) -> tuple[bool, list[tuple[Command | None, GameData | None]]]:
+    def receive_server_game_data_messages(self) -> tuple[bool, list[tuple[Command | None, GameData | None]]]:
         """
 
         :return:
         """
 
-        def __process_server_ping_player(received_command, received_message) -> tuple[Command | None, None]:
-            self._process_respond_successs(received_command)
-            return received_command, None
-
         allowed_commands = {
             CCommandTypeEnum.ServerUpdateGameData.value.id: self._process_server_update_list,
-            CCommandTypeEnum.ServerPingPlayer.value.id: __process_server_ping_player
+            CCommandTypeEnum.ServerPingPlayer.value.id: self._process_server_ping_player
         }
 
         return self._receive_standard_state_messages(allowed_commands)
@@ -786,8 +889,3 @@ class ServerCommunication:
     @property
     def nickname(self):
         return self._nickname
-
-
-
-
-

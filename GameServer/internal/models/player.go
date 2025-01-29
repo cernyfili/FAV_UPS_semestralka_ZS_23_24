@@ -7,6 +7,7 @@ import (
 	"gameserver/internal/utils/errorHandeling"
 	"gameserver/pkg/stateless"
 	"sync"
+	"time"
 )
 
 //region DATA STRUCTURES
@@ -19,7 +20,7 @@ type Player struct {
 	isConnected             bool
 	connectionInfo          ConnectionInfo
 	stateMachine            *stateless.StateMachine
-	responseSuccessExpected []constants.Command
+	responseSuccessExpected []Message
 	mutex                   sync.Mutex
 }
 
@@ -31,7 +32,7 @@ func CreatePlayer(nickname string, isConnected bool, connectionInfo ConnectionIn
 		nickname:                nickname,
 		isConnected:             isConnected,
 		connectionInfo:          connectionInfo,
-		responseSuccessExpected: []constants.Command{},
+		responseSuccessExpected: []Message{},
 		stateMachine:            CreateStateMachine(),
 	}
 }
@@ -103,7 +104,7 @@ func (p *Player) IsResponseSuccessExpected() bool {
 func (p *Player) resetResponseSuccessExpected() {
 	logger.Log.Infof("RESPONSE_EXPECTED: Reseting Player %s has %d responses expected", p.nickname, len(p.responseSuccessExpected))
 
-	p.responseSuccessExpected = []constants.Command{}
+	p.responseSuccessExpected = []Message{}
 }
 
 // SetConnectionInfo sets the connection info of the Player
@@ -122,8 +123,35 @@ func (p *Player) SetConnected(isConnected bool) {
 	p.isConnected = isConnected
 }
 
+// is response expected timeout
+func (p *Player) IsResponseExpectedTimeout() (bool, error) {
+	p.lock()
+	defer p.unlock()
+
+	currentTime := time.Now()
+	timeOut := constants.CTimeout
+
+	for _, message := range p.responseSuccessExpected {
+		//convert string timestemp to time
+		messageTime, err := time.Parse(constants.CMessageTimeFormat, message.TimeStamp)
+		if err != nil {
+			err = fmt.Errorf("Error parsing message time: %w", err)
+			errorHandeling.PrintError(err)
+			return false, err
+		}
+
+		isTimeout := currentTime.Sub(messageTime) > timeOut
+		if isTimeout {
+			return true, nil
+		}
+
+	}
+
+	return false, nil
+}
+
 // increase the number of expected responses
-func (p *Player) IncreaseResponseSuccessExpected(command constants.Command) {
+func (p *Player) IncreaseResponseSuccessExpected(message Message) {
 	p.lock()
 	defer p.unlock()
 	lenList := len(p.responseSuccessExpected)
@@ -133,11 +161,11 @@ func (p *Player) IncreaseResponseSuccessExpected(command constants.Command) {
 	}
 
 	//Add to list
-	p.responseSuccessExpected = append(p.responseSuccessExpected, command)
+	p.responseSuccessExpected = append(p.responseSuccessExpected, message)
 }
 
 // decrease the number of expected responses
-func (p *Player) DecreaseResponseSuccessExpected() {
+func (p *Player) DecreaseResponseSuccessExpected() error {
 	p.lock()
 	defer p.unlock()
 	len_list := len(p.responseSuccessExpected)
@@ -149,10 +177,12 @@ func (p *Player) DecreaseResponseSuccessExpected() {
 	if len_list-1 < 0 {
 		err := fmt.Errorf("Player has already expected a response")
 		errorHandeling.PrintError(err)
+		return err
 	}
 
 	//Remove last from list
 	p.responseSuccessExpected = p.responseSuccessExpected[:len_list-1]
+	return nil
 }
 
 // Fires the state machine
@@ -175,7 +205,7 @@ func (p *Player) FireStateMachine(trigger stateless.Trigger) error {
 		//p.resetResponseSuccessExpected()
 	}
 
-	logger.Log.Infof("Player %s changed state from %s : - %s - : %s", p.nickname, beforeState, trigger, afterState)
+	logger.Log.Infof("AUTOMATA: Player %s changed state from %s : - %s - : %s", p.nickname, beforeState, trigger, afterState)
 	return nil
 }
 
@@ -189,6 +219,17 @@ func (p *Player) lock() {
 func (p *Player) unlock() {
 	//	logger.Log.Infof("Unlocking player")
 	p.mutex.Unlock()
+}
+
+func (p *Player) IsInTurn() bool {
+	allowedStates := []stateless.State{stateMyTurn, stateForkMyTurn, stateForkNextDice, stateNextDice}
+	currentState := p.GetStateMachine().MustState()
+	for _, state := range allowedStates {
+		if currentState == state {
+			return true
+		}
+	}
+	return false
 }
 
 //endregion

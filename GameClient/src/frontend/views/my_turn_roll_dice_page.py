@@ -15,9 +15,9 @@ from tkinter import messagebox
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
-from src.frontend.views.utils import PAGES_DIC, show_game_data, my_turn_start_listening_for_updates, \
+from src.frontend.views.utils import PAGES_DIC, show_game_data, start_listening_for_updates_update_gamedata, \
     show_loading_animation, \
-    stop_loading_animation
+    stop_loading_animation, destroy_elements
 from src.frontend.views.utils import process_is_not_connected, stop_update_thread
 from src.shared.constants import CCommandTypeEnum, GameData
 
@@ -54,15 +54,14 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
         return 'stateMyTurn'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_server_my_turn_messages
+        return ServerCommunication().receive_server_game_data_messages
 
     def _set_update_thread(self, param):
         self._update_thread = param
 
     def _load_page_content(self):
         # Clear the current content
-        for widget in self.winfo_children():
-            widget.destroy()
+        destroy_elements(self)
 
         self._show_logout_button(tk)
 
@@ -73,7 +72,7 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
         show_game_data(self, tk, self._list)
 
     def _start_listening_for_updates(self):
-        my_turn_start_listening_for_updates(self)
+        start_listening_for_updates_update_gamedata(self)
 
     def _button_action_send_roll_dice(self):
         def run_send_function():
@@ -93,6 +92,7 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
                 else:
                     raise Exception("Unknown command")
             except Exception as e:
+                logging.error(f"Error while sending roll dice command: {e}")
                 process_is_not_connected(self)
                 # todo remove
                 raise e

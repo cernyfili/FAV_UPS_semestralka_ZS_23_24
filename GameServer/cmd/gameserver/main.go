@@ -7,13 +7,20 @@ import (
 	"gameserver/internal/utils/errorHandeling"
 	"gameserver/internal/utils/helpers"
 	"log"
+	"time"
 )
 
 func initLogger() {
 	// Initialize the logger with desired configuration
+
+	folderPath := constants.CLogsFolderPath
+
+	currentTime := time.Now().Format("2006-01-02_15-04-05")
+	filePath := folderPath + "/log_" + currentTime + ".txt"
+
 	config := logger.LoggerConfig{
 		LogToFile:       true,
-		FilePath:        constants.CLogFilePath,
+		FilePath:        filePath,
 		UseJSONFormat:   false,
 		LogLevel:        "debug",
 		EnableCaller:    true,

@@ -52,14 +52,14 @@ func (gm *List) AddItemKey(key interface{}, item interface{}) error {
 //endregion
 
 // region GETTERS
-func (gm *List) GetItemWithoutLock(key interface{}) (interface{}, error) {
+func (gm *List) GetItemWithoutLock(key interface{}) interface{} {
 	// Check if the key exists
 	if _, ok := gm.data[key]; !ok {
-		return nil, fmt.Errorf("key does not exist")
+		return nil
 	}
 
 	// Return the item
-	return gm.data[key], nil
+	return gm.data[key]
 }
 
 // GetValuesArray returns an array of all the values in the list

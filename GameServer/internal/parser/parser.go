@@ -14,19 +14,34 @@ import (
 
 //region FUNCTIONS PARSE
 
-func ParseMessage(input string) (models.Message, error) {
+func ParseReceiveMessageStr(input string) ([]models.Message, error) {
 	logger.Log.Debug("Parsing message: %v", input)
 
+	var messageList []models.Message
+
 	parts := strings.Split(input, constants.CMessageEndDelimiter)
-	// if len is not 2 and second part is not empty
-	if len(parts) != 2 && len(parts[1]) != 0 {
+
+	partsLen := len(parts)
+	if partsLen < 2 {
 		err := fmt.Errorf("invalid input format")
 		errorHandeling.PrintError(err)
-		return models.Message{}, err
+		return messageList, err
+	}
+	parts = parts[:partsLen-1]
+
+	for _, part := range parts {
+		message, err := parseMessage(part)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return messageList, fmt.Errorf("error parsing message: %v", err)
+		}
+		messageList = append(messageList, message)
 	}
 
-	input = parts[0]
+	return messageList, nil
+}
 
+func parseMessage(input string) (models.Message, error) {
 	if len(input) == 0 {
 		err := fmt.Errorf("empty input")
 		errorHandeling.PrintError(err)

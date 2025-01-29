@@ -206,12 +206,23 @@ func (g *Game) RemovePlayer(player *Player) error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
+	if player == nil {
+		return fmt.Errorf("player is nil")
+	}
+
+	isRemoved := false
 	for i, p := range g.playersGameDataArr {
 		if p.Player == player {
 			g.playersGameDataArr = append(g.playersGameDataArr[:i], g.playersGameDataArr[i+1:]...)
+			isRemoved = true
 			break
 		}
 	}
+
+	if !isRemoved {
+		return fmt.Errorf("player not found")
+	}
+
 	return nil
 }
 

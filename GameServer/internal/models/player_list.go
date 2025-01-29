@@ -43,9 +43,13 @@ func (pl *PlayerList) GetItem(key string) (*Player, error) {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
 
-	item, err := pl.list.GetItemWithoutLock(key)
-	if err != nil {
-		return nil, err
+	if key == "" {
+		return nil, fmt.Errorf("key is empty")
+	}
+
+	item := pl.list.GetItemWithoutLock(key)
+	if item == nil {
+		return nil, fmt.Errorf("item not found")
 	}
 	player, ok := item.(*Player)
 	if !ok {
@@ -58,8 +62,8 @@ func (pl *PlayerList) HasItemName(playerName string) bool {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
 
-	_, err := pl.list.GetItemWithoutLock(playerName)
-	if err != nil {
+	item := pl.list.GetItemWithoutLock(playerName)
+	if item == nil {
 		return false
 	}
 

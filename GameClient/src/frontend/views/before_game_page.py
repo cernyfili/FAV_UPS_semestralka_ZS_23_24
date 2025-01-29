@@ -14,7 +14,7 @@ from abc import ABC
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
-from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates
+from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates, destroy_elements
 from src.shared.constants import CGameConfig, PlayerList, CCommandTypeEnum
 
 
@@ -56,9 +56,10 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
         process_command: dict[int, callable] = {
             CCommandTypeEnum.ServerUpdateStartGame.value.id: self._process_start_game
         }
+        continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
         update_command = CCommandTypeEnum.ServerUpdatePlayerList.value
 
-        list_start_listening_for_updates(self, process_command, update_command, [])
+        list_start_listening_for_updates(self, process_command, update_command, continue_commands)
 
     def _load_page_content(self):
         def show_players_list():
@@ -78,8 +79,7 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
                     player_label.config(fg="grey")
 
         # Clear the current content
-        for widget in self.winfo_children():
-            widget.destroy()
+        destroy_elements(self)
 
         self._show_logout_button(tk)
 

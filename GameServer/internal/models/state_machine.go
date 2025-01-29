@@ -46,6 +46,7 @@ func initilize(stateMachine *stateless.StateMachine) {
 	stateMachine.Configure(stateLobby).
 		Permit(constants.CGCommands.ClientLogout.Trigger, stateEnd).
 		PermitReentry(constants.CGCommands.ServerUpdateGameList.Trigger).
+		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
 		Permit(constants.CGCommands.ClientJoinGame.Trigger, stateGame).
 		Permit(constants.CGCommands.ClientCreateGame.Trigger, stateGame).
 		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorLobby)
@@ -57,6 +58,7 @@ func initilize(stateMachine *stateless.StateMachine) {
 		Permit(constants.CGCommands.ClientStartGame.Trigger, stateRunningGame).
 		Permit(constants.CGCommands.ServerUpdateStartGame.Trigger, stateRunningGame).
 		PermitReentry(constants.CGCommands.ServerUpdatePlayerList.Trigger).
+		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
 		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorGame)
 
 	stateMachine.Configure(stateErrorGame).
@@ -67,6 +69,7 @@ func initilize(stateMachine *stateless.StateMachine) {
 		Permit(constants.CGCommands.ServerUpdateEndScore.Trigger, stateLobby).
 		Permit(constants.CGCommands.ServerStartTurn.Trigger, stateMyTurn).
 		PermitReentry(constants.CGCommands.ServerUpdateGameData.Trigger).
+		PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger).
 		Permit(constants.CGCommands.ErrorPlayerUnreachable.Trigger, stateErrorRunningGame)
 
 	stateMachine.Configure(stateErrorRunningGame).
@@ -82,6 +85,7 @@ func initilize(stateMachine *stateless.StateMachine) {
 	stateMachine.Configure(stateForkMyTurn).
 		Permit(constants.CGCommands.ResponseServerEndTurn.Trigger, stateRunningGame).
 		Permit(constants.CGCommands.ResponseServerSelectCubes.Trigger, stateNextDice)
+	//PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger)
 
 	stateMachine.Configure(stateNextDice).
 		Permit(constants.CGCommands.ClientSelectedCubes.Trigger, stateForkNextDice).
@@ -91,4 +95,5 @@ func initilize(stateMachine *stateless.StateMachine) {
 	stateMachine.Configure(stateForkNextDice).
 		Permit(constants.CGCommands.ResponseServerEndScore.Trigger, stateLobby).
 		Permit(constants.CGCommands.ResponseServerDiceSuccess.Trigger, stateMyTurn)
+	//PermitReentry(constants.CGCommands.ServerPingPlayer.Trigger)
 }

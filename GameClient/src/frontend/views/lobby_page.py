@@ -14,8 +14,8 @@ from abc import ABC
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
-from src.frontend.views.utils import PAGES_DIC
-from src.shared.constants import CGameConfig, CMessageConfig, Game, Param
+from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates, destroy_elements
+from src.shared.constants import CGameConfig, CMessageConfig, Game, Param, CCommandTypeEnum
 
 
 class LobbyPage(tk.Frame, UpdateInterface, ABC):
@@ -50,7 +50,7 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
         return 'stateLobby'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_server_game_list_update
+        return ServerCommunication().receive_lobby_messages
 
     def _set_update_thread(self, param):
         self._update_thread = param
@@ -143,10 +143,7 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
             close_button.pack(pady=5)
 
         # Clear the current content except for popups
-        for widget in self.winfo_children():
-            if isinstance(widget, tk.Toplevel):
-                continue
-            widget.destroy()
+        destroy_elements(self)
 
         self._show_logout_button(tk)
 
@@ -173,3 +170,10 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
 
         return self.button_action_standard(tk=tk, send_function=send_function, next_page_name=next_page_name,
                                            param_list=param_list)
+
+    def _start_listening_for_updates(self):
+        process_command: dict[int, callable] = {}
+        continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
+        update_command = CCommandTypeEnum.ServerUpdateGameList.value
+
+        list_start_listening_for_updates(self, process_command, update_command, continue_commands)

@@ -34,10 +34,13 @@ func (gl *GameList) AddItem(game *Game) (int, error) {
 	defer gl.list.mutex.Unlock()
 
 	key, err := gl.list.AddItem(game)
-	gameItem, err := gl.list.GetItemWithoutLock(key)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return -1, err
+	}
+	gameItem := gl.list.GetItemWithoutLock(key)
+	if gameItem == nil {
+		return -1, fmt.Errorf("game not found")
 	}
 	game = gameItem.(*Game)
 	game.gameID = key
@@ -83,20 +86,45 @@ func (gl *GameList) RemoveItem(game *Game) error {
 	return nil
 }
 
-func (gl *GameList) GetItem(key int) (*Game, error) {
+//func (gl *GameList) GetItem(key int) (*Game, error) {
+//	gl.list.mutex.Lock()
+//	defer gl.list.mutex.Unlock()
+//
+//	gameItem := gl.list.GetItemWithoutLock(key)
+//	if gameItem == nil {
+//		return nil, fmt.Errorf("gameItem not found")
+//	}
+//	game, ok := gameItem.(*Game)
+//	if !ok {
+//		return nil, fmt.Errorf("gameItem is not a game")
+//	}
+//	return game, nil
+//}
+
+// Remove Player from Game
+func (gl *GameList) RemovePlayerFromGame(player *Player) error {
 	gl.list.mutex.Lock()
 	defer gl.list.mutex.Unlock()
 
-	item, err := gl.list.GetItemWithoutLock(key)
-	if err != nil {
+	if player == nil {
+		err := fmt.Errorf("player is nil")
 		errorHandeling.PrintError(err)
-		return nil, err
+		return err
 	}
-	game, ok := item.(*Game)
-	if !ok {
-		return nil, fmt.Errorf("item is not a game")
+
+	game := gl.GetPlayersGame(player)
+	if game == nil {
+		return nil
 	}
-	return game, nil
+
+	err := game.RemovePlayer(player)
+	if err != nil {
+		err = fmt.Errorf("cannot create playersGame %w", err)
+		errorHandeling.PrintError(err)
+		panic(err)
+	}
+
+	return nil
 }
 
 // get item by game name

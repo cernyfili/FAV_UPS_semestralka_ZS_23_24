@@ -344,6 +344,7 @@ stateDiagram
   Start --> Lobby: ClientLogin
   
   Lobby --> Lobby: ServerUpdateGameList
+  Lobby --> Lobby: ServerPingPlayer
   Lobby --> Game: ClientJoinGame
   Lobby --> Game: ClientCreateGame
   Lobby --> Error_lobby: ErrorPlayerUnreachable
@@ -353,6 +354,7 @@ stateDiagram
   Game --> Running_Game: ClientStartGame
   Game --> Running_Game: ServerUpdateStartGame
   Game --> Game: ServerUpdatePlayerList
+  Game --> Game: ServerPingPlayer
   Game --> Error_game: ErrorPlayerUnreachable
   
   Error_game --> Game: ServerReconnectPlayerList
@@ -361,6 +363,7 @@ stateDiagram
   Running_Game --> Lobby: ServerUpdateEndScore
   Running_Game --> My_turn_roll_dice: ServerStartTurn
   Running_Game --> Running_Game: ServerUpdateGameData
+  Running_Game --> Running_Game: ServerPingPlayer
   Running_Game --> Error_running_Game: ErrorPlayerUnreachable
   
   Error_running_Game --> Running_Game: ServerReconnectGameData
@@ -373,6 +376,7 @@ stateDiagram
   
   Fork_my_turn --> Running_Game: ResponseServerEndTurn
   Fork_my_turn --> My_turn_select_cubes: ResponseServerSelectCubes
+  Fork_my_turn --> Fork_my_turn: ServerPingPlayer
 
   My_turn_select_cubes --> Fork_dice_(Fork_next_dice): ClientSelectedCubes
   My_turn_select_cubes --> My_turn_select_cubes: ServerPingPlayer
@@ -380,6 +384,7 @@ stateDiagram
   
   Fork_dice_(Fork_next_dice) --> My_turn_roll_dice: ResponseServerDiceSuccess
   Fork_dice_(Fork_next_dice) --> Lobby: ResponseServerEndScore
+  Fork_dice_(Fork_next_dice) --> Fork_dice_(Fork_next_dice): ServerPingPlayer
 ```
 
 ```mermaid

@@ -4,6 +4,14 @@ from typing import Final, List
 
 from src.backend.state_manager import GameStateMachine
 
+# region Utils constants
+
+LOGS_FOLDER_PATH: Final = "logs"
+
+
+# endregion
+
+# region APP LOGIC
 
 # region DATA STRUCTURES
 
@@ -189,6 +197,7 @@ class NetworkMessage:
 
 # endregion
 
+# region CONSTANTS
 GAME_STATE_MACHINE : GameStateMachine = GameStateMachine()
 
 def reset_game_state_machine():
@@ -252,8 +261,6 @@ ALLOWED_CUBE_VALUES_COMBINATIONS : CombinationList = CombinationList([
     Combination([5]),
     # Combination([2, 2])
 ])
-
-
 
 SCORE_VALUES_CUBES : Final = [
     ScoreCube(1, 100),
@@ -487,3 +494,6 @@ class CNetworkConfig:
     MAX_MESSAGE_SIZE: Final = 1024
     RECONNECT_ATTEMPTS: Final = 3  # todo change
     RECONNECT_TIMEOUT_SEC: Final = 2
+
+# endregion
+# endregion

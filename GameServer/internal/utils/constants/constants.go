@@ -46,14 +46,15 @@ var (
 
 const (
 	CConnType = "tcp"
-	CTimeout  = 1 * time.Second
+	CTimeout  = 5 * time.Second
+	CPingTime = 5 * time.Second
 )
 
 //endregion
 
 //region FilePaths
 
-const CLogFilePath string = "logs/app.log"
+const CLogsFolderPath string = "logs"
 const CConfigFilePath string = "config.json"
 
 //endregion

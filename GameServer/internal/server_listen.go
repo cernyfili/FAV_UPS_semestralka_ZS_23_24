@@ -55,106 +55,118 @@ func getMessagePlayer(message models.Message) (*models.Player, error) {
 	return player, nil
 }
 
+func _tryStartTurn(conn net.Conn) error {
+	player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
+	if player == nil {
+		return nil
+	}
+
+	game := models.GetInstanceGameList().GetPlayersGame(player)
+	if game == nil {
+		return nil
+	}
+
+	if !game.IsPlayerTurn(player) {
+		return nil
+	}
+
+	if player.IsInTurn() {
+		//already have been send serverstart
+		return nil
+	}
+
+	//is player turn and havent been started yet
+	err := command_processing.ProcessPlayerTurn(game)
+	if err != nil {
+		err = fmt.Errorf("Error processing start turn: %w", err)
+		errorHandeling.PrintError(err)
+		return err
+	}
+
+	return nil
+}
+
 func handleConnection(conn net.Conn) {
 	logger.Log.Info("New connection from " + conn.RemoteAddr().String())
-	//todo handle timeout and ping
 	for {
 		// if connection is closed
 		if conn == nil {
 			return
 		}
+		player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
 
-		//message, err := connectionRead(conn)
-		message, isTimeout, err := network.ConnectionReadTimeout(conn)
+		isResponseTimeout, err := checkTimeoutResponseSuccess(player)
+		if err != nil {
+			err = fmt.Errorf("Error checking timeout: %w", err)
+			errorHandeling.PrintError(err)
+			return
+		}
+		if isResponseTimeout {
+			err := network.DisconnectPlayerConnection(player)
+			if err != nil {
+				err = fmt.Errorf("Error disconnecting player: %w", err)
+				errorHandeling.PrintError(err)
+				return
+			}
+			return
+		}
 
-		var isClientResponseSuccessExpected bool
+		// StartTurn
+		err = _tryStartTurn(conn)
 		if err != nil {
 			errorHandeling.PrintError(err)
-			//todo remove
+			fmt.Println("Error starting turn:", err)
+			return
+		}
 
-			fmt.Println("Error reading:", err)
-			//errorHandeling.PrintError("Error reading:", err)
-			err := network.CloseConnection(conn)
+		messageList, isTimeout, err := network.Read(conn)
+		if err != nil {
+			err = fmt.Errorf("Error reading: %w", err)
+			errorHandeling.PrintError(err)
+			//if error when reading client login messsage
+			if player == nil {
+				err := network.CloseConnection(conn)
+				if err != nil {
+					err = fmt.Errorf("Error closing: %w", err)
+					errorHandeling.PrintError(err)
+					return
+				}
+			}
+
+			//if error when reading client message
+			err = network.DisconnectPlayerConnection(player)
+			if err != nil {
+				err = fmt.Errorf("Error disconnecting player: %w", err)
+				errorHandeling.PrintError(err)
+				return
+			}
+
+			return
+		}
+		if isTimeout {
+			//if client havenot logeed yet - waiting for login
+			if player == nil {
+				continue
+			}
+
+			//if client have logged in - reading with ping
+			err := command_processing.ProcessSendPingPlayer(player)
+			if err != nil {
+				err = fmt.Errorf("Timeout for player: %w", err)
+				errorHandeling.PrintError(err)
+				return
+			}
+			continue
+		}
+
+		for _, message := range messageList {
+			err = command_processing.ProcessMessage(message, conn)
 			if err != nil {
 				errorHandeling.PrintError(err)
-				//errorHandeling.PrintError("Error closing:", err)
-				fmt.Println("Error closing:", err)
+				fmt.Println("Error processing message:", err)
 				return
 			}
-			return
 		}
-
-		var playerMessage *models.Player
-		playerMessage, err = getMessagePlayer(message)
-		if err != nil {
-			isClientResponseSuccessExpected = false
-		} else {
-			isClientResponseSuccessExpected = playerMessage.IsResponseSuccessExpected()
-		}
-
-		if isTimeout {
-			if isClientResponseSuccessExpected {
-				err = network.HandleTimeout(playerMessage)
-				if err != nil {
-					errorHandeling.PrintError(err)
-					fmt.Println("Error handling timeout:", err)
-					return
-				}
-				err = fmt.Errorf("Timeout for player expected ClientResponseSuccess")
-				errorHandeling.PrintError(err)
-				return
-			}
-
-			// StartTurn
-			player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
-			if player != nil {
-				playerGame := models.GetInstanceGameList().GetPlayersGame(player)
-				if playerGame != nil {
-					isPlayerTurn := playerGame.IsPlayerTurn(player)
-					if isPlayerTurn {
-						_, err := command_processing.ProcessPlayerTurn(playerGame)
-						if err != nil {
-							errorHandeling.PrintError(err)
-							fmt.Println("Error processing player turn:", err)
-							return
-						}
-						err = playerGame.NextPlayerTurn()
-						if err != nil {
-							errorHandeling.PrintError(err)
-							fmt.Println("Error shifting turn:", err)
-							return
-						}
-					}
-				}
-			}
-
-			continue
-		}
-
-		if isClientResponseSuccessExpected {
-			if message.CommandID != constants.CGCommands.ResponseClientSuccess.CommandID {
-				err = network.HandleClienResponseNotSuccess(playerMessage)
-				if err != nil {
-					errorHandeling.PrintError(err)
-					fmt.Println("Error handling client response not success:", err)
-					return
-				}
-				err = fmt.Errorf("Timeout for player expected ClientResponseSuccess")
-				errorHandeling.PrintError(err)
-				return
-			}
-
-			playerMessage.DecreaseResponseSuccessExpected()
-			continue
-		}
-
-		err = command_processing.ProcessMessage(message, conn)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			fmt.Println("Error processing message:", err)
-			return
-		}
-
 	}
 }
 
@@ -197,3 +209,21 @@ func handleConnection(conn net.Conn) {
 //
 //	return message, nil
 //}
+
+func checkTimeoutResponseSuccess(player *models.Player) (bool, error) {
+	if player == nil {
+		return false, nil
+	}
+
+	if !player.IsResponseSuccessExpected() {
+		return false, nil
+	}
+
+	isTimeout, err := player.IsResponseExpectedTimeout()
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return false, fmt.Errorf("error checking timeout %w", err)
+	}
+
+	return isTimeout, nil
+}

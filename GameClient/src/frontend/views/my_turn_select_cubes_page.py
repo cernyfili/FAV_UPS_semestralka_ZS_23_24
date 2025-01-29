@@ -9,15 +9,14 @@ Description:
 """
 import logging
 import threading
-import time
 import tkinter as tk
 from abc import ABC
 from tkinter import messagebox
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
-from src.frontend.views.utils import PAGES_DIC, my_turn_start_listening_for_updates, show_loading_animation, \
-    stop_loading_animation, show_game_data
+from src.frontend.views.utils import PAGES_DIC, start_listening_for_updates_update_gamedata, show_loading_animation, \
+    stop_loading_animation, show_game_data, destroy_elements
 from src.frontend.views.utils import process_is_not_connected, stop_update_thread
 from src.shared.constants import CubeValuesList, ALLOWED_CUBE_VALUES_COMBINATIONS, CombinationList, CCommandTypeEnum, \
     GameData
@@ -56,15 +55,15 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
         return 'stateNextDice'
 
     def _get_update_function(self):
-        return ServerCommunication().receive_server_my_turn_messages
+        return ServerCommunication().receive_server_game_data_messages
 
     def _set_update_thread(self, param):
         self._update_thread = param
 
     def _load_page_content(self):
         # Clear the current content
-        for widget in self.winfo_children():
-            widget.destroy()
+        destroy_elements(self)
+
         self._show_logout_button(tk)
 
         show_game_data(self, tk, self._list)
@@ -80,7 +79,7 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
         self.send_button.pack(side="bottom", pady=10, padx=10)
 
     def _start_listening_for_updates(self):
-        my_turn_start_listening_for_updates(self)
+        start_listening_for_updates_update_gamedata(self)
 
     def update_data(self, gui_data):
 
@@ -198,7 +197,6 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
             return not cube_list
 
         def run_send_function(selected_dice_cubes_values):
-            time.sleep(1)
             stop_update_thread(self)
 
             try:

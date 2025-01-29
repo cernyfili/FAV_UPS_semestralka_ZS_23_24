@@ -120,8 +120,8 @@ def show_game_data(self, tk, player_list):
             animate(self=self, waiting_animation=self.waiting_animation, label_str="Playing")
 
 
-def _standard_start_listening_for_updates(self, process_command, listen_for_updates: callable, continue_commands):
-    pass
+# def _standard_start_listening_for_updates(self, process_command, listen_for_updates: callable, continue_commands):
+#     pass
 
 
 def list_start_listening_for_updates(self, process_command_dic: dict[int, callable], update_command: Command,
@@ -135,8 +135,10 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
             logging.debug("Listening for Data updates")
             try:
                 is_connected, message_info_list = update_function()
+
                 if self._stop_event.is_set():
                     return
+
 
                 if not is_connected:
                     process_is_not_connected(self)
@@ -149,25 +151,31 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
                 for i, message_info in enumerate(message_info_list):
                     command, message_data = message_info
 
-                    for command_id, handler in process_command_dic.items():
-                        if command_id == command.id:
-                            handler()
-                            is_last_message = i == len(message_info_list) - 1
-                            if is_last_message:
-                                return
-
-                    is_continue_command = False
+                    is_handled = False
                     for continue_command in continue_commands_list:
-                        if command.id == continue_command.id:
-                            is_continue_command = True
-                    if is_continue_command:
+                        if command.id != continue_command.id:
+                            continue
+                        is_handled = True
+                        break
+                    if is_handled:
                         continue
 
                     if command == update_command:
                         self.update_data(message_data)
                         continue
 
-                    raise Exception("Unknown command")
+                    for command_id, handler in process_command_dic.items():
+                        if command_id != command.id:
+                            continue
+                        # check if handler requires arguments
+                        if handler.__code__.co_argcount > 1:
+                            handler(message_data)
+                        else:
+                            handler()
+
+                        return
+
+                    raise Exception("Unknown command or in buffer message for different page")
             except Exception as e:
                 raise e
                 # todo change
@@ -191,9 +199,20 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
     #     self.update_data(message_data)
     #     continue
 
-def my_turn_start_listening_for_updates(self):
+
+def start_listening_for_updates_update_gamedata(self):
     process_command = {
     }
     continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
     update_command = CCommandTypeEnum.ServerUpdateGameData.value
     list_start_listening_for_updates(self, process_command, update_command, continue_commands)
+
+
+def destroy_elements(self):
+    if self.winfo_children():
+        for widget in self.winfo_children():
+            if widget.winfo_exists():
+                try:
+                    widget.destroy()
+                except Exception as e:
+                    logging.error(f"Error destroying widget: {e}")

@@ -22,7 +22,7 @@ class GameStateMachine(StateMachine):
     stateStart = State('Start', initial=True)
     stateForkNextDice = State('ForkNextDice')
 
-#todo check if this is correct
+    # todo check if this is correct
     # Define transitions
     ClientLogin = stateStart.to(stateLobby)
     ServerUpdateGameList = stateLobby.to(stateLobby)
@@ -30,7 +30,6 @@ class GameStateMachine(StateMachine):
     ClientCreateGame = stateLobby.to(stateGame)
 
     ServerReconnectGameList = stateErrorLobby.to(stateLobby)
-
 
     ClientStartGame = stateGame.to(stateRunningGame)
     ServerUpdateStartGame = (stateGame.to(stateRunningGame)
@@ -55,8 +54,15 @@ class GameStateMachine(StateMachine):
     ServerReconnectGameData = stateErrorRunningGame.to(stateRunningGame)
 
     ClientRollDice = stateMyTurn.to(stateForkMyTurn)
-    ServerPingPlayer = (stateMyTurn.to(stateMyTurn)
-                        | stateNextDice.to(stateNextDice))
+    ServerPingPlayer = (
+            stateMyTurn.to(stateMyTurn) |
+            stateNextDice.to(stateNextDice) |
+            stateGame.to(stateGame) |
+            stateRunningGame.to(stateRunningGame) |
+            stateLobby.to(stateLobby)  # |
+        # stateForkMyTurn.to(stateForkMyTurn) |
+        # stateForkNextDice.to(stateForkNextDice)
+    )
 
     ResponseServerDiceEndTurn = stateForkMyTurn.to(stateRunningGame)
     ResponseServerDiceNext = stateForkMyTurn.to(stateNextDice)
@@ -81,4 +87,3 @@ class GameStateMachine(StateMachine):
     def get_current_state(self):
         with self._lock:
             return self.current_state_value
-

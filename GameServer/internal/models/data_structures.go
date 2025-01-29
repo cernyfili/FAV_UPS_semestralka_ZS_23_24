@@ -47,6 +47,11 @@ func CreateMessage(playerName string, commandID int, params []constants.Params) 
 	}
 }
 
+// is Message empty
+func (m *Message) IsEmpty() bool {
+	return m.Signature == "" && m.CommandID == 0 && m.TimeStamp == "" && m.PlayerNickname == "" && len(m.Parameters) == 0
+}
+
 // func to check if is valid message name
 func IsValidName(name string) bool {
 	// if name is none

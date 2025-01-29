@@ -11,6 +11,11 @@ import (
 )
 
 func RemovePlayerFromLists(player *models.Player) error {
+	if player == nil {
+		err := fmt.Errorf("player is nil")
+		errorHandeling.PrintError(err)
+		panic(err)
+	}
 
 	playerlist := models.GetInstancePlayerList()
 
@@ -18,13 +23,16 @@ func RemovePlayerFromLists(player *models.Player) error {
 	//Remove player from playerlist
 	err := playerlist.RemoveItem(player)
 	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("cannot create playersGame %w", err)
+		//item not in list
+		return nil
 	}
 
 	//Remove player from playersGame
 
 	gameFromList := gamelist.GetPlayersGame(player)
+	if gameFromList == nil {
+		return nil
+	}
 
 	err = gameFromList.RemovePlayer(player)
 	if err != nil {
