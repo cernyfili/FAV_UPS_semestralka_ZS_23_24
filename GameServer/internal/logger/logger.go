@@ -2,7 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"gameserver/internal/utils/errorHandeling"
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -29,7 +28,6 @@ func InitLogger(config LoggerConfig) error {
 	// Set log level
 	level, err := logrus.ParseLevel(config.LogLevel)
 	if err != nil {
-		errorHandeling.PrintError(err)
 		return err
 	}
 	Log.SetLevel(level)
@@ -65,12 +63,10 @@ func InitLogger(config LoggerConfig) error {
 		// Create the log file if it doesn't exist
 		err := os.MkdirAll(filepath.Dir(config.FilePath), 0755)
 		if err != nil {
-			errorHandeling.PrintError(err)
 			return err
 		}
 		file, err := os.OpenFile(config.FilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			errorHandeling.PrintError(err)
 			return err
 		}
 

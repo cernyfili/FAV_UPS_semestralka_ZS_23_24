@@ -29,8 +29,7 @@ func initLogger() {
 
 	err := logger.InitLogger(config)
 	if err != nil {
-		errorHandeling.PrintError(err)
-		log.Fatalf("Failed to initialize logger: %v", err)
+		errorHandeling.AssertError(err)
 	}
 }
 
