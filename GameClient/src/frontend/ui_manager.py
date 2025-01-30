@@ -54,6 +54,8 @@ class MyApp(tk.Tk):
         self.show_page(START_PAGE)
 
     def show_page(self, page_name, data=None):
+        if page_name not in self.pages:
+            assert False, f"Page {page_name} not found"
         # Show the selected page
         self._current_frame = page_name
         frame = self.pages[page_name]

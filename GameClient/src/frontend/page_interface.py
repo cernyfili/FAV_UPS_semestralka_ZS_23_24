@@ -8,21 +8,23 @@ Version: 1.0
 Description: 
 """
 import threading
+import tkinter as tk
 from abc import ABC, abstractmethod
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.views.utils import stop_update_thread, PAGES_DIC, process_is_not_connected, show_loading_animation, \
-    stop_loading_animation
+    stop_animation, show_reconnecting_animation
 
 
-class PageInterface(ABC):
-    @abstractmethod
-    def _load_page_content(self):
-        pass
-
-    @abstractmethod
-    def update_data(self, data):
-        pass
+#
+# class PageInterface(ABC):
+#     @abstractmethod
+#     def _load_page_content(self):
+#         pass
+#
+#     @abstractmethod
+#     def update_data(self, data):
+#         pass
 
 class UpdateInterface(ABC):
     def __init__(self):
@@ -31,6 +33,7 @@ class UpdateInterface(ABC):
         self._update_thread = None
         self._list = None
         self._lock = None
+        self._is_connected = None
 
     @abstractmethod
     def tkraise(self, aboveThis=None):
@@ -44,21 +47,18 @@ class UpdateInterface(ABC):
     def _button_action_logout(self):
         send_function = ServerCommunication().send_client_logout
         next_page_name = PAGES_DIC.StartPage
+        page_data = None
 
         stop_update_thread(self)
 
         try:
             is_connected = send_function()
             if not is_connected:
-                process_is_not_connected(self)
+                next_page_name, page_data = process_is_not_connected()
         except Exception as e:
-            #messagebox.showerror("Connection Failed", str(e))
-            #todo
+            next_page_name, page_data = process_is_not_connected()
 
-            raise e
-            return False
-
-        self.controller.show_page(next_page_name)
+        self.controller.show_page(next_page_name, page_data)
 
     # def _start_listening_for_updates(self):
     #     state_name = self._get_state_name()
@@ -96,18 +96,16 @@ class UpdateInterface(ABC):
         def run_send_function(send_function, next_page_name, param_list):
 
             stop_update_thread(self)
+            page_data = None
             try:
                 is_connected = send_function(param_list)
                 if not is_connected:
-                    process_is_not_connected(self)
-                else:
-                    self.controller.show_page(next_page_name)
+                    next_page_name, page_data = process_is_not_connected()
             except Exception as e:
-                process_is_not_connected(self)
-                # todo remove
-                raise e
-            finally:
-                stop_loading_animation(self)
+                next_page_name, page_data = process_is_not_connected()
+
+            stop_animation(self)
+            self.controller.show_page(next_page_name, page_data)
 
         show_loading_animation(self, tk)
 
@@ -127,6 +125,17 @@ class UpdateInterface(ABC):
             self._list = data
             self._load_page_content()
 
+    def _show_process_is_not_connected(self):
+        with self._lock:
+            def run_send_function():
+                next_page_name, page_data = process_is_not_connected()
+                stop_animation(self)
+                self.controller.show_page(next_page_name, page_data)
+
+            show_reconnecting_animation(self, tk)
+            threading.Thread(target=run_send_function, args=()).start()
+
+
     @abstractmethod
     def _load_page_content(self):
         pass
@@ -134,3 +143,8 @@ class UpdateInterface(ABC):
     @abstractmethod
     def _set_update_thread(self, param):
         pass
+
+    # set is connected
+    def set_is_connected(self, is_connected):
+        with self._lock:
+            self._is_connected = is_connected
