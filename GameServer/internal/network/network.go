@@ -1061,7 +1061,7 @@ func SendAllUpdates(game *models.Game) error {
 func ProcessCommunicationServerUpdateGameData(game *models.Game) error {
 	gameData, err := game.GetGameData()
 	if err != nil {
-		errorHandeling.AssertError(fmt.Errorf("error getting game data"))
+		return nil
 	}
 
 	playersInGameList := game.GetPlayers()
@@ -1093,6 +1093,7 @@ func ProcessCommunicationServerUpdatePlayerList(game *models.Game) error {
 	playerList := helpers.PlayerListGetActivePlayersInState(playersInGameList, state_machine.StateNameMap.StateGame)
 
 	if len(playerList) == 0 {
+		logger.Log.Info("Trying to send update playerlist but 0 players")
 		return nil
 	}
 

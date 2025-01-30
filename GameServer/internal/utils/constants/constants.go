@@ -47,7 +47,7 @@ var (
 const (
 	CConnType            = "tcp"
 	CTimeout             = 5 * time.Second
-	CPingTime            = 2 * time.Second
+	CPingTime            = 7 * time.Second
 	CTotalDisconnectTime = 5 * time.Second
 )
 
