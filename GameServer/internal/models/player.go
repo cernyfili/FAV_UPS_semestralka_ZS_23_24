@@ -37,6 +37,7 @@ type Player struct {
 	stateMachine            *stateless.StateMachine
 	responseSuccessExpected []Message
 	mutex                   sync.Mutex
+	lastPingTime            time.Time
 }
 
 //endregion
@@ -151,25 +152,40 @@ func (p *Player) SetConnectedByBool(isConnected bool) {
 	}
 }
 
+func diffWithCurrentTime(timeStr string) time.Duration {
+	messageTime, err := time.Parse(constants.CMessageTimeFormat, timeStr)
+	if err != nil {
+		errorHandeling.AssertError(fmt.Errorf("Error parsing message time: %w", err))
+	}
+
+	currentTime := time.Now()
+	formattedCurrentTimeStr := currentTime.Format(constants.CMessageTimeFormat)
+	formattedCurrentTime, err := time.Parse(constants.CMessageTimeFormat, formattedCurrentTimeStr)
+	if err != nil {
+		errorHandeling.AssertError(fmt.Errorf("Error parsing current time: %w", err))
+	}
+
+	diff := formattedCurrentTime.Sub(messageTime)
+
+	return diff
+}
+
 // is response expected timeout
 func (p *Player) IsResponseExpectedTimeout() (bool, error) {
 	p.lock()
 	defer p.unlock()
 
-	currentTime := time.Now()
 	timeOut := constants.CTimeout
 
 	for _, message := range p.responseSuccessExpected {
-		//convert string timestemp to time
-		messageTime, err := time.Parse(constants.CMessageTimeFormat, message.TimeStamp)
-		if err != nil {
-			err = fmt.Errorf("Error parsing message time: %w", err)
-			errorHandeling.PrintError(err)
-			return false, err
-		}
 
-		isTimeout := currentTime.Sub(messageTime) > timeOut
+		diff := diffWithCurrentTime(message.TimeStamp)
+
+		isTimeout := diff > timeOut
 		if isTimeout {
+			logger.Log.Infof("TIME_OUT: - Response from Player %s for message %s", p.nickname, message.CommandID)
+			//time values in log
+
 			return true, nil
 		}
 
@@ -229,9 +245,9 @@ func (p *Player) FireStateMachine(trigger stateless.Trigger) error {
 	afterState := p.stateMachine.MustState()
 
 	//reset the expected responses
-	if beforeState != afterState {
-		//p.resetResponseSuccessExpected()
-	}
+	//if beforeState != afterState {
+	//	//p.resetResponseSuccessExpected()
+	//}
 
 	logger.Log.Infof("AUTOMATA: Player %s changed state from %s : - %s - : %s", p.nickname, beforeState, trigger, afterState)
 	return nil
@@ -294,6 +310,22 @@ func (p *Player) SetConnected(state ConnectionStateType) {
 	defer p.unlock()
 
 	p.connectionState = state
+}
+
+func (p *Player) SetLastPingCurrentTime() {
+	p.lock()
+	defer p.unlock()
+
+	p.lastPingTime = time.Now()
+}
+
+func (p *Player) IsTimeForNewPing() bool {
+	p.lock()
+	defer p.unlock()
+
+	diff := time.Since(p.lastPingTime)
+
+	return diff > constants.CPingTime
 }
 
 //endregion

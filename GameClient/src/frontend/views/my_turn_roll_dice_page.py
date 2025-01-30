@@ -17,7 +17,7 @@ from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
 from src.frontend.views.utils import PAGES_DIC, show_game_data, start_listening_for_updates_update_gamedata, \
     show_loading_animation, \
-    stop_loading_animation, destroy_elements
+    stop_animation, destroy_elements
 from src.frontend.views.utils import process_is_not_connected, stop_update_thread
 from src.shared.constants import CCommandTypeEnum, GameData
 
@@ -79,27 +79,27 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
 
             stop_update_thread(self)
             try:
-                is_connected, command, cube_values_list = ServerCommunication().send_client_roll_dice()
-                if not is_connected:
-                    process_is_not_connected(self)
-
-                if command == CCommandTypeEnum.ResponseServerSelectCubes.value:
-                    next_page_name = PAGES_DIC.MyTurnSelectCubesPage
-                elif command == CCommandTypeEnum.ResponseServerEndTurn.value:
-                    messagebox.showinfo("End of turn",
-                                        "Your turn is over you didnt roll any from the allowed combinations")
-                    next_page_name = PAGES_DIC.RunningGamePage
-                else:
-                    raise Exception("Unknown command")
+                is_connected, command, page_data = ServerCommunication().send_client_roll_dice()
             except Exception as e:
                 logging.error(f"Error while sending roll dice command: {e}")
-                process_is_not_connected(self)
-                # todo remove
-                raise e
-            finally:
-                stop_loading_animation(self)
+                self._show_process_is_not_connected()
+                return
 
-            self.controller.show_page(next_page_name, cube_values_list)
+            if not is_connected:
+                self._show_process_is_not_connected()
+                return
+
+            if command == CCommandTypeEnum.ResponseServerSelectCubes.value:
+                next_page_name = PAGES_DIC.MyTurnSelectCubesPage
+            elif command == CCommandTypeEnum.ResponseServerEndTurn.value:
+                messagebox.showinfo("End of turn",
+                                    "Your turn is over you didnt roll any from the allowed combinations")
+                next_page_name = PAGES_DIC.RunningGamePage
+            else:
+                assert False, "Unknown command"
+
+            stop_animation(self)
+            self.controller.show_page(next_page_name, page_data)
 
         show_loading_animation(self, tk)
 

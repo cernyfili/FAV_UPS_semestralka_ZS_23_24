@@ -10,6 +10,7 @@ import (
 	"gameserver/internal/utils/errorHandeling"
 	"net"
 	"os"
+	"time"
 )
 
 func StartServer() {
@@ -88,6 +89,8 @@ func _tryStartTurn(conn net.Conn) error {
 
 func handleConnection(conn net.Conn) {
 	logger.Log.Info("New connection from " + conn.RemoteAddr().String())
+	go continuousSendPing(conn)
+
 	for {
 		// if connection is closed
 		if conn == nil {
@@ -95,6 +98,7 @@ func handleConnection(conn net.Conn) {
 		}
 		player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
 
+		// client havent responded to some of the messages
 		isResponseTimeout, err := checkTimeoutResponseSuccess(player)
 		if err != nil {
 			err = fmt.Errorf("Error checking timeout: %w", err)
@@ -169,6 +173,65 @@ func handleConnection(conn net.Conn) {
 		}
 	}
 }
+
+func continuousSendPing(conn net.Conn) {
+	for {
+		if conn == nil {
+			return
+		}
+		player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
+
+		if player == nil {
+			continue
+		}
+
+		can_fire, err := player.GetStateMachine().CanFire(constants.CGCommands.ServerPingPlayer.Trigger)
+		if err != nil {
+			err = fmt.Errorf("Error checking if can fire: %w", err)
+			errorHandeling.PrintError(err)
+			return
+		}
+		if !can_fire {
+			continue
+		}
+
+		err = command_processing.ProcessSendPingPlayer(player)
+		if err != nil {
+			logger.Log.Info("Couldne sending ping: " + err.Error())
+
+			err = disconnectPlayer(player)
+			if err != nil {
+				err = fmt.Errorf("Error disconnecting player: %w", err)
+				errorHandeling.PrintError(err)
+				return
+			}
+			return
+		}
+
+		time.Sleep(constants.CPingTime)
+	}
+}
+
+//func sendPing(player *models.Player) error {
+//	if player == nil {
+//		return nil
+//	}
+//
+//	if !player.IsTimeForNewPing() {
+//		return nil
+//	}
+//
+//	err := command_processing.ProcessSendPingPlayer(player)
+//	if err != nil {
+//		err = fmt.Errorf("Error sending ping: %w", err)
+//		errorHandeling.PrintError(err)
+//		return err
+//	}
+//
+//	player.SetLastPingCurrentTime()
+//
+//	return nil
+//}
 
 func disconnectPlayer(player *models.Player) error {
 	if player == nil {

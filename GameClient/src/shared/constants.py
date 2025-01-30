@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Final, List
@@ -203,6 +204,7 @@ GAME_STATE_MACHINE : GameStateMachine = GameStateMachine()
 def reset_game_state_machine():
     global GAME_STATE_MACHINE
     GAME_STATE_MACHINE = GameStateMachine()
+    logging.debug("Game state machine reset")
 
 NETWORK_PARAM_EMPTY : Final = []
 
@@ -492,7 +494,7 @@ class CMessageConfig:
 
 @dataclass(frozen=True)
 class CNetworkConfig:
-    RECEIVE_TIMEOUT = 5
+    RECEIVE_TIMEOUT = 10
     BUFFER_SIZE: Final = 1024
     MAX_MESSAGE_SIZE: Final = 1024
     RECONNECT_ATTEMPTS: Final = 3  # todo change

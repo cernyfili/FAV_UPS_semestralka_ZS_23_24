@@ -47,8 +47,8 @@ var (
 const (
 	CConnType            = "tcp"
 	CTimeout             = 5 * time.Second
-	CPingTime            = 5 * time.Second
-	CTotalDisconnectTime = 10 * time.Second
+	CPingTime            = 2 * time.Second
+	CTotalDisconnectTime = 5 * time.Second
 )
 
 //endregion

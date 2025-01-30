@@ -13,7 +13,7 @@ from tkinter import messagebox
 from types import SimpleNamespace
 
 from src.backend.server_communication import ServerCommunication
-from src.shared.constants import GAME_STATE_MACHINE, CCommandTypeEnum, Command
+from src.shared.constants import GAME_STATE_MACHINE, CCommandTypeEnum, Command, NetworkMessage
 
 pages_names = {
     "StartPage": "StartPage",
@@ -26,10 +26,37 @@ pages_names = {
 
 PAGES_DIC = SimpleNamespace(**pages_names)
 
-def process_is_not_connected(instance_object):
-    # todo messagebox.showerror("Connection Failed", "Could not connect to the server")
-    instance_object.controller.show_page("StartPage")
-    raise ConnectionError("Could not connect to the server")
+def process_is_not_connected() -> tuple[str, list | None]:
+    def __inn_not_connected():
+        next_page_name = PAGES_DIC.StartPage
+        messagebox.showerror("Connection Failed", "Could not connect to the server")
+        return next_page_name, None
+    try:
+        is_connected, received_message, message_list = ServerCommunication().communication_reconnect_message()
+    except Exception as e:
+        return __inn_not_connected()
+
+    if not is_connected:
+        return __inn_not_connected()
+
+    try:
+        next_page_name = get_connect_next_page(received_message)
+    except Exception as e:
+        assert False, f"Unknown command: {received_message}"
+
+    return next_page_name, message_list
+
+def get_connect_next_page(message : NetworkMessage) -> str:
+    next_page_name_dic: dict[int, str] = {
+        CCommandTypeEnum.ResponseServerReconnectBeforeGame.value.id: PAGES_DIC.BeforeGamePage,
+        CCommandTypeEnum.ResponseServerReconnectRunningGame.value.id: PAGES_DIC.RunningGamePage,
+        CCommandTypeEnum.ResponseServerGameList.value.id: PAGES_DIC.LobbyPage
+    }
+
+    next_page_name = next_page_name_dic.get(message.command_id)
+    if not next_page_name:
+        raise Exception("Unknown command")
+    return next_page_name
 
 def stop_update_thread(self):
     logging.debug("Stopping the update thread")
@@ -43,7 +70,7 @@ def stop_update_thread(self):
 
 
 # region Loading animation
-def stop_loading_animation(self):
+def stop_animation(self):
     if hasattr(self, 'loading_label'):
         self.loading_label.destroy()
 
@@ -75,6 +102,15 @@ def show_loading_animation(self, tk):
     self.loading_label = tk.Label(self, text="Loading...")
     self.loading_label.pack(pady=10, padx=10)
     animate(self, self.loading_label, "Loading")
+
+def show_reconnecting_animation(self, tk):
+    # destroy the current content
+    for widget in self.winfo_children():
+        widget.destroy()
+
+    self.loading_label = tk.Label(self, text="Attempting to reconnect...")
+    self.loading_label.pack(pady=10, padx=10)
+    animate(self, self.loading_label, "Attempting to reconnect")
 
 
 # endregion
@@ -133,14 +169,16 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
         while current_state == state_name and not stop_event.is_set():
             logging.debug("Listening for Data updates")
             try:
+                if stop_event.is_set():
+                    return
+
                 is_connected, message_info_list = update_function()
 
                 if stop_event.is_set():
                     return
 
-
                 if not is_connected:
-                    process_is_not_connected(self)
+                    self._show_process_is_not_connected()
                     return
 
                 if not message_info_list:
@@ -148,6 +186,9 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
                     continue
 
                 for i, message_info in enumerate(message_info_list):
+                    if stop_event.is_set():
+                        return
+
                     command, message_data = message_info
 
                     is_handled = False
@@ -171,7 +212,6 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
                             handler(message_data)
                         else:
                             handler()
-
                         return
 
                     raise Exception("Unknown command or in buffer message for different page")
@@ -183,8 +223,10 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
 
     state_name = self._get_state_name()
     update_function = self._get_update_function()
+
     stop_event = threading.Event()
     self._stop_event = stop_event
+
 
     logging.debug("Starting to listen for updates")
     # Wait for the update thread to finish

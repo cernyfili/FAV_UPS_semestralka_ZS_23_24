@@ -14,7 +14,8 @@ from abc import ABC
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
-from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates, destroy_elements
+from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates, destroy_elements, \
+    process_is_not_connected
 from src.shared.constants import CGameConfig, CMessageConfig, Game, Param, CCommandTypeEnum
 
 
@@ -171,9 +172,24 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
         return self.button_action_standard(tk=tk, send_function=send_function, next_page_name=next_page_name,
                                            param_list=param_list)
 
+    def _process_is_not_connected(self):
+        next_page_name = PAGES_DIC.StartPage
+
+        self.controller.show_page(next_page_name)
+
     def _start_listening_for_updates(self):
         process_command: dict[int, callable] = {}
         continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
         update_command = CCommandTypeEnum.ServerUpdateGameList.value
 
+        #list_start_listening_for_updates(self, process_command, update_command, continue_commands, self._process_is_not_connected)
         list_start_listening_for_updates(self, process_command, update_command, continue_commands)
+
+        # def on_thread_finish():
+        #     print("Thread")
+        #     with self._lock:
+        #         if self._is_connected == False:
+        #             next_page_name, page_data = process_is_not_connected()
+        #             self.controller.show_page(next_page_name, page_data)
+        #
+        # threading.Thread(target=lambda: (self._update_thread.join(), on_thread_finish())).start()

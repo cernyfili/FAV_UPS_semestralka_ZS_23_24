@@ -342,11 +342,18 @@ func processTotalDisconnect(player *models.Player) {
 
 	playerFromList.SetConnected(models.ConnectionStates.TotalDisconnect)
 
-	//send updates
+	//remove player from game
 	game := models.GetInstanceGameList().GetPlayersGame(player)
 	if game == nil {
 		return
 	}
+
+	err = models.GetInstanceGameList().RemovePlayerFromGame(player)
+	if err != nil {
+		errorHandeling.AssertError(fmt.Errorf("error removing player from game"))
+	}
+
+	//send updates
 	err = SendAllUpdates(game)
 	if err != nil {
 		err = fmt.Errorf("Error sending game updates: %w", err)
@@ -423,11 +430,7 @@ func connectionReadTimeout(connection net.Conn) ([]models.Message, bool, error) 
 
 	//Save to logger
 	for _, message := range messageList {
-		err = network_utils.GReceivedMessageList.AddItem(message)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return []models.Message{}, isTimeout, err
-		}
+		network_utils.GReceivedMessageList.AddItem(message)
 	}
 
 	return messageList, false, nil
@@ -436,8 +439,7 @@ func connectionReadTimeout(connection net.Conn) ([]models.Message, bool, error) 
 func connectionWrite(connection net.Conn, message models.Message) error {
 	messageStr, err := parser.ConvertMessageToNetworkString(message)
 	if err != nil {
-		errorHandeling.PrintError(err)
-		return err
+		errorHandeling.AssertError(fmt.Errorf("error converting message to network string"))
 	}
 
 	_, err = connection.Write([]byte(messageStr))
@@ -446,11 +448,7 @@ func connectionWrite(connection net.Conn, message models.Message) error {
 		return fmt.Errorf("error writing", err)
 	}
 
-	err = network_utils.GSendMessageList.AddItem(message)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return err
-	}
+	network_utils.GSendMessageList.AddItem(message)
 
 	return nil
 }

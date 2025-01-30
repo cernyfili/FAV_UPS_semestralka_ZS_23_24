@@ -7,13 +7,15 @@ Created: 02.01.2025
 Version: 1.0
 Description: 
 """
+import logging
 import re
 import threading
 import time
 import tkinter as tk
 
 from src.backend.server_communication import ServerCommunication
-from src.frontend.views.utils import PAGES_DIC, show_loading_animation, stop_loading_animation
+from src.frontend.views.utils import PAGES_DIC, show_loading_animation, stop_animation, get_connect_next_page, \
+    destroy_elements
 from src.frontend.views.utils import process_is_not_connected
 from src.shared.constants import CMessageConfig, CCommandTypeEnum
 
@@ -22,6 +24,21 @@ class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+
+        self._load_page_content()
+
+    def tkraise(self, aboveThis=None):
+        page_name = self.winfo_name()
+        logging.debug(f"Raising Page: {page_name}")
+        # Call the original tkraise method
+        super().tkraise(aboveThis)
+
+        # Custom behavior after raising the frame
+        self._load_page_content()
+
+    def _load_page_content(self):
+        destroy_elements(self)
+
 
         label = tk.Label(self, text="Connect to a Server")
         label.pack(pady=10, padx=10, fill='both', expand=True)
@@ -76,33 +93,27 @@ class StartPage(tk.Frame):
     def _button_action_connect(self, ip : str, port : int, nickname : str):
 
         def run_send_function(ip, port, nickname):
-            next_page_name_dic: dict[int, str] = {
-                CCommandTypeEnum.ResponseServerReconnectBeforeGame.value.id: PAGES_DIC.BeforeGamePage,
-                CCommandTypeEnum.ResponseServerReconnectRunningGame.value.id: PAGES_DIC.RunningGamePage,
-                CCommandTypeEnum.ResponseServerGameList.value.id: PAGES_DIC.LobbyPage
-            }
+            try:
+                is_connected, response_message, update_list = ServerCommunication().send_connect_message(ip, port,
+                                                                                                         nickname)
+            except Exception as e:
+                next_page_name, page_data = process_is_not_connected()
+                stop_animation(self)
+                self.controller.show_page(next_page_name, page_data)
+                return
+
+            if not is_connected:
+                next_page_name, page_data = process_is_not_connected()
+                stop_animation(self)
+                self.controller.show_page(next_page_name, page_data)
+                return
 
             try:
-                is_connected, response_command, update_list = ServerCommunication().send_connect_message(ip, port,
-                                                                                                         nickname)
-                if not is_connected:
-                    process_is_not_connected(self)
+                next_page_name = get_connect_next_page(response_message)
             except Exception as e:
-                process_is_not_connected(self)
-                # todo remove
-                raise
-            finally:
-                stop_loading_animation(self)
+                assert False, f"Unknown command: {response_message}"
 
-            next_page_name = None
-            for key, value in next_page_name_dic.items():
-                if response_command.command_id != key:
-                    continue
-                next_page_name = value
-                break
-            if not next_page_name:
-                raise Exception("Unknown command")
-
+            stop_animation(self)
             self.controller.show_page(next_page_name, update_list)
 
         show_loading_animation(self, tk)

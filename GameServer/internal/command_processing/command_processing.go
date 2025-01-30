@@ -989,9 +989,6 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 	if playerFromList == nil {
 		return __disconnectPlayer(player)
 	}
-	if playerFromList.IsConnected() {
-		return __disconnectPlayer(player)
-	}
 	// Convert params
 	if len(params) != 0 {
 		err = dissconectPlayer(player)
@@ -1145,14 +1142,10 @@ func ProcessSendPingPlayer(player *models.Player) error {
 	commandTrigger := constants.CGCommands.ServerPingPlayer.Trigger
 	canFire, err := player.GetStateMachine().CanFire(commandTrigger)
 	if err != nil {
-		err = fmt.Errorf("cannot join game %w", err)
-		errorHandeling.PrintError(err)
-		return err
+		errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
 	}
 	if !canFire {
-		err = fmt.Errorf("state machine cannot fire")
-		errorHandeling.PrintError(err)
-		return err
+		errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
 	}
 
 	err = network.CommunicationServerPingPlayer(player)
@@ -1165,9 +1158,7 @@ func ProcessSendPingPlayer(player *models.Player) error {
 	//fire
 	err = player.FireStateMachine(commandTrigger)
 	if err != nil {
-		err = fmt.Errorf("Error firing state machine: %w", err)
-		errorHandeling.PrintError(err)
-		return err
+		errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
 	}
 
 	return nil

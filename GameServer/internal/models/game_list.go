@@ -119,7 +119,7 @@ func (gl *GameList) RemovePlayerFromGame(player *Player) error {
 
 	err := game.RemovePlayer(player)
 	if err != nil {
-		err = fmt.Errorf("cannot create playersGame %w", err)
+		err = fmt.Errorf("cannot remove player %w", err)
 		errorHandeling.PrintError(err)
 		panic(err)
 	}

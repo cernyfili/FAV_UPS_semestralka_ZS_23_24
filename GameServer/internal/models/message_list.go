@@ -37,7 +37,7 @@ func CreateMessageList(typeMess MessageType) *MessageList {
 	}
 }
 
-func (pl *MessageList) AddItem(message Message) error {
+func (pl *MessageList) AddItem(message Message) {
 	pl.list.mutex.Lock()
 	defer pl.list.mutex.Unlock()
 
@@ -48,10 +48,8 @@ func (pl *MessageList) AddItem(message Message) error {
 	key := message.PlayerNickname + message.TimeStamp + commandIDstr
 	err := pl.list.AddItemKey(key, message)
 	if err != nil {
-		errorHandeling.PrintError(err)
-		return err
+		errorHandeling.AssertError(fmt.Errorf("cannot add item to list"))
 	}
-	return nil
 }
 
 func (pl *MessageList) GetMessagesByPlayer(nickname string) ([]Message, error) {

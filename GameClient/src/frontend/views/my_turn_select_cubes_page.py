@@ -16,7 +16,7 @@ from tkinter import messagebox
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
 from src.frontend.views.utils import PAGES_DIC, start_listening_for_updates_update_gamedata, show_loading_animation, \
-    stop_loading_animation, show_game_data, destroy_elements
+    stop_animation, show_game_data, destroy_elements
 from src.frontend.views.utils import process_is_not_connected, stop_update_thread
 from src.shared.constants import CubeValuesList, ALLOWED_CUBE_VALUES_COMBINATIONS, CombinationList, CCommandTypeEnum, \
     GameData
@@ -201,25 +201,23 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
 
             try:
                 is_connected, command = ServerCommunication().send_client_select_cubes(selected_dice_cubes_values)
-                if not is_connected:
-                    process_is_not_connected(self)
-
-                elif command == CCommandTypeEnum.ResponseServerDiceSuccess.value:
-                    next_page_name = PAGES_DIC.MyTurnRollDicePage
-                    self.controller.show_page(next_page_name)
-
-                elif command == CCommandTypeEnum.ResponseServerEndScore.value:
-                    messagebox.showinfo("!!! YOU WON !!!", "You have reached the score limit")
-                    next_page_name = PAGES_DIC.LobbyPage
-                    self.controller.show_page(next_page_name)
-                else:
-                    raise Exception("Unknown command")
             except Exception as e:
-                process_is_not_connected(self)
-                # todo remove
-                raise e
-            finally:
-                stop_loading_animation(self)
+                self._show_process_is_not_connected()
+                return
+            if not is_connected:
+                self._show_process_is_not_connected()
+                return
+
+            if command == CCommandTypeEnum.ResponseServerDiceSuccess.value:
+                next_page_name = PAGES_DIC.MyTurnRollDicePage
+            elif command == CCommandTypeEnum.ResponseServerEndScore.value:
+                messagebox.showinfo("!!! YOU WON !!!", "You have reached the score limit")
+                next_page_name = PAGES_DIC.LobbyPage
+            else:
+                assert False, "Unknown command"
+
+            stop_animation(self)
+            self.controller.show_page(next_page_name)
 
         # Get the selected dice cubes
         selected_dice_cubes_values = [self._cubes_values_list[i] for i in range(len(self.dice_cube_vars)) if
