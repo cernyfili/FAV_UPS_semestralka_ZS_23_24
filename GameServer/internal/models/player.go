@@ -209,7 +209,7 @@ func (p *Player) IncreaseResponseSuccessExpected(message Message) {
 }
 
 // decrease the number of expected responses
-func (p *Player) DecreaseResponseSuccessExpected() error {
+func (p *Player) DecreaseResponseSuccessExpected(timeStamp string) error {
 	p.lock()
 	defer p.unlock()
 	len_list := len(p.responseSuccessExpected)
@@ -224,9 +224,17 @@ func (p *Player) DecreaseResponseSuccessExpected() error {
 		return err
 	}
 
-	//Remove last from list
-	p.responseSuccessExpected = p.responseSuccessExpected[1:]
-	return nil
+	//Remove with same timestamp
+	for i, message := range p.responseSuccessExpected {
+		if message.TimeStamp == timeStamp {
+			p.responseSuccessExpected = append(p.responseSuccessExpected[:i], p.responseSuccessExpected[i+1:]...)
+			return nil
+		}
+	}
+
+	err := fmt.Errorf("No response with timestamp %s found", timeStamp)
+	errorHandeling.PrintError(err)
+	return err
 }
 
 // Fires the state machine

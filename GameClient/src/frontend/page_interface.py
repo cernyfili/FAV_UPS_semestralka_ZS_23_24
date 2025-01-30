@@ -10,10 +10,11 @@ Description:
 import threading
 import tkinter as tk
 from abc import ABC, abstractmethod
+from tkinter import messagebox
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.views.utils import stop_update_thread, PAGES_DIC, process_is_not_connected, show_loading_animation, \
-    stop_animation, show_reconnecting_animation
+    stop_animation, show_reconnecting_animation, animate
 
 
 #
@@ -43,6 +44,48 @@ class UpdateInterface(ABC):
         # Logout button in right upper corner of window
         logout_button = tk.Button(self, text="Logout", command=lambda: self._button_action_logout())
         logout_button.place(relx=1.0, rely=0.0, anchor="ne")
+
+    def process_error(self, message):
+        messagebox.showerror("Error", message)
+
+    def show_game_data(self, player_list):
+        if player_list == '[]' or not player_list:
+            label = tk.Label(self, text="No players connected")
+            label.pack(pady=10, padx=10)
+            return
+
+        # Create a frame to contain the player data with a border
+        frame = tk.Frame(self, bd=2, relief="solid")
+        frame.pack(pady=10, padx=10)
+
+        # Create a label for the game
+        label = tk.Label(frame, text="GAME DATA", font=("Helvetica", 12, "underline"))
+        label.pack(pady=10, padx=10)
+
+        for player in player_list:
+            player_name = player.player_name
+            score = player.score
+            is_turn = player.is_turn
+            is_connected = player.is_connected
+
+            if player_name == ServerCommunication().nickname:
+                player_name += " (You)"
+
+            # Create a label for each player and their score
+            player_label = tk.Label(frame, text=f"{player_name}: {score}")
+
+            # if the player isnt connected show the label in gray
+            if not is_connected:
+                player_label.config(fg="gray")
+
+            player_label.pack(pady=10, padx=10)
+
+            # If it's the player's turn, display a waiting animation
+            if is_turn:
+                self.waiting_animation = tk.Label(frame, text="Playing")
+                self.waiting_animation.pack(pady=2, padx=10)
+                animate(self=self, waiting_animation=self.waiting_animation, label_str="Playing")
+
 
     def _button_action_logout(self):
         send_function = ServerCommunication().send_client_logout

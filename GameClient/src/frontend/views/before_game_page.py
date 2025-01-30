@@ -54,7 +54,8 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
 
     def _start_listening_for_updates(self):
         process_command: dict[int, callable] = {
-            CCommandTypeEnum.ServerUpdateStartGame.value.id: self._process_start_game
+            CCommandTypeEnum.ServerUpdateStartGame.value.id: self._process_start_game,
+            CCommandTypeEnum.ResponseServerError.value.id: self.process_error
         }
         continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
         update_command = CCommandTypeEnum.ServerUpdatePlayerList.value

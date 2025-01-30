@@ -15,10 +15,10 @@ from tkinter import messagebox
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
-from src.frontend.views.utils import PAGES_DIC, show_game_data, start_listening_for_updates_update_gamedata, \
+from src.frontend.views.utils import PAGES_DIC, start_listening_for_updates_update_gamedata, \
     show_loading_animation, \
     stop_animation, destroy_elements
-from src.frontend.views.utils import process_is_not_connected, stop_update_thread
+from src.frontend.views.utils import stop_update_thread
 from src.shared.constants import CCommandTypeEnum, GameData
 
 
@@ -69,7 +69,7 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
         self.roll_dice_button = tk.Button(self, text="Roll Dice", command=self._button_action_send_roll_dice, state="normal")
         self.roll_dice_button.pack(pady=10, padx=10)
 
-        show_game_data(self, tk, self._list)
+        self.show_game_data(self._list)
 
     def _start_listening_for_updates(self):
         start_listening_for_updates_update_gamedata(self)

@@ -14,8 +14,7 @@ from abc import ABC
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
-from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates, destroy_elements, \
-    process_is_not_connected
+from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates, destroy_elements
 from src.shared.constants import CGameConfig, CMessageConfig, Game, Param, CCommandTypeEnum
 
 
@@ -178,7 +177,9 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
         self.controller.show_page(next_page_name)
 
     def _start_listening_for_updates(self):
-        process_command: dict[int, callable] = {}
+        process_command: dict[int, callable] = {
+            CCommandTypeEnum.ResponseServerError.value.id: self.process_error
+        }
         continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
         update_command = CCommandTypeEnum.ServerUpdateGameList.value
 

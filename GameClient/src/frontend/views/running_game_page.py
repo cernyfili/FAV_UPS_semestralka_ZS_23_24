@@ -15,7 +15,7 @@ from tkinter import messagebox
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
-from src.frontend.views.utils import PAGES_DIC, show_game_data, list_start_listening_for_updates, destroy_elements
+from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates, destroy_elements
 from src.shared.constants import GameData, CCommandTypeEnum
 
 
@@ -136,7 +136,8 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
         process_command = {
             CCommandTypeEnum.ServerStartTurn.value.id: self._process_start_turn,
             CCommandTypeEnum.ServerUpdateEndScore.value.id: self._process_update_end_score,
-            CCommandTypeEnum.ServerUpdateNotEnoughPlayers.value.id: self._process_update_not_enough_players
+            CCommandTypeEnum.ServerUpdateNotEnoughPlayers.value.id: self._process_update_not_enough_players,
+            CCommandTypeEnum.ResponseServerError.value.id: self.process_error
         }
         continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
         update_command = CCommandTypeEnum.ServerUpdateGameData.value
@@ -152,7 +153,7 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
         header = tk.Label(self, text="Game is running")
         header.pack(pady=10, padx=10)
 
-        show_game_data(self, tk, self._list)
+        self.show_game_data(self._list)
 
     def _process_start_turn(self):
         next_page_name = PAGES_DIC.MyTurnRollDicePage

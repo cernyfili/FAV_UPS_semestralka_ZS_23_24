@@ -12,19 +12,20 @@ import (
 	"gameserver/internal/utils/errorHandeling"
 	"gameserver/internal/utils/helpers"
 	"net"
+	"time"
 )
 
 // CommandsHandlers is a map of valid commands and their information.
 var CommandsHandlers = map[int]CommandInfo{
 	//1: {"PLAYER_LOGIN", processPlayerLogin} first case in if in ProcessMessage
-	constants.CGCommands.ClientCreateGame.CommandID:      {processClientCreateGame, constants.CGCommands.ClientCreateGame},
-	constants.CGCommands.ClientJoinGame.CommandID:        {processClientJoinGame, constants.CGCommands.ClientJoinGame},
-	constants.CGCommands.ClientStartGame.CommandID:       {processClientStartGame, constants.CGCommands.ClientStartGame},
-	constants.CGCommands.ClientLogout.CommandID:          {processClientPlayerLogout, constants.CGCommands.ClientLogout},
-	constants.CGCommands.ClientReconnect.CommandID:       {processClientReconnect, constants.CGCommands.ClientReconnect},
-	constants.CGCommands.ResponseClientSuccess.CommandID: {processResponseClientSucess, constants.CGCommands.ResponseClientSuccess},
-	constants.CGCommands.ClientRollDice.CommandID:        {processClientRollDice, constants.CGCommands.ClientRollDice},
-	constants.CGCommands.ClientSelectedCubes.CommandID:   {processClientSelectedCubes, constants.CGCommands.ClientSelectedCubes},
+	constants.CGCommands.ClientCreateGame.CommandID: {processClientCreateGame, constants.CGCommands.ClientCreateGame},
+	constants.CGCommands.ClientJoinGame.CommandID:   {processClientJoinGame, constants.CGCommands.ClientJoinGame},
+	constants.CGCommands.ClientStartGame.CommandID:  {processClientStartGame, constants.CGCommands.ClientStartGame},
+	constants.CGCommands.ClientLogout.CommandID:     {processClientPlayerLogout, constants.CGCommands.ClientLogout},
+	constants.CGCommands.ClientReconnect.CommandID:  {processClientReconnect, constants.CGCommands.ClientReconnect},
+	//constants.CGCommands.ResponseClientSuccess.CommandID: {processResponseClientSucess, constants.CGCommands.ResponseClientSuccess},
+	constants.CGCommands.ClientRollDice.CommandID:      {processClientRollDice, constants.CGCommands.ClientRollDice},
+	constants.CGCommands.ClientSelectedCubes.CommandID: {processClientSelectedCubes, constants.CGCommands.ClientSelectedCubes},
 }
 
 //endregion
@@ -105,6 +106,16 @@ func ProcessMessage(message models.Message, conn net.Conn) error {
 	responseInfo := models.MessageInfo{
 		ConnectionInfo: connectionInfo,
 		PlayerNickname: playerNickname,
+	}
+
+	// SPECIAL CASE: Response Success
+	if commandID == constants.CGCommands.ResponseClientSuccess.CommandID {
+		err = processResponseClientSucess(player, timeStamp)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return fmt.Errorf("invalid command or incorrect number of arguments")
+		}
+		return nil
 	}
 
 	commandInfo, err := getCommandInfo(commandID)
@@ -194,8 +205,17 @@ func cubesCanBePlayed(values []int) bool {
 
 //region PROCESS FUNCTIONS
 
-func processResponseClientSucess(player *models.Player, params []constants.Params, command constants.Command) error {
-	return command_processing_utils.ProcessResponseClientSucessByPlayer(player)
+func processResponseClientSucess(player *models.Player, timeStamp string) error {
+	err := command_processing_utils.ProcessResponseClientSucessByPlayer(player, timeStamp)
+	if err != nil {
+		//disconnect player
+		err = dissconectPlayer(player)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+	}
+	return nil
 }
 
 func processPlayerLogin(playerNickname string, connectionInfo models.ConnectionInfo, command constants.Command) error {
@@ -1343,6 +1363,9 @@ func ProcessPlayerTurn(game *models.Game) error {
 		return __handleErrorMyTurn(turnPlayer, game)
 	}
 	//endregion
+
+	//todo remov
+	time.Sleep(1 * time.Second)
 
 	//region ServerUpdateGameData
 	err = network.ProcessCommunicationServerUpdateGameData(game)

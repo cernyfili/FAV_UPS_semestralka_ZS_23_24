@@ -6,8 +6,8 @@ import (
 	"gameserver/internal/utils/errorHandeling"
 )
 
-func ProcessResponseClientSucessByPlayer(player *models.Player) error {
-	err := player.DecreaseResponseSuccessExpected()
+func ProcessResponseClientSucessByPlayer(player *models.Player, timeStamp string) error {
+	err := player.DecreaseResponseSuccessExpected(timeStamp)
 	if err != nil {
 		err = fmt.Errorf("Error decreasing response expected: %w", err)
 		errorHandeling.PrintError(err)

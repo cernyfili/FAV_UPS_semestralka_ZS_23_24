@@ -115,47 +115,6 @@ def show_reconnecting_animation(self, tk):
 
 # endregion
 
-def show_game_data(self, tk, player_list):
-    if player_list == '[]' or not player_list:
-        label = tk.Label(self, text="No players connected")
-        label.pack(pady=10, padx=10)
-        return
-
-    # Create a frame to contain the player data with a border
-    frame = tk.Frame(self, bd=2, relief="solid")
-    frame.pack(pady=10, padx=10)
-
-    # Create a label for the game
-    label = tk.Label(frame, text="GAME DATA", font=("Helvetica", 12, "underline"))
-    label.pack(pady=10, padx=10)
-
-
-    for player in player_list:
-        player_name = player.player_name
-        score = player.score
-        is_turn = player.is_turn
-        is_connected = player.is_connected
-
-        if player_name == ServerCommunication().nickname:
-            player_name += " (You)"
-
-        # Create a label for each player and their score
-        player_label = tk.Label(frame, text=f"{player_name}: {score}")
-
-
-        # if the player isnt connected show the label in gray
-        if not is_connected:
-            player_label.config(fg="gray")
-
-        player_label.pack(pady=10, padx=10)
-
-        # If it's the player's turn, display a waiting animation
-        if is_turn:
-            self.waiting_animation = tk.Label(frame, text="Playing")
-            self.waiting_animation.pack(pady=2, padx=10)
-            animate(self=self, waiting_animation=self.waiting_animation, label_str="Playing")
-
-
 # def _standard_start_listening_for_updates(self, process_command, listen_for_updates: callable, continue_commands):
 #     pass
 
@@ -246,6 +205,7 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
 
 def start_listening_for_updates_update_gamedata(self):
     process_command = {
+        CCommandTypeEnum.ResponseServerError.value.id: self.process_error
     }
     continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
     update_command = CCommandTypeEnum.ServerUpdateGameData.value
@@ -259,4 +219,4 @@ def destroy_elements(self):
                 try:
                     widget.destroy()
                 except Exception as e:
-                    logging.error(f"Error destroying widget: {e}")
+                    logging.error(f"Error while destroying widget: {e}")

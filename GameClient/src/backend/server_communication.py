@@ -76,7 +76,7 @@ class ServerCommunication:
 
         self._was_connected = True
 
-    def _send_message(self, command: Command, param=None) -> bool:
+    def _send_message(self, command: Command, param=None, timeStamp=None) -> bool:
         """
 
         :param command:
@@ -84,10 +84,11 @@ class ServerCommunication:
         :return: bool - isConnected
         """
 
-        def create_message(command: Command, param: List[Param]) -> NetworkMessage:
+        def create_message(command: Command, param: List[Param], timestamp) -> NetworkMessage:
             command_id = command.id
             nickname = self._nickname
-            timestamp = datetime.now().strftime(CMessageConfig.TIMESTAMP_FORMAT)
+            if not timestamp:
+                timestamp = datetime.now().strftime(CMessageConfig.TIMESTAMP_FORMAT)
 
             message = NetworkMessage(CMessageConfig.SIGNATURE, command_id, timestamp, nickname, param)
             return message
@@ -98,7 +99,7 @@ class ServerCommunication:
         if param is None:
             param = []
 
-        message = create_message(command, param)
+        message = create_message(command, param, timeStamp)
 
         message_str = convert_message_to_network_string(message)
         # check if right param
@@ -201,7 +202,7 @@ class ServerCommunication:
                 # process ServerPingPlayer
                 received_command = CCommandTypeEnum.get_command_by_id(received_message.command_id)
                 if received_command.id == CCommandTypeEnum.ServerPingPlayer.value.id:
-                    is_connected = self._process_respond_successs(received_command)
+                    is_connected = self._process_respond_successs(received_command, received_message)
                     if not is_connected:
                         return False, None
                     continue
@@ -826,14 +827,18 @@ class ServerCommunication:
     #     return is_connected, is_timeout, return_received_message
 
     def _process_server_ping_player(self, received_command, received_message) -> tuple[Command | None, None]:
-        is_connected = self._process_respond_successs(received_command)
+        is_connected = self._process_respond_successs(received_command, received_message)
         if not is_connected:
             return None, None
 
         return received_command, None
 
+    def _process_server_error_message(self, received_command, received_message) -> tuple[Command | None, str | None]:
+        return received_command, received_message.get_single_param()
+
     def _receive_standard_state_messages(self, allowed_commands: dict[int, callable]) -> tuple[
         bool, list[tuple[Command | None, any]] | None]:
+
         """
 
         :param allowed_commands:
@@ -864,6 +869,16 @@ class ServerCommunication:
             received_command_id = received_message.command_id
             received_command = CCommandTypeEnum.get_command_by_id(received_command_id)
 
+            # process erro
+            if received_command_id == CCommandTypeEnum.ResponseServerError.value.id:
+                command, message_data = self._process_server_error_message(received_command, received_message)
+                if not command:
+                    is_connected = False
+                    return is_connected, None
+
+                message_result_list.append((command, message_data))
+                continue
+
             # check if statemachine can fire
             if not GAME_STATE_MACHINE.can_fire(received_command.trigger.id):
                 raise ValueError("Invalid state machine transition.")
@@ -892,20 +907,20 @@ class ServerCommunication:
 
         return is_connected, message_result_list
 
-    def _process_respond_successs(self, received_command: Command) -> bool:
-        is_connected = self._respond_client_success()
+    def _process_respond_successs(self, received_command: Command, received_message: NetworkMessage) -> bool:
+        is_connected = self._respond_client_success(received_message)
         GAME_STATE_MACHINE.send_trigger(received_command.trigger)
         return is_connected
 
     def _process_server_update_list(self, received_command, received_message) -> tuple[Command | None, list | None]:
-        is_connected = self._process_respond_successs(received_command)
+        is_connected = self._process_respond_successs(received_command, received_message)
         if not is_connected:
             return None, None
         return received_command, received_message.get_array_param()
 
-    def _respond_client_success(self) -> bool:
+    def _respond_client_success(self, received_message: NetworkMessage) -> bool:
         command = CCommandTypeEnum.ResponseClientSuccess.value
-        return self._send_message(command)
+        return self._send_message(command, None, timeStamp=received_message.timestamp)
     # endregion
 
     # def receive_server_game_list_update(self) -> tuple[bool, GameList | None]:
@@ -921,13 +936,13 @@ class ServerCommunication:
         """
 
         def __process_standard(received_command, received_message) -> tuple[Command | None, None]:
-            is_connected = self._process_respond_successs(received_command)
+            is_connected = self._process_respond_successs(received_command, received_message)
             if not is_connected:
                 return None, None
             return received_command, None
 
         def __process_server_update_end_score(received_command, received_message) -> tuple[Command | None, str | None]:
-            is_connected = self._process_respond_successs(received_command)
+            is_connected = self._process_respond_successs(received_command, received_message)
             if not is_connected:
                 return None, None
             return received_command, received_message.get_single_param()
@@ -981,7 +996,7 @@ class ServerCommunication:
                 Command | None - command
                 PlayerList | None - message data
             """
-            is_connected = self._process_respond_successs(received_command)
+            is_connected = self._process_respond_successs(received_command, received_message)
             if not is_connected:
                 return None, None
             return received_command, None

@@ -16,8 +16,8 @@ from tkinter import messagebox
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
 from src.frontend.views.utils import PAGES_DIC, start_listening_for_updates_update_gamedata, show_loading_animation, \
-    stop_animation, show_game_data, destroy_elements
-from src.frontend.views.utils import process_is_not_connected, stop_update_thread
+    stop_animation
+from src.frontend.views.utils import stop_update_thread
 from src.shared.constants import CubeValuesList, ALLOWED_CUBE_VALUES_COMBINATIONS, CombinationList, CCommandTypeEnum, \
     GameData
 
@@ -60,13 +60,22 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
     def _set_update_thread(self, param):
         self._update_thread = param
 
+    def destroy_elements(self):
+        if self.winfo_children():
+            for widget in self.winfo_children():
+                if widget.winfo_exists():
+                    try:
+                        widget.destroy()
+                    except Exception as e:
+                        logging.error(f"Error while destroying widget: {e}")
+
     def _load_page_content(self):
         # Clear the current content
-        destroy_elements(self)
+        self.destroy_elements()
 
         self._show_logout_button(tk)
 
-        show_game_data(self, tk, self._list)
+        self.show_game_data(self._list)
 
 
 
