@@ -35,7 +35,6 @@ func CloseConnection(connection net.Conn) error {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("error closing connection %w", err)
 	}
-	//todo remove
 	errorHandeling.PrintError(fmt.Errorf("Connection closed"))
 
 	logger.Log.Info("Connection closed")

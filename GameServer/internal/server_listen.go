@@ -26,7 +26,6 @@ func RunServer() {
 		os.Exit(1)
 	}
 	defer func() {
-		//todo remove
 		errorHandeling.PrintError(fmt.Errorf("Error closing listener:", ln.Close()))
 		err := ln.Close()
 		if err != nil {

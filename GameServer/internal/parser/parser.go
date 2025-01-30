@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"unsafe"
-) //todo predelat bez pouziti regex
+)
 
 //region FUNCTIONS PARSE
 

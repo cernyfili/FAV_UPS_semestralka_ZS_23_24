@@ -25,11 +25,6 @@ var CommandsHandlers = map[int]CommandInfo{
 	constants.CGCommands.ResponseClientSuccess.CommandID: {processResponseClientSucess, constants.CGCommands.ResponseClientSuccess},
 	constants.CGCommands.ClientRollDice.CommandID:        {processClientRollDice, constants.CGCommands.ClientRollDice},
 	constants.CGCommands.ClientSelectedCubes.CommandID:   {processClientSelectedCubes, constants.CGCommands.ClientSelectedCubes},
-
-	// ClientRollDice
-	// ClientSelectedCubes
-	// ClientEndTurn
-	//todo probably missing some commands which can come from client
 }
 
 //endregion
@@ -38,7 +33,7 @@ var CommandsHandlers = map[int]CommandInfo{
 
 // CommandInfo represents information about a command.
 type CommandInfo struct {
-	Handler func(player *models.Player, params []constants.Params, command constants.Command) error //todo should all return network message format
+	Handler func(player *models.Player, params []constants.Params, command constants.Command) error
 	Command constants.Command
 }
 
@@ -55,7 +50,6 @@ func ProcessMessage(message models.Message, conn net.Conn) error {
 			return fmt.Errorf("error sending response: %w", err)
 		}
 		errorHandeling.PrintError(fmt.Errorf("invalid command or incorrect number of arguments"))
-		//todo remove
 		return nil
 	}
 
