@@ -225,7 +225,7 @@ func (p *Player) DecreaseResponseSuccessExpected() error {
 	}
 
 	//Remove last from list
-	p.responseSuccessExpected = p.responseSuccessExpected[:len_list-1]
+	p.responseSuccessExpected = p.responseSuccessExpected[1:]
 	return nil
 }
 
