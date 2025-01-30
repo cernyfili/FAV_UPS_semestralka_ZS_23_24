@@ -1003,16 +1003,6 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 	if playerFromList == nil {
 		return __disconnectPlayer(player)
 	}
-	// Convert params
-	if len(params) != 0 {
-		err = dissconectPlayer(player)
-		if err != nil {
-			errorHandeling.PrintError(err)
-			return fmt.Errorf("Error sending response: %w", err)
-		}
-		return nil
-	}
-	//endregion
 
 	responseInfo := models.MessageInfo{
 		ConnectionInfo: player.GetConnectionInfo(),
