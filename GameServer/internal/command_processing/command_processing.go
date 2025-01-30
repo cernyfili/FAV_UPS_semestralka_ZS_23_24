@@ -1364,7 +1364,7 @@ func ProcessPlayerTurn(game *models.Game) error {
 	}
 	//endregion
 
-	//todo remov
+	//todo remove
 	time.Sleep(1 * time.Second)
 
 	//region ServerUpdateGameData

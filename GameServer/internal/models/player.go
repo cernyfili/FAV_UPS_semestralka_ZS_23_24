@@ -205,7 +205,12 @@ func (p *Player) IncreaseResponseSuccessExpected(message Message) {
 	}
 
 	//Add to list
-	p.responseSuccessExpected = append(p.responseSuccessExpected, message)
+
+	//todo add multiple to list not just the last
+	//p.responseSuccessExpected = append(p.responseSuccessExpected, message)
+
+	//crate new list where is only one element
+	p.responseSuccessExpected = []Message{message}
 }
 
 // decrease the number of expected responses
@@ -218,23 +223,32 @@ func (p *Player) DecreaseResponseSuccessExpected(timeStamp string) error {
 		logger.Log.Infof("RESPONSE_EXPECTED: Player %s has %d responses expected", p.nickname, len_list)
 	}
 
-	if len_list-1 < 0 {
-		err := fmt.Errorf("Player has already expected a response")
-		errorHandeling.PrintError(err)
-		return err
-	}
+	//if len_list-1 < 0 {
+	//	err := fmt.Errorf("Player has already expected a response")
+	//	errorHandeling.PrintError(err)
+	//	return err
+	//}
 
 	//Remove with same timestamp
-	for i, message := range p.responseSuccessExpected {
-		if message.TimeStamp == timeStamp {
-			p.responseSuccessExpected = append(p.responseSuccessExpected[:i], p.responseSuccessExpected[i+1:]...)
-			return nil
-		}
+	//todo
+	//for i, message := range p.responseSuccessExpected {
+	//	if message.TimeStamp == timeStamp {
+	//		p.responseSuccessExpected = append(p.responseSuccessExpected[:i], p.responseSuccessExpected[i+1:]...)
+	//		return nil
+	//	}
+	//}
+
+	if len_list == 0 {
+		return nil
 	}
 
-	err := fmt.Errorf("No response with timestamp %s found", timeStamp)
-	errorHandeling.PrintError(err)
-	return err
+	//remove last element
+	p.responseSuccessExpected = p.responseSuccessExpected[:len(p.responseSuccessExpected)-1]
+	return nil
+
+	//err := fmt.Errorf("No response with timestamp %s found", timeStamp)
+	//errorHandeling.PrintError(err)
+	//return err
 }
 
 // Fires the state machine
