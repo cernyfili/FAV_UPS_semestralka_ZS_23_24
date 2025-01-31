@@ -136,59 +136,60 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
         current_state = GAME_STATE_MACHINE.get_current_state()
         while current_state == state_name and not stop_event.is_set():
             logging.debug("Listening for Data updates")
+
+            if stop_event.is_set():
+                return
             try:
+                is_connected, message_info_list = update_function()
+            except MessageFormatError or MessageStateError as e:
+                self._show_wrong_message_format()
+                break
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+                break
+
+            if stop_event.is_set():
+                return
+
+            if not is_connected:
+                self._show_process_is_not_connected()
+                return
+
+            if not message_info_list:
+                # timeout trying read update message
+                continue
+
+            for i, message_info in enumerate(message_info_list):
                 if stop_event.is_set():
                     return
-                try:
-                    is_connected, message_info_list = update_function()
-                except MessageFormatError  or MessageStateError  as e:
-                    self._show_wrong_message_format()
 
-                if stop_event.is_set():
-                    return
+                command, message_data = message_info
 
-                if not is_connected:
-                    self._show_process_is_not_connected()
-                    return
-
-                if not message_info_list:
-                    # timeout trying read update message
+                is_handled = False
+                for continue_command in continue_commands_list:
+                    if command.id != continue_command.id:
+                        continue
+                    is_handled = True
+                    break
+                if is_handled:
                     continue
 
-                for i, message_info in enumerate(message_info_list):
-                    if stop_event.is_set():
-                        return
+                if command == update_command:
+                    self.update_data(message_data)
+                    continue
 
-                    command, message_data = message_info
-
-                    is_handled = False
-                    for continue_command in continue_commands_list:
-                        if command.id != continue_command.id:
-                            continue
-                        is_handled = True
-                        break
-                    if is_handled:
+                for command_id, handler in process_command_dic.items():
+                    if command_id != command.id:
                         continue
+                    # check if handler requires arguments
+                    if handler.__code__.co_argcount > 1:
+                        handler(message_data)
+                    else:
+                        handler()
+                    return
 
-                    if command == update_command:
-                        self.update_data(message_data)
-                        continue
-
-                    for command_id, handler in process_command_dic.items():
-                        if command_id != command.id:
-                            continue
-                        # check if handler requires arguments
-                        if handler.__code__.co_argcount > 1:
-                            handler(message_data)
-                        else:
-                            handler()
-                        return
-
-                    raise Exception("Unknown command or in buffer message for different page")
-            except Exception as e:
-                raise e
-                # todo change
-                messagebox.showerror("Error", str(e))
+                error_message = f"Unknown command: {command}"
+                messagebox.showerror("Error", str(error_message))
                 break
 
     state_name = self._get_state_name()

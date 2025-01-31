@@ -4,12 +4,14 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="Implemented - no recconect when wrong format or bad state transition">
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/parser.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" afterDir="false" />
+    <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="fixes">
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/command_processing/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing/command_processing.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/network/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network/network.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/server_listen.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/server_listen.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/utils/constants/constants.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/constants/constants.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -228,12 +230,22 @@
     <MESSAGE value="All implemented: before testing" />
     <MESSAGE value="Bug fix" />
     <MESSAGE value="Implemented - no recconect when wrong format or bad state transition" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented - no recconect when wrong format or bad state transition" />
+    <MESSAGE value="fixes" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixes" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
   </component>
   <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/internal/network/network.go</url>
+          <line>327</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
     <watches-manager>
       <configuration name="GoApplicationRunConfiguration">
         <watch expression="network_utils.GReceivedMessageList" language="go" />

@@ -1032,7 +1032,8 @@ class ServerCommunication:
             CCommandTypeEnum.ServerPingPlayer.value.id: self._process_server_ping_player
         }
 
-        return self._receive_standard_state_messages(allowed_commands)
+        is_connected, message_list = self._receive_standard_state_messages(allowed_commands)
+        return is_connected, message_list
 
     def receive_server_game_data_messages(self) -> tuple[bool, list[tuple[Command | None, GameData | None]]]:
         """

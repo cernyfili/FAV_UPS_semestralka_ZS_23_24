@@ -345,10 +345,7 @@ func totalDisconnect(player *models.Player) {
 		return
 	}
 
-	err = models.GetInstanceGameList().RemovePlayerFromGame(player)
-	if err != nil {
-		errorHandeling.AssertError(fmt.Errorf("error removing player from game"))
-	}
+	err = helpers.RemovePlayerFromLists(player)
 
 	logger.Log.Infof("TOTAL_DISCONNECT: Player %s has not reconnected in time", player.GetNickname())
 
@@ -389,6 +386,7 @@ func processTotalDisconnect(player *models.Player) {
 	if player.IsConnected() {
 		return
 	}
+	logger.Log.Error("Total disconnect: from timeout")
 	totalDisconnect(player)
 }
 
@@ -434,8 +432,9 @@ func connectionReadTimeout(connection net.Conn) ([]models.Message, bool, error) 
 
 	messageList, err := parser.ParseReceiveMessageStr(messageStr)
 	if err != nil {
-		errorHandeling.PrintError(err)
-		return []models.Message{}, isTimeout, fmt.Errorf("Error parsing messageList: %w", err)
+		//if error when reading client message
+		logger.Log.Errorf("TOTAL_DISCONNECT: Wrong format message")
+		ImidiateDisconnectPlayerByConnection(connection)
 	}
 
 	//Save to logger
@@ -584,7 +583,20 @@ func ImidiateDisconnectPlayer(playerNickname string) {
 		errorHandeling.PrintError(fmt.Errorf("error player is nil"))
 		return
 	}
+	logger.Log.Errorf("Imidiate Disconnect not from timeout but forces")
 	totalDisconnect(player)
+}
+
+func ImidiateDisconnectPlayerByConnection(connection net.Conn) {
+	player := models.GetInstancePlayerList().GetPlayerByConnection(connection)
+	if player == nil {
+		err := CloseConnection(connection)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return
+		}
+	}
+	ImidiateDisconnectPlayer(player.GetNickname())
 }
 
 func sendGameList(command constants.Command, responseInfo models.MessageInfo, paramsValues []*models.Game) error {
@@ -1108,6 +1120,8 @@ func SendAllUpdates(game *models.Game) error {
 }
 
 func ProcessCommunicationServerUpdateGameData(game *models.Game) error {
+
+	logger.Log.Infof("ProcessCommunicationServerUpdateGameData")
 	if game.GetState() != models.Running {
 		return nil
 	}
@@ -1146,6 +1160,7 @@ func getPlayerListInfo(game *models.Game) ([]*models.Player, []*models.Player) {
 }
 
 func ProcessCommunicationServerUpdatePlayerList(game *models.Game) error {
+	logger.Log.Infof("ProcessCommunicationServerUpdatePlayerList")
 	playerList, playersInGameList := getPlayerListInfo(game)
 	if playerList == nil {
 		logger.Log.Debugf("ProcessCommunicationServerUpdatePlayerList: No players in game")

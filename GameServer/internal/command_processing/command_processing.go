@@ -386,7 +386,7 @@ func _handleCannotFire(player *models.Player) error {
 
 	err := fmt.Errorf("state machine cannot fire")
 
-	logger.Log.Errorf("Cannot fire state machine: %v", err)
+	logger.Log.Errorf("TOTAL_DISCONNECT: Cannot fire state machine: %v", err)
 
 	network.ImidiateDisconnectPlayer(player.GetNickname())
 	return nil

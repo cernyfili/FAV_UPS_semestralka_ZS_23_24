@@ -138,7 +138,13 @@ func handleConnection(conn net.Conn) {
 			}
 
 			//if error when reading client message
-			network.ImidiateDisconnectPlayer(player.GetNickname())
+			err = disconnectPlayer(player)
+			if err != nil {
+				err = fmt.Errorf("Error disconnecting player: %w", err)
+				errorHandeling.PrintError(err)
+				return
+			}
+
 			return
 		}
 		if isTimeout {
