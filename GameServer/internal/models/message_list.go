@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"gameserver/internal/logger"
-	"gameserver/internal/utils/errorHandeling"
 )
 
 type MessageType int
@@ -52,7 +51,7 @@ func (pl *MessageList) AddItem(message Message) {
 	key := message.PlayerNickname + message.TimeStamp + commandIDstr
 	err := pl.list.AddItemKey(key, message)
 	if err != nil {
-		errorHandeling.AssertError(fmt.Errorf("cannot add item to list"))
+		logger.Log.Errorf("Error adding message to list: %v", err)
 	}
 }
 

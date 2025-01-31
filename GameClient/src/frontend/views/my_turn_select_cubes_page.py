@@ -19,7 +19,7 @@ from src.frontend.views.utils import PAGES_DIC, start_listening_for_updates_upda
     stop_animation
 from src.frontend.views.utils import stop_update_thread
 from src.shared.constants import CubeValuesList, ALLOWED_CUBE_VALUES_COMBINATIONS, CombinationList, CCommandTypeEnum, \
-    GameData, MessageFormatError, MessageStateError
+    GameData, MessageFormatError, MessageStateError, CGameConfig
 
 
 class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
@@ -86,6 +86,14 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
                                      state="normal")
 
         self.send_button.pack(side="bottom", pady=10, padx=10)
+
+        if self._list:
+            active_players = 0
+            for player in self._list:
+                if player.is_connected:
+                    active_players += 1
+            if active_players < CGameConfig.MIN_PLAYERS:
+                self.send_button.config(state="disabled")
 
     def _start_listening_for_updates(self):
         start_listening_for_updates_update_gamedata(self)

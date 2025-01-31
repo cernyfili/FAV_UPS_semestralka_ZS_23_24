@@ -19,7 +19,7 @@ from src.frontend.views.utils import PAGES_DIC, start_listening_for_updates_upda
     show_loading_animation, \
     stop_animation, destroy_elements
 from src.frontend.views.utils import stop_update_thread
-from src.shared.constants import CCommandTypeEnum, GameData, MessageFormatError, MessageStateError
+from src.shared.constants import CCommandTypeEnum, GameData, MessageFormatError, MessageStateError, CGameConfig
 
 
 class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
@@ -68,6 +68,15 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
         # Create the "Roll Dice" button
         self.roll_dice_button = tk.Button(self, text="Roll Dice", command=self._button_action_send_roll_dice, state="normal")
         self.roll_dice_button.pack(pady=10, padx=10)
+
+        # check if there is more then min active players in list
+        if self._list:
+            active_players = 0
+            for player in self._list:
+                if player.is_connected:
+                    active_players += 1
+            if active_players < CGameConfig.MIN_PLAYERS:
+                self.roll_dice_button.config(state="disabled")
 
         self.show_game_data(self._list)
 

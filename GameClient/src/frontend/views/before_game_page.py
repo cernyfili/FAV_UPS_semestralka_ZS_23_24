@@ -72,12 +72,16 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
 
             for player in self._list:
                 # Create a label for each player
-                player_label = tk.Label(self, text=player.name)
-                player_label.pack(pady=10, padx=10)
 
                 # set grey color if not connected
                 if not player.is_connected:
+                    player_label = tk.Label(self, text=f"{player.name} (disconnected)")
                     player_label.config(fg="grey")
+                    player_label.pack(pady=10, padx=10)
+                else:
+                    player_label = tk.Label(self, text=f"{player.name}")
+                    player_label.pack(pady=10, padx=10)
+
 
         # Clear the current content
         destroy_elements(self)

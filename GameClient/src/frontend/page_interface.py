@@ -78,6 +78,7 @@ class UpdateInterface(ABC):
 
             # if the player isnt connected show the label in gray
             if not is_connected:
+                player_label = tk.Label(frame, text=f"{player_name}: {score} (Disconnected)")
                 player_label.config(fg="gray")
 
             player_label.pack(pady=10, padx=10)

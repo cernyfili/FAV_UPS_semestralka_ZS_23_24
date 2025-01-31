@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"gameserver/internal/logger"
 	"gameserver/internal/utils/errorHandeling"
 	"sync"
 )
@@ -224,7 +223,7 @@ func (gl *GameList) getPlayersGame(player *Player) *Game {
 }
 
 func (gl *GameList) GetPlayersGame(player *Player) *Game {
-	logger.Log.Debugln("GetPlayersGame before lock")
+	//	logger.Log.Debugln("GetPlayersGame before lock")
 	gl.list.mutex.Lock()
 	defer gl.list.mutex.Unlock()
 

@@ -98,6 +98,12 @@ func handleConnection(conn net.Conn) {
 		}
 		player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
 
+		//isConnected := checkTotalDisconnect(player)
+		//logger.Log.Debugf("TOTAL_DISCONNECT: Check Total disconect IsConnected: " + fmt.Sprint(isConnected))
+		//if !isConnected {
+		//	return
+		//}
+
 		// client havent responded to some of the messages
 		isResponseTimeout, err := checkTimeoutResponseSuccess(player)
 		if err != nil {
@@ -313,4 +319,22 @@ func checkTimeoutResponseSuccess(player *models.Player) (bool, error) {
 	}
 
 	return isTimeout, nil
+}
+
+func checkTotalDisconnect(player *models.Player) bool {
+	if player == nil {
+		return true
+	}
+
+	if player.IsConnected() {
+		return true
+	}
+
+	if !player.IsTotalDisconnectTimeout() {
+		return true
+	}
+
+	network.ImidiateDisconnectPlayer(player.GetNickname())
+
+	return false
 }

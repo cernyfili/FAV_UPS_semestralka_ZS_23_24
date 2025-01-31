@@ -296,6 +296,9 @@ func DisconnectPlayerConnection(player *models.Player) error {
 	//}
 	player.SetConnectedByBool(false)
 
+	player.SetTotalDisconnectStartTime()
+	go processTotalDisconnect(player)
+
 	//close connection
 	err := CloseConnection(player.GetConnectionInfo().Connection)
 	if err != nil {
@@ -318,7 +321,6 @@ func DisconnectPlayerConnection(player *models.Player) error {
 	//endregion
 
 	//start thread which will wait specifed time and if player is not yet connected again, set that he is disconnected in game
-	go processTotalDisconnect(player)
 
 	return nil
 }
@@ -383,11 +385,16 @@ func totalDisconnect(player *models.Player) {
 
 func processTotalDisconnect(player *models.Player) {
 	time.Sleep(constants.CTotalDisconnectTime)
-	if player.IsConnected() {
-		return
+
+	if player.IsTotalDisconnectTimeout() {
+		if player.WasTotalDisconnecTimeoutCalled() {
+			return
+		}
+
+		ImidiateDisconnectPlayer(player.GetNickname())
 	}
-	logger.Log.Error("Total disconnect: from timeout")
-	totalDisconnect(player)
+	//logger.Log.Error("Total disconnect: from timeout")
+	//totalDisconnect(player)
 }
 
 func connectionReadTimeout(connection net.Conn) ([]models.Message, bool, error) {
@@ -578,11 +585,13 @@ func ImidiateDisconnectPlayer(playerNickname string) {
 		errorHandeling.PrintError(err)
 		return
 	}
-
 	if player == nil {
 		errorHandeling.PrintError(fmt.Errorf("error player is nil"))
 		return
 	}
+
+	player.SetWasTotalDisconnectCalled()
+
 	logger.Log.Errorf("Imidiate Disconnect not from timeout but forces")
 	totalDisconnect(player)
 }

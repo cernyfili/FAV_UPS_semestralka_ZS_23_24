@@ -89,10 +89,12 @@ func ProcessMessage(message models.Message, conn net.Conn) error {
 	//Get player
 	player, err := models.GetInstancePlayerList().GetItem(playerNickname)
 	if err != nil {
+		logger.Log.Errorf("Error getting player: %v", err)
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("invalid command or incorrect number of arguments")
 	}
 	if player == nil {
+		logger.Log.Errorf("Error player is nil")
 		//close connection
 		err := network.CloseConnection(conn)
 		if err != nil {
@@ -1015,21 +1017,25 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 
 		canFire, err := stateMachine.CanFire(commandTrigger)
 		if err != nil {
+			logger.Log.Errorf("Error cannot fire: %v", err)
 			errorHandeling.PrintError(err)
 			return fmt.Errorf("cannot join game %w", err)
 		}
 		if !canFire {
+			logger.Log.Errorf("Cannot fire with trigger: %v", commandTrigger)
 			errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
 		}
 
 		err = sendResponseServerGameList(player)
 		if err != nil {
+			logger.Log.Errorf("Error sending response: %v", err)
 			errorHandeling.PrintError(err)
 			return fmt.Errorf("Error sending response: %w", err)
 		}
 
 		err = stateMachine.Fire(commandTrigger)
 		if err != nil {
+			logger.Log.Errorf("Error firing state machine: %v", err)
 			errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
 		}
 		//endregion
@@ -1042,10 +1048,12 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 	//region CHECK
 	playerFromList, err := models.GetInstancePlayerList().GetItem(player.GetNickname())
 	if err != nil {
+		logger.Log.Errorf("Error getting player from list: %v", player.GetNickname())
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
 	}
 	if playerFromList == nil {
+
 		logger.Log.Errorf("Player not found in list: %v", player.GetNickname())
 		return __disconnectPlayer(player)
 	}
@@ -1057,6 +1065,7 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 
 	//region LOGIC
 	player.SetConnectedByBool(true)
+	player.NullifyTotalDisconnectTime()
 
 	currentStateName := player.GetCurrentStateName()
 
@@ -1064,6 +1073,7 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 	player.ResetStateMachine()
 	err = player.FireStateMachine(command.Trigger)
 	if err != nil {
+		logger.Log.Errorf("Error firing state machine: %v", err)
 		errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
 	}
 	stateMachine := player.GetStateMachine()

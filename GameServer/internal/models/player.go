@@ -31,13 +31,16 @@ var ConnectionStates = ConnectionStateStruct{
 
 // Player represents a Player with a unique ID and nickname.
 type Player struct {
-	nickname                string
-	connectionState         ConnectionStateType
-	connectionInfo          ConnectionInfo
-	stateMachine            *stateless.StateMachine
-	responseSuccessExpected []Message
-	mutex                   sync.Mutex
-	lastPingTime            time.Time
+	nickname                 string
+	connectionState          ConnectionStateType
+	connectionInfo           ConnectionInfo
+	stateMachine             *stateless.StateMachine
+	responseSuccessExpected  []Message
+	mutex                    sync.Mutex
+	lastPingTime             time.Time
+	totalDisconnectTime      time.Time
+	isSetTotalDisconnect     bool
+	wasTotalDisconnectCalled bool
 }
 
 //endregion
@@ -45,11 +48,13 @@ type Player struct {
 // CreatePlayer creates a new Player with a unique ID and nickname.
 func CreatePlayer(nickname string, connectionInfo ConnectionInfo) *Player {
 	return &Player{
-		nickname:                nickname,
-		connectionState:         ConnectionStates.Connected,
-		connectionInfo:          connectionInfo,
-		responseSuccessExpected: []Message{},
-		stateMachine:            state_machine.CreateStateMachine(),
+		nickname:                 nickname,
+		connectionState:          ConnectionStates.Connected,
+		connectionInfo:           connectionInfo,
+		responseSuccessExpected:  []Message{},
+		stateMachine:             state_machine.CreateStateMachine(),
+		isSetTotalDisconnect:     false,
+		wasTotalDisconnectCalled: false,
 	}
 }
 
@@ -344,6 +349,62 @@ func (p *Player) IsTimeForNewPing() bool {
 	diff := time.Since(p.lastPingTime)
 
 	return diff > constants.CPingTime
+}
+
+func (p *Player) SetTotalDisconnectStartTime() {
+	p.lock()
+	defer p.unlock()
+
+	logger.Log.Debugf("TOTAL_DISCONNECT: Player %s total disconnect start time set", p.nickname)
+
+	p.totalDisconnectTime = time.Now()
+	p.isSetTotalDisconnect = true
+}
+
+// nullify total disconnect time
+func (p *Player) NullifyTotalDisconnectTime() {
+	p.lock()
+	defer p.unlock()
+
+	p.totalDisconnectTime = time.Time{}
+	p.isSetTotalDisconnect = false
+}
+
+// is set total disconnect
+func (p *Player) IsSetTotalDisconnect() bool {
+	p.lock()
+	defer p.unlock()
+
+	return p.isSetTotalDisconnect
+}
+
+// is player total disconnect timeout
+func (p *Player) IsTotalDisconnectTimeout() bool {
+	p.lock()
+	defer p.unlock()
+
+	if !p.isSetTotalDisconnect {
+		return false
+	}
+
+	diff := time.Since(p.totalDisconnectTime)
+
+	return diff > constants.CTotalDisconnectTime
+}
+
+// set was total disconnect called
+func (p *Player) SetWasTotalDisconnectCalled() {
+	p.lock()
+	defer p.unlock()
+
+	p.wasTotalDisconnectCalled = true
+}
+
+func (p *Player) WasTotalDisconnecTimeoutCalled() bool {
+	p.lock()
+	defer p.unlock()
+
+	return p.wasTotalDisconnectCalled
 }
 
 //endregion
