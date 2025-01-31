@@ -150,6 +150,7 @@ func handleConnection(conn net.Conn) {
 				errorHandeling.PrintError(err)
 				return
 			}
+			//network.ImidiateDisconnectPlayer(player.GetNickname())
 
 			return
 		}
