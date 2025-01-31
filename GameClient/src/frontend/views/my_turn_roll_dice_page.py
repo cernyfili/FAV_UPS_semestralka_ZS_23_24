@@ -19,7 +19,7 @@ from src.frontend.views.utils import PAGES_DIC, start_listening_for_updates_upda
     show_loading_animation, \
     stop_animation, destroy_elements
 from src.frontend.views.utils import stop_update_thread
-from src.shared.constants import CCommandTypeEnum, GameData
+from src.shared.constants import CCommandTypeEnum, GameData, MessageFormatError, MessageStateError
 
 
 class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
@@ -80,9 +80,11 @@ class MyTurnRollDicePage(tk.Frame, UpdateInterface, ABC):
             stop_update_thread(self)
             try:
                 is_connected, command, page_data = ServerCommunication().send_client_roll_dice()
+            except MessageFormatError or MessageStateError  as e:
+                self._show_wrong_message_format()
+                return
             except Exception as e:
-                logging.error(f"Error while sending roll dice command: {e}")
-                self._show_process_is_not_connected()
+                messagebox.showerror("Error", str(e))
                 return
 
             if not is_connected:

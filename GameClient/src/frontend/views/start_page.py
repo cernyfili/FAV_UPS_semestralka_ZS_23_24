@@ -12,12 +12,13 @@ import re
 import threading
 import time
 import tkinter as tk
+from tkinter import messagebox
 
 from src.backend.server_communication import ServerCommunication
-from src.frontend.views.utils import process_is_not_connected
+from src.frontend.views.utils import process_is_not_connected, PAGES_DIC
 from src.frontend.views.utils import show_loading_animation, stop_animation, get_connect_next_page, \
     destroy_elements
-from src.shared.constants import CMessageConfig
+from src.shared.constants import CMessageConfig, MessageFormatError, MessageStateError
 
 
 class StartPage(tk.Frame):
@@ -96,6 +97,11 @@ class StartPage(tk.Frame):
             try:
                 is_connected, response_message, update_list = ServerCommunication().send_login_message(ip, port,
                                                                                                        nickname)
+            except MessageFormatError  or MessageStateError  as e:
+                ServerCommunication().close_connection()
+                messagebox.showerror("Error", "Wrong message format")
+                self.controller.show_page(PAGES_DIC.StartPage)
+                return
             except Exception as e:
                 next_page_name, page_data = process_is_not_connected()
                 stop_animation(self)

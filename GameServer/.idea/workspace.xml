@@ -6,26 +6,16 @@
   <component name="ChangeListManager">
     <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="Bug fix">
       <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/state_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/state_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/before_game_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/before_game_page.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/lobby_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/lobby_page.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/running_game_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/running_game_page.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_roll_dice_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_roll_dice_page.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_select_cubes_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/my_turn_select_cubes_page.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/start_page.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/start_page.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/views/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/views/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/shared/constants.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/server_stavy.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/server_stavy.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/command_processing/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing/command_processing.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/logger/logger.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/logger/logger.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/game_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/game_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/message_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/message_list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/player.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/player.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/state_machine/state_machine.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/state_machine/state_machine.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/network/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network/network.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/server_listen.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/server_listen.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/utils/constants/constants.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/utils/constants/constants.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

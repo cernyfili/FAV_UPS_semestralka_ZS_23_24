@@ -11,11 +11,12 @@ import logging
 import threading
 import tkinter as tk
 from abc import ABC
+from tkinter import messagebox
 
 from src.backend.server_communication import ServerCommunication
 from src.frontend.page_interface import UpdateInterface
 from src.frontend.views.utils import PAGES_DIC, list_start_listening_for_updates, destroy_elements
-from src.shared.constants import CGameConfig, CMessageConfig, Game, Param, CCommandTypeEnum
+from src.shared.constants import CGameConfig, CMessageConfig, Game, Param, CCommandTypeEnum, MessageFormatError
 
 
 class LobbyPage(tk.Frame, UpdateInterface, ABC):

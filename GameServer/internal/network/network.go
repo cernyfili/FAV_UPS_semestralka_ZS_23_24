@@ -87,24 +87,24 @@ func CloseConnection(connection net.Conn) error {
 //	return clientResponse, nil
 //}
 
-func ReadSingleTimeout(connection net.Conn) (models.Message, bool, error) {
-	messageList, isTimeout, err := connectionReadTimeout(connection)
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return models.Message{}, isTimeout, fmt.Errorf("error reading %w", err)
-	}
-	if isTimeout {
-		return models.Message{}, isTimeout, nil
-	}
-
-	if len(messageList) != 1 {
-		err = fmt.Errorf("error reading: expected 1 message, got %d", len(messageList))
-		errorHandeling.PrintError(err)
-		return models.Message{}, isTimeout, err
-	}
-
-	return messageList[0], isTimeout, nil
-}
+//func ReadSingleTimeout(connection net.Conn) (models.Message, bool, error) {
+//	messageList, isTimeout, err := connectionReadTimeout(connection)
+//	if err != nil {
+//		errorHandeling.PrintError(err)
+//		return models.Message{}, isTimeout, fmt.Errorf("error reading %w", err)
+//	}
+//	if isTimeout {
+//		return models.Message{}, isTimeout, nil
+//	}
+//
+//	if len(messageList) != 1 {
+//		err = fmt.Errorf("error reading: expected 1 message, got %d", len(messageList))
+//		errorHandeling.PrintError(err)
+//		return models.Message{}, isTimeout, err
+//	}
+//
+//	return messageList[0], isTimeout, nil
+//}
 
 func Read(connection net.Conn) ([]models.Message, bool, error) {
 	messageList, isTimeout, err := connectionReadTimeout(connection)
@@ -323,12 +323,7 @@ func DisconnectPlayerConnection(player *models.Player) error {
 	return nil
 }
 
-func processTotalDisconnect(player *models.Player) {
-	time.Sleep(constants.CTotalDisconnectTime)
-
-	if player.IsConnected() {
-		return
-	}
+func totalDisconnect(player *models.Player) {
 
 	logger.Log.Infof("TOTAL_DISCONNECT: Player %s has not reconnected in time", player.GetNickname())
 
@@ -387,6 +382,14 @@ func processTotalDisconnect(player *models.Player) {
 			return
 		}
 	}
+}
+
+func processTotalDisconnect(player *models.Player) {
+	time.Sleep(constants.CTotalDisconnectTime)
+	if player.IsConnected() {
+		return
+	}
+	totalDisconnect(player)
 }
 
 func connectionReadTimeout(connection net.Conn) ([]models.Message, bool, error) {
@@ -566,6 +569,22 @@ func processResponseServerError(responseInfo models.MessageInfo, errorStr string
 	}
 
 	return nil
+}
+
+func ImidiateDisconnectPlayer(playerNickname string) {
+	player, err := models.GetInstancePlayerList().GetItem(playerNickname)
+	if err != nil {
+		//fatal
+		err = fmt.Errorf("error getting player %w", err)
+		errorHandeling.PrintError(err)
+		return
+	}
+
+	if player == nil {
+		errorHandeling.PrintError(fmt.Errorf("error player is nil"))
+		return
+	}
+	totalDisconnect(player)
 }
 
 func sendGameList(command constants.Command, responseInfo models.MessageInfo, paramsValues []*models.Game) error {

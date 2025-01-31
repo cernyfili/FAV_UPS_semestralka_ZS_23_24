@@ -16,6 +16,21 @@ LOGS_FOLDER_PATH: Final = "logs"
 
 # region DATA STRUCTURES
 
+# custom error WrongMessageFormatError
+class MessageFormatError(Exception):
+    """
+    """
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+class MessageStateError(Exception):
+    """
+    """
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
 @dataclass
 class MessageParamListInfo:
     param_names: list[str]
@@ -317,10 +332,10 @@ class Convertor:
                 connected_count_players = int([param.value for param in element_array if param.name == "connectedPlayers"][0])
                 max_players = int([param.value for param in element_array if param.name == "maxPlayers"][0])
             except Exception as e:
-                raise ValueError("Invalid game list format")
+                raise MessageFormatError("Invalid game list format")
             
             if not Convertor._validate_name(name) or not validate_connected_players(connected_count_players) or not validate_max_players(max_players):
-                raise ValueError("Invalid game list format")
+                raise MessageFormatError("Invalid game list format")
 
             game = Game(name, connected_count_players, max_players)
             game_list.append(game)
@@ -335,7 +350,7 @@ class Convertor:
             name = [param.value for param in element_array if param.name == "playerName"][0]
             is_connected = bool(int([param.value for param in element_array if param.name == "isConnected"][0]))
             if not Convertor._validate_name(name):
-                raise ValueError("Invalid player list format")
+                raise MessageFormatError("Invalid player list format")
             
             player = Player(name, is_connected)
             player_list.append(player)
@@ -358,7 +373,7 @@ class Convertor:
             is_turn = bool(int([param.value for param in element_array if param.name == "isTurn"][0]))
 
             if not Convertor._validate_name(player_name) or not validate_score(score):
-                raise ValueError("Invalid game data format")
+                raise MessageFormatError("Invalid game data format")
 
             player_game_data = PlayerGameData(player_name, is_connected, score, is_turn)
             game_data.append(player_game_data)
@@ -377,7 +392,7 @@ class Convertor:
             # get element value with name "value"
             value = int([param.value for param in element_array if param.name == "value"][0])
             if not validate_cube_value(value):
-                raise ValueError("Invalid cube value")
+                raise MessageFormatError("Invalid cube value")
 
             cube_values.append(value)
 

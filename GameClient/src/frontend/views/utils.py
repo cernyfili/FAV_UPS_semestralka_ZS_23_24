@@ -13,7 +13,8 @@ from tkinter import messagebox
 from types import SimpleNamespace
 
 from src.backend.server_communication import ServerCommunication
-from src.shared.constants import GAME_STATE_MACHINE, CCommandTypeEnum, Command, NetworkMessage
+from src.shared.constants import GAME_STATE_MACHINE, CCommandTypeEnum, Command, NetworkMessage, MessageFormatError, \
+    MessageStateError
 
 pages_names = {
     "StartPage": "StartPage",
@@ -33,6 +34,11 @@ def process_is_not_connected() -> tuple[str, list | None]:
         return next_page_name, None
     try:
         is_connected, received_message, message_list = ServerCommunication().communication_reconnect_message()
+    except MessageFormatError  or MessageStateError  as e:
+        ServerCommunication().close_connection()
+        messagebox.showerror("Error", "Wrong message format")
+        return PAGES_DIC.StartPage, None
+
     except Exception as e:
         logging.error(f"Error while trying to reconnect: {e}")
         if AssertionError:
@@ -133,8 +139,10 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
             try:
                 if stop_event.is_set():
                     return
-
-                is_connected, message_info_list = update_function()
+                try:
+                    is_connected, message_info_list = update_function()
+                except MessageFormatError  or MessageStateError  as e:
+                    self._show_wrong_message_format()
 
                 if stop_event.is_set():
                     return

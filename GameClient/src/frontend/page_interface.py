@@ -15,6 +15,7 @@ from tkinter import messagebox
 from src.backend.server_communication import ServerCommunication
 from src.frontend.views.utils import stop_update_thread, PAGES_DIC, process_is_not_connected, show_loading_animation, \
     stop_animation, show_reconnecting_animation, animate
+from src.shared.constants import MessageFormatError, MessageStateError
 
 
 #
@@ -93,6 +94,13 @@ class UpdateInterface(ABC):
         messagebox.showinfo("End of game", "Not enough players to continue")
         self.controller.show_page(next_page_name)
 
+    def _show_wrong_message_format(self):
+        ServerCommunication().close_connection()
+
+        messagebox.showerror("Error", "Disconnecting from server: Wrong message format or received message which is not expected")
+        self.controller.show_page(PAGES_DIC.StartPage)
+
+
     def _button_action_logout(self):
         send_function = ServerCommunication().send_client_logout
         next_page_name = PAGES_DIC.StartPage
@@ -102,9 +110,14 @@ class UpdateInterface(ABC):
 
         try:
             is_connected = send_function()
-            if not is_connected:
-                next_page_name, page_data = process_is_not_connected()
+        except MessageFormatError or MessageStateError as e:
+            self._show_wrong_message_format()
+            return
         except Exception as e:
+            messagebox.showerror("Error", str(e))
+            return
+
+        if not is_connected:
             next_page_name, page_data = process_is_not_connected()
 
         self.controller.show_page(next_page_name, page_data)
@@ -148,9 +161,14 @@ class UpdateInterface(ABC):
             page_data = None
             try:
                 is_connected = send_function(param_list)
-                if not is_connected:
-                    next_page_name, page_data = process_is_not_connected()
+            except MessageFormatError or MessageStateError as e:
+                self._show_wrong_message_format()
+                return
             except Exception as e:
+                messagebox.showerror("Error", str(e))
+                return
+
+            if not is_connected:
                 next_page_name, page_data = process_is_not_connected()
 
             stop_animation(self)

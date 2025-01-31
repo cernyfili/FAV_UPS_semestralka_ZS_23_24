@@ -10,7 +10,7 @@ from src.backend.parser import convert_message_to_network_string, parse_message,
     convert_list_cube_values_to_network_string
 from src.shared.constants import CMessageConfig, CCommandTypeEnum, \
     CNetworkConfig, GAME_STATE_MACHINE, Command, Param, NetworkMessage, GameList, reset_game_state_machine, PlayerList, \
-    CubeValuesList, GameData
+    CubeValuesList, GameData, MessageFormatError, MessageStateError
 
 
 #
@@ -293,7 +293,7 @@ class ServerCommunication:
     def _process_received_data(self, received_data_list) -> tuple[bool, list[NetworkMessage] | None]:
         received_data = received_data_list.decode()
         if len(received_data) == 0:
-            raise ConnectionError("Received empty message.")
+            assert False, "Received empty data."
         # split to array by end of message
         received_data_list = received_data.split(CMessageConfig.END_OF_MESSAGE)
 
@@ -303,20 +303,15 @@ class ServerCommunication:
                 continue
             try:
                 parsed_message = parse_message(data)
-                is_valid_format = self._is_header_valid(parsed_message)
-                if not is_valid_format:
-                    # is not valid format
-                    self._close_connection_processes()
-                    is_connected = False
-                    return is_connected, None
-                parsed_messages_list.append(parsed_message)
-                self._receive_messages_list.append(parsed_message)
-                logging.info(f"MESSAGE: Received message: {parsed_message}")
             except Exception as e:
-                # is not valid format
-                self._close_connection_processes()
-                is_connected = False
-                return is_connected, None
+                raise MessageFormatError(f"Failed to parse message: {e}")
+
+            is_valid_format = self._is_header_valid(parsed_message)
+            if not is_valid_format:
+                raise MessageFormatError("Invalid header format.")
+            parsed_messages_list.append(parsed_message)
+            self._receive_messages_list.append(parsed_message)
+            logging.info(f"MESSAGE: Received message: {parsed_message}")
 
         is_connected = True
         return is_connected, parsed_messages_list
@@ -376,6 +371,9 @@ class ServerCommunication:
         reset_game_state_machine()
         _close_connection(self)
 
+    def close_connection(self):
+        self._close_connection_processes()
+
     # endregion
 
     # region COMMUNICATION FUNCTIONS
@@ -423,15 +421,14 @@ class ServerCommunication:
 
         # Response other
         if received_message.command_id not in allowed_response_commands_id:
-            logging.error(f"Invalid command ID received: {received_message.command_id} but allowed: {allowed_response_commands_id}.")
-            return __disconnect(self)
+            raise MessageStateError(f"Invalid command ID received: {received_message.command_id} but allowed: {allowed_response_commands_id}.")
 
         # Response Error
         self._process_error_message(command, received_message)
 
         # Response Success
         if received_message.command_id != CCommandTypeEnum.ResponseServerSuccess.value.id:
-            raise ValueError("Invalid command ID for game list update.")
+            raise MessageStateError(f"Invalid command ID received: {received_message.command_id} but expected: {CCommandTypeEnum.ResponseServerSuccess.value.id}.")
 
         # endregion
         GAME_STATE_MACHINE.send_trigger(command.trigger)
@@ -457,6 +454,8 @@ class ServerCommunication:
             is_connected, received_message = self._receive_message()
             if not is_connected:
                 return False, None, None
+        except MessageFormatError or MessageStateError as e:
+            raise e
         except Exception as e:
             # NOT RECEIVED MESSAGE IN TIMEOUT -> DISCONNECT
             logging.error(f"Server did not respond in time. {e}")
@@ -466,9 +465,7 @@ class ServerCommunication:
 
         # if not in allowed_response_commands_id
         if received_message.command_id not in allowed_response_commands_id:
-            logging.error(
-                f"Invalid command ID received: {received_message.command_id} but allowed: {allowed_response_commands_id}.")
-            return __disconnect(self)
+            raise MessageStateError(f"Invalid command ID received: {received_message.command_id} but allowed: {allowed_response_commands_id}.")
 
         # received_message = Error
         if received_message.command_id == CCommandTypeEnum.ResponseServerError.value.id:
@@ -486,9 +483,7 @@ class ServerCommunication:
                 try:
                     GAME_STATE_MACHINE.send_trigger(received_command.trigger)
                 except Exception as e:
-                    logging.error(
-                        f"AUTOMATA: Error while trying to send trigger: {received_command.trigger} in state: {GAME_STATE_MACHINE.get_current_state()}: {e}")
-                    return __disconnect(self)
+                    raise MessageStateError(f"Error while trying to send trigger: {received_command.trigger} in state: {GAME_STATE_MACHINE.get_current_state()}: {e}")
 
             message_list = received_message.get_array_param()
             return True, received_message, message_list
@@ -657,7 +652,7 @@ class ServerCommunication:
             return False
         # Response other
         if received_message.command_id not in allowed_response_commands_id:
-            return __disconnect(self)
+            raise MessageStateError(f"Invalid command ID received: {received_message.command_id} but allowed: {allowed_response_commands_id}.")
 
         # Response Error
         self._process_error_message(command, received_message)
@@ -666,7 +661,7 @@ class ServerCommunication:
         if received_message.command_id == CCommandTypeEnum.ResponseServerSuccess.value.id:
             return True
 
-        raise ValueError("Invalid command ID for game list update.")
+        raise MessageStateError(f"Invalid command ID received: {received_message.command_id} but expected: {CCommandTypeEnum.ResponseServerSuccess.value.id}.")
 
         # endregion
 
@@ -709,8 +704,7 @@ class ServerCommunication:
 
         # Response other
         if received_command.id not in allowed_response_commands_id:
-            logging.error("Invalid command")
-            return __disconnect(self)
+            raise MessageStateError(f"Invalid command ID received: {received_command.id} but allowed: {allowed_response_commands_id}.")
 
         # Response Error
         self._process_error_message(received_command, received_message)
@@ -777,7 +771,7 @@ class ServerCommunication:
 
         # Response other
         if received_command.id not in allowed_response_commands_id:
-            return __disconnect(self)
+            raise MessageStateError(f"Invalid command ID received: {received_command.id} but allowed: {allowed_response_commands_id}.")
 
         # Response Error
         self._process_error_message(received_command, received_message)
@@ -785,7 +779,7 @@ class ServerCommunication:
         # Response SUCCESS
 
         if not received_command.id in success_response_command:
-            raise ValueError("Invalid command ID for select cubes.")
+            raise MessageStateError(f"Invalid command ID received: {received_command.id} but expected: {success_response_command}.")
 
         # Response Dice Success or EndScore
         self._state_machine_send_triggers(command, received_command)
@@ -912,11 +906,11 @@ class ServerCommunication:
 
             # check if statemachine can fire
             if not GAME_STATE_MACHINE.can_fire(received_command.trigger.id):
-                raise ValueError("Invalid state machine transition.")
+                raise MessageStateError("Invalid state machine transition.")
 
             # Recieved Other
             if received_command_id not in allowed_commands_id:
-                return __disconnect(self)
+                raise MessageStateError("Invalid command ID for running game messages.")
 
             is_processed = False
             for command_id, process_function in allowed_commands.items():
@@ -934,7 +928,7 @@ class ServerCommunication:
             if is_processed:
                 continue
 
-            raise ValueError("Invalid command ID for running game messages.")
+            raise MessageStateError("Invalid command ID for running game messages.")
 
         return is_connected, message_result_list
 

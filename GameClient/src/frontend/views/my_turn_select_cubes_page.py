@@ -19,7 +19,7 @@ from src.frontend.views.utils import PAGES_DIC, start_listening_for_updates_upda
     stop_animation
 from src.frontend.views.utils import stop_update_thread
 from src.shared.constants import CubeValuesList, ALLOWED_CUBE_VALUES_COMBINATIONS, CombinationList, CCommandTypeEnum, \
-    GameData
+    GameData, MessageFormatError, MessageStateError
 
 
 class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
@@ -210,8 +210,11 @@ class MyTurnSelectCubesPage(tk.Frame, UpdateInterface, ABC):
 
             try:
                 is_connected, command = ServerCommunication().send_client_select_cubes(selected_dice_cubes_values)
+            except MessageFormatError  or MessageStateError  as e:
+                self._show_wrong_message_format()
+                return
             except Exception as e:
-                self._show_process_is_not_connected()
+                messagebox.showerror("Error", str(e))
                 return
             if not is_connected:
                 self._show_process_is_not_connected()

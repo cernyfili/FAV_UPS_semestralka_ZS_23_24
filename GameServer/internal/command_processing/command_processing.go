@@ -383,16 +383,12 @@ func initGame(player *models.Player, name string, maxPlayers int) (game *models.
 }
 
 func _handleCannotFire(player *models.Player) error {
+
 	err := fmt.Errorf("state machine cannot fire")
 
 	logger.Log.Errorf("Cannot fire state machine: %v", err)
-	errDissconnect := dissconectPlayer(player)
-	if errDissconnect != nil {
-		errorHandeling.PrintError(errDissconnect)
-		return fmt.Errorf("Error sending response: %w", errDissconnect)
-	}
 
-	errorHandeling.PrintError(err)
+	network.ImidiateDisconnectPlayer(player.GetNickname())
 	return nil
 }
 
