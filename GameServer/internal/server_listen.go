@@ -5,6 +5,7 @@ import (
 	"gameserver/internal/command_processing"
 	"gameserver/internal/logger"
 	"gameserver/internal/models"
+	"gameserver/internal/models/state_machine"
 	"gameserver/internal/network"
 	"gameserver/internal/utils/constants"
 	"gameserver/internal/utils/errorHandeling"
@@ -149,6 +150,15 @@ func handleConnection(conn net.Conn) {
 		if isTimeout {
 			//if client havenot logeed yet - waiting for login
 			if player == nil {
+				continue
+			}
+
+			//if in reconnect mode
+			if !player.IsConnected() {
+				continue
+			}
+
+			if player.GetCurrentStateName() == state_machine.StateNameMap.StateReconnect {
 				continue
 			}
 

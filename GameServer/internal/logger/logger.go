@@ -50,7 +50,7 @@ func InitLogger(config LoggerConfig) error {
 			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 				// Format path and line number for clickable links in JetBrains
 				absPath, _ := filepath.Abs(f.File)
-				return "", fmt.Sprintf("%s:%d", absPath, f.Line)
+				return "", fmt.Sprintf("%s:%d\n", absPath, f.Line)
 			},
 		})
 	}

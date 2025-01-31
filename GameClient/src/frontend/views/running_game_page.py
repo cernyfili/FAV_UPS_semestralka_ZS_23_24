@@ -166,8 +166,4 @@ class RunningGamePage(tk.Frame, UpdateInterface, ABC):
         messagebox.showinfo("End of game", f"Player {player_name} has WON")
         self.controller.show_page(next_page_name)
 
-    def _process_update_not_enough_players(self):
-        next_page_name = PAGES_DIC.LobbyPage
 
-        messagebox.showinfo("End of game", "Not enough players to continue")
-        self.controller.show_page(next_page_name)

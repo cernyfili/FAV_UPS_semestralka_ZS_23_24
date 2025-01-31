@@ -14,10 +14,10 @@ import time
 import tkinter as tk
 
 from src.backend.server_communication import ServerCommunication
-from src.frontend.views.utils import PAGES_DIC, show_loading_animation, stop_animation, get_connect_next_page, \
-    destroy_elements
 from src.frontend.views.utils import process_is_not_connected
-from src.shared.constants import CMessageConfig, CCommandTypeEnum
+from src.frontend.views.utils import show_loading_animation, stop_animation, get_connect_next_page, \
+    destroy_elements
+from src.shared.constants import CMessageConfig
 
 
 class StartPage(tk.Frame):
@@ -46,7 +46,7 @@ class StartPage(tk.Frame):
         # Form with IP and Port and NickName
         ip_label = tk.Label(self, text="IP Address")
         ip_label.pack(pady=10, padx=10, fill='both', expand=True)
-        ip_entry_var = tk.StringVar(value="127.0.0.1")
+        ip_entry_var = tk.StringVar(value="192.168.0.31")
         ip_entry = tk.Entry(self, textvariable=ip_entry_var, validate="focusout", validatecommand=(self.register(self._validate_ip), '%P'))
         ip_entry.pack(pady=10, padx=10, fill='both', expand=True)
 
@@ -94,8 +94,8 @@ class StartPage(tk.Frame):
 
         def run_send_function(ip, port, nickname):
             try:
-                is_connected, response_message, update_list = ServerCommunication().send_connect_message(ip, port,
-                                                                                                         nickname)
+                is_connected, response_message, update_list = ServerCommunication().send_login_message(ip, port,
+                                                                                                       nickname)
             except Exception as e:
                 next_page_name, page_data = process_is_not_connected()
                 stop_animation(self)

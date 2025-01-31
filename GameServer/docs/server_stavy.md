@@ -262,7 +262,7 @@ KIVUPS012024-12-31 15:30:00.000000{nickname}{}\n
   `CommandID: 37, Params: []`
 -
 - **ResponseServerReconnectBeforeGame(ResponseServerNextDiceSuccess)**
-  `CommandID: 46, Params: ["gameList"] List`
+  `CommandID: 46, Params: ["playerList"] List`
 - **ResponseServerReconnectRunningGame(ResponseServerNextDiceSuccess)**
   `CommandID: 47, Params: ["gameData"] List`
 
@@ -357,6 +357,7 @@ stateDiagram
   My_turn_roll_dice --> Fork_my_turn: ClientRollDice
   My_turn_roll_dice --> My_turn_roll_dice: ServerPingPlayer
   My_turn_roll_dice --> My_turn_roll_dice: ServerUpdateGameData
+  My_turn_roll_dice --> Lobby: ServerUpdateNotEnoughPlayers
   
   Fork_my_turn --> Running_Game: ResponseServerEndTurn
   Fork_my_turn --> My_turn_select_cubes: ResponseServerSelectCubes
@@ -364,6 +365,7 @@ stateDiagram
   My_turn_select_cubes --> Fork_dice_(Fork_next_dice): ClientSelectedCubes
   My_turn_select_cubes --> My_turn_select_cubes: ServerPingPlayer
   My_turn_select_cubes --> My_turn_select_cubes: ServerUpdateGameData
+  My_turn_select_cubes --> Lobby: ServerUpdateNotEnoughPlayers
   
   Fork_dice_(Fork_next_dice) --> My_turn_roll_dice: ResponseServerDiceSuccess
   Fork_dice_(Fork_next_dice) --> Lobby: ResponseServerEndScore

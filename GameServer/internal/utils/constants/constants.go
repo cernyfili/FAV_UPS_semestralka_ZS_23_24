@@ -48,7 +48,7 @@ const (
 	CConnType            = "tcp"
 	CTimeout             = 5 * time.Second
 	CPingTime            = 7 * time.Second
-	CTotalDisconnectTime = 5 * time.Second
+	CTotalDisconnectTime = 3 * time.Second //todo change
 )
 
 //endregion
@@ -162,7 +162,7 @@ var CGCommands = CommandType{
 	ResponseServerEndScore:    Command{36, stateless.Trigger("ResponseServerEndScore"), []string{""}},
 	ResponseServerDiceSuccess: Command{37, stateless.Trigger("ResponseServerDiceSuccess"), []string{""}},
 
-	ResponseServerReconnectBeforeGame:  Command{46, stateless.Trigger("ResponseServerReconnectBeforeGame"), []string{"gameList"}},
+	ResponseServerReconnectBeforeGame:  Command{46, stateless.Trigger("ResponseServerReconnectBeforeGame"), []string{"playerList"}},
 	ResponseServerReconnectRunningGame: Command{47, stateless.Trigger("ResponseServerReconnectRunningGame"), []string{"gameData"}},
 
 	// SERVER->CLIENT

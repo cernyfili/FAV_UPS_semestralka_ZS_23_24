@@ -34,6 +34,9 @@ def process_is_not_connected() -> tuple[str, list | None]:
     try:
         is_connected, received_message, message_list = ServerCommunication().communication_reconnect_message()
     except Exception as e:
+        logging.error(f"Error while trying to reconnect: {e}")
+        if AssertionError:
+            raise e
         return __inn_not_connected()
 
     if not is_connected:
@@ -205,7 +208,8 @@ def list_start_listening_for_updates(self, process_command_dic: dict[int, callab
 
 def start_listening_for_updates_update_gamedata(self):
     process_command = {
-        CCommandTypeEnum.ResponseServerError.value.id: self.process_error
+        CCommandTypeEnum.ResponseServerError.value.id: self.process_error,
+        CCommandTypeEnum.ServerUpdateNotEnoughPlayers.value.id: self._process_update_not_enough_players
     }
     continue_commands = [CCommandTypeEnum.ServerPingPlayer.value]
     update_command = CCommandTypeEnum.ServerUpdateGameData.value

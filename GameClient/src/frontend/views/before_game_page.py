@@ -103,6 +103,7 @@ class BeforeGamePage(tk.Frame, UpdateInterface, ABC):
                                            next_page_name=PAGES_DIC.RunningGamePage, param_list=[])
 
     def _process_start_game(self):
+
         next_page_name = PAGES_DIC.RunningGamePage
 
         self.controller.show_page(next_page_name)

@@ -86,6 +86,12 @@ class UpdateInterface(ABC):
                 self.waiting_animation.pack(pady=2, padx=10)
                 animate(self=self, waiting_animation=self.waiting_animation, label_str="Playing")
 
+    def _process_update_not_enough_players(self):
+
+        next_page_name = PAGES_DIC.LobbyPage
+
+        messagebox.showinfo("End of game", "Not enough players to continue")
+        self.controller.show_page(next_page_name)
 
     def _button_action_logout(self):
         send_function = ServerCommunication().send_client_logout

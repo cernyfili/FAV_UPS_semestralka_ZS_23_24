@@ -202,9 +202,11 @@ class NetworkMessage:
 GAME_STATE_MACHINE : GameStateMachine = GameStateMachine()
 
 def reset_game_state_machine():
-    global GAME_STATE_MACHINE
-    GAME_STATE_MACHINE = GameStateMachine()
-    logging.debug("Game state machine reset")
+    # global GAME_STATE_MACHINE
+    # GAME_STATE_MACHINE = GameStateMachine()
+    GAME_STATE_MACHINE.reset()
+    current_state = GAME_STATE_MACHINE.get_current_state()
+    logging.debug(f"Game State Machine reset to: {current_state}")
 
 NETWORK_PARAM_EMPTY : Final = []
 
@@ -415,8 +417,8 @@ class CCommandTypeEnum(Enum):
 
     ## Reconnect
     ResponseServerReconnectBeforeGame: Command = Command(46, GAME_STATE_MACHINE.ResponseServerReconnectBeforeGame,
-                                                         ["gameList"],
-                                                         game_list_info)
+                                                         ["playerList"],
+                                                         player_list_info)
     ResponseServerReconnectRunningGame: Command = Command(47, GAME_STATE_MACHINE.ResponseServerReconnectRunningGame,
                                                           ["gameData"],
                                                           game_data_info)
@@ -497,7 +499,7 @@ class CNetworkConfig:
     RECEIVE_TIMEOUT = 10
     BUFFER_SIZE: Final = 1024
     MAX_MESSAGE_SIZE: Final = 1024
-    RECONNECT_ATTEMPTS: Final = 3  # todo change
+    RECONNECT_ATTEMPTS: Final = 2  # todo change
     RECONNECT_TIMEOUT_SEC: Final = 2
 
 # endregion

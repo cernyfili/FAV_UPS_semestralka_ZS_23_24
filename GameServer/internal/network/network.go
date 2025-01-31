@@ -308,6 +308,7 @@ func DisconnectPlayerConnection(player *models.Player) error {
 	if game == nil {
 		return nil
 	}
+
 	err = SendGameUpdates(game)
 	if err != nil {
 		err = fmt.Errorf("Error sending game updates: %w", err)
@@ -328,6 +329,8 @@ func processTotalDisconnect(player *models.Player) {
 	if player.IsConnected() {
 		return
 	}
+
+	logger.Log.Infof("TOTAL_DISCONNECT: Player %s has not reconnected in time", player.GetNickname())
 
 	//player havent reconnected in the wait -> total disconnect
 	playerFromList, err := models.GetInstancePlayerList().GetItem(player.GetNickname())
@@ -352,6 +355,8 @@ func processTotalDisconnect(player *models.Player) {
 		errorHandeling.AssertError(fmt.Errorf("error removing player from game"))
 	}
 
+	logger.Log.Infof("TOTAL_DISCONNECT: Player %s has not reconnected in time", player.GetNickname())
+
 	//send updates
 	err = SendAllUpdates(game)
 	if err != nil {
@@ -362,6 +367,9 @@ func processTotalDisconnect(player *models.Player) {
 
 	//players are put back to lobby if only one in runnin game -> others total disconnect
 	if !game.IsEnoughPlayersToContinueGame() {
+		if game.GetState() != models.Running {
+			return
+		}
 
 		//ServerUpdateNotEnoughPlayers
 		playerList := game.GetPlayers()
@@ -582,13 +590,25 @@ func SendResponseServerGameList(responseInfo models.MessageInfo, paramsValues []
 	return sendGameList(command, responseInfo, paramsValues)
 }
 
-func SendResponseServerReconnectBeforeGame(responseInfo models.MessageInfo, paramsValues []*models.Game) error {
+func SendResponseServerReconnectBeforeGame(reponseInfo models.MessageInfo, game *models.Game) error {
 	command := constants.CGCommands.ResponseServerReconnectBeforeGame
-	return sendGameList(command, responseInfo, paramsValues)
+	messageDataplayersInGameList := game.GetPlayers()
+
+	params, err := prepareParamsForPlayerList(command, messageDataplayersInGameList)
+	if err != nil {
+		return fmt.Errorf("error creating params %w", err)
+	}
+
+	err = sendMessageWrapper(reponseInfo, command, params)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("error sending response %w", err)
+	}
+	return nil
 }
 
 func SendResponseServerReconnectRunningGame(responseInfo models.MessageInfo, paramsValues models.GameData) error {
-	command := constants.CGCommands.ServerUpdateGameData
+	command := constants.CGCommands.ResponseServerReconnectRunningGame
 	paramsValue := parser.ConvertListGameDataToNetworkString(paramsValues)
 	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
@@ -695,14 +715,22 @@ func CommunicationServerUpdateGameList(playerList []*models.Player, paramsValues
 	return nil
 }
 
-func CommunicationServerUpdatePlayerList(sendPlayerList []*models.Player, playersInGameList []*models.Player) error {
-	command := constants.CGCommands.ServerUpdatePlayerList
-
+func prepareParamsForPlayerList(command constants.Command, playersInGameList []*models.Player) ([]constants.Params, error) {
 	paramsValue := parser.ConvertListPlayerListToNetworkString(playersInGameList)
 	params, err := models.CreateParams(command.ParamsNames, []string{paramsValue})
 	if err != nil {
 		errorHandeling.PrintError(err)
-		return err
+		return nil, err
+	}
+	return params, nil
+}
+
+func CommunicationServerUpdatePlayerList(sendPlayerList []*models.Player, playersInGameList []*models.Player) error {
+	command := constants.CGCommands.ServerUpdatePlayerList
+
+	params, err := prepareParamsForPlayerList(command, playersInGameList)
+	if err != nil {
+		return fmt.Errorf("error creating params %w", err)
 	}
 
 	err = sendStandardUpdateToAllMessage(sendPlayerList, command, params)
@@ -1022,6 +1050,8 @@ func CommunicationServerPingPlayer(player *models.Player) error {
 //endregion
 
 func SendGameUpdates(game *models.Game) error {
+	logger.Log.Debugf("SendGameUpdates: Sending Disconnect updates for game")
+
 	//region Send updates to all players
 	err := ProcessCommunicationServerUpdatePlayerList(game)
 	if err != nil {
@@ -1059,27 +1089,24 @@ func SendAllUpdates(game *models.Game) error {
 }
 
 func ProcessCommunicationServerUpdateGameData(game *models.Game) error {
+	if game.GetState() != models.Running {
+		return nil
+	}
+
 	gameData, err := game.GetGameData()
 	if err != nil {
 		return nil
 	}
 
 	playersInGameList := game.GetPlayers()
-	playerList := helpers.PlayerListGetActivePlayersInState(playersInGameList, state_machine.StateNameMap.StateRunningGame)
-
-	//add player in all diferent states in my turn
-	turnPlayer, err := game.GetTurnPlayer()
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("Error sending response: %w", err)
-	}
-	playerList = append(playerList, turnPlayer)
+	playerList := helpers.PlayerListGetActivePlayers(playersInGameList)
 
 	if len(playerList) == 0 {
+		logger.Log.Debugf("ProcessCommunicationServerUpdateGameData: No players in game")
 		return nil
 	}
 
-	err = CommunicationServerUpdateGameData(playersInGameList, gameData)
+	err = CommunicationServerUpdateGameData(playerList, gameData)
 	if err != nil {
 		errorHandeling.PrintError(err)
 		return fmt.Errorf("Error sending response: %w", err)
@@ -1088,12 +1115,21 @@ func ProcessCommunicationServerUpdateGameData(game *models.Game) error {
 	return nil
 }
 
-func ProcessCommunicationServerUpdatePlayerList(game *models.Game) error {
-	playersInGameList := game.GetPlayers()
-	playerList := helpers.PlayerListGetActivePlayersInState(playersInGameList, state_machine.StateNameMap.StateGame)
+func getPlayerListInfo(game *models.Game) ([]*models.Player, []*models.Player) {
+	messageDataplayersInGameList := game.GetPlayers()
+	sendPlayerList := helpers.PlayerListGetActivePlayersInState(messageDataplayersInGameList, state_machine.StateNameMap.StateGame)
 
-	if len(playerList) == 0 {
-		logger.Log.Info("Trying to send update playerlist but 0 players")
+	if len(sendPlayerList) == 0 {
+		return nil, nil
+	}
+
+	return sendPlayerList, messageDataplayersInGameList
+}
+
+func ProcessCommunicationServerUpdatePlayerList(game *models.Game) error {
+	playerList, playersInGameList := getPlayerListInfo(game)
+	if playerList == nil {
+		logger.Log.Debugf("ProcessCommunicationServerUpdatePlayerList: No players in game")
 		return nil
 	}
 

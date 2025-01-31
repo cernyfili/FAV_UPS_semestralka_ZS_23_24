@@ -42,6 +42,7 @@ func (pl *MessageList) AddItem(message Message) {
 	defer pl.list.mutex.Unlock()
 
 	if message.CommandID != 50 && message.CommandID != 60 {
+		//todo change
 		logger.Log.Infof("Message type %v:\n%s", pl.typeMess.String(), message.String())
 	}
 	//logger.Log.Infof("Message type %v:\n%s", pl.typeMess.String(), message.String())

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"gameserver/internal/logger"
 	"gameserver/internal/utils/errorHandeling"
 	"sync"
 )
@@ -27,6 +28,26 @@ func GetInstanceGameList() *GameList {
 		}
 	})
 	return instanceGL
+}
+
+// player is in game
+func (gl *GameList) PlayerIsInGame(player *Player) bool {
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
+	for _, v := range gl.list.data {
+		game, ok := v.(*Game)
+		if !ok {
+			panic("item is not a game")
+			return false
+		}
+		for _, p := range game.playersGameDataArr {
+			if p.Player == player {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (gl *GameList) AddItem(game *Game) (int, error) {
@@ -112,7 +133,7 @@ func (gl *GameList) RemovePlayerFromGame(player *Player) error {
 		return err
 	}
 
-	game := gl.GetPlayersGame(player)
+	game := gl.getPlayersGame(player)
 	if game == nil {
 		return nil
 	}
@@ -186,10 +207,7 @@ func (gl *GameList) GetCreatedGameList() []*Game {
 }
 
 // GetPlayersGame returns the game of the player
-func (gl *GameList) GetPlayersGame(player *Player) *Game {
-	gl.list.mutex.Lock()
-	defer gl.list.mutex.Unlock()
-
+func (gl *GameList) getPlayersGame(player *Player) *Game {
 	for _, v := range gl.list.data {
 		game, ok := v.(*Game)
 		if !ok {
@@ -203,6 +221,14 @@ func (gl *GameList) GetPlayersGame(player *Player) *Game {
 		}
 	}
 	return nil
+}
+
+func (gl *GameList) GetPlayersGame(player *Player) *Game {
+	logger.Log.Debugln("GetPlayersGame before lock")
+	gl.list.mutex.Lock()
+	defer gl.list.mutex.Unlock()
+
+	return gl.getPlayersGame(player)
 }
 
 //endregion

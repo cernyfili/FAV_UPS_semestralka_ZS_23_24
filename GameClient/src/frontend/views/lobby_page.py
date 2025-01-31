@@ -172,6 +172,7 @@ class LobbyPage(tk.Frame, UpdateInterface, ABC):
                                            param_list=param_list)
 
     def _process_is_not_connected(self):
+
         next_page_name = PAGES_DIC.StartPage
 
         self.controller.show_page(next_page_name)

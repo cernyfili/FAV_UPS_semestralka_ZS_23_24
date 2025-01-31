@@ -45,6 +45,7 @@ func ProcessMessage(message models.Message, conn net.Conn) error {
 
 	// nested function handle invalid message format
 	handleInvalidMessageFormat := func(player *models.Player, responseInfo models.MessageInfo) error {
+		logger.Log.Errorf("Invalid message format")
 		err := dissconectPlayer(player)
 		if err != nil {
 			errorHandeling.PrintError(err)
@@ -209,6 +210,7 @@ func processResponseClientSucess(player *models.Player, timeStamp string) error 
 	err := command_processing_utils.ProcessResponseClientSucessByPlayer(player, timeStamp)
 	if err != nil {
 		//disconnect player
+		logger.Log.Errorf("Error processing response success: %v", err)
 		err = dissconectPlayer(player)
 		if err != nil {
 			errorHandeling.PrintError(err)
@@ -280,6 +282,7 @@ func processClientCreateGame(player *models.Player, params []constants.Params, c
 	//Convert params
 	gameName, maxPlayers, err := parser.ConvertParamClientCreateGame(params, command.ParamsNames)
 	if err != nil {
+		logger.Log.Errorf("Error converting params: %v", err)
 		errDissconnect := dissconectPlayer(player)
 		if errDissconnect != nil {
 			errorHandeling.PrintError(errDissconnect)
@@ -382,6 +385,7 @@ func initGame(player *models.Player, name string, maxPlayers int) (game *models.
 func _handleCannotFire(player *models.Player) error {
 	err := fmt.Errorf("state machine cannot fire")
 
+	logger.Log.Errorf("Cannot fire state machine: %v", err)
 	errDissconnect := dissconectPlayer(player)
 	if errDissconnect != nil {
 		errorHandeling.PrintError(errDissconnect)
@@ -414,6 +418,7 @@ func processClientJoinGame(player *models.Player, params []constants.Params, com
 	// Convert params
 	gameName, err := parser.ConvertParamClientJoinGame(params, command.ParamsNames) // assuming gameName is the first parameter
 	if err != nil {
+		logger.Log.Errorf("Error converting params: %v", err)
 		errDissconnect := dissconectPlayer(player)
 		if errDissconnect != nil {
 			errorHandeling.PrintError(errDissconnect)
@@ -427,6 +432,7 @@ func processClientJoinGame(player *models.Player, params []constants.Params, com
 	game, err := models.GetInstanceGameList().GetItemByName(gameName)
 	if err != nil {
 		errorHandeling.PrintError(err)
+		logger.Log.Errorf("Error getting game: %v", err)
 		errDisconnect := dissconectPlayer(player)
 		if errDisconnect != nil {
 			errorHandeling.PrintError(errDisconnect)
@@ -525,6 +531,7 @@ func processClientStartGame(player *models.Player, params []constants.Params, co
 
 	playersGame := models.GetInstanceGameList().GetPlayersGame(player)
 	if playersGame == nil {
+		logger.Log.Errorf("Error getting playersGame: %v", err)
 		err = dissconectPlayer(player)
 		if err != nil {
 			errorHandeling.PrintError(err)
@@ -612,6 +619,7 @@ func processClientPlayerLogout(player *models.Player, params []constants.Params,
 
 	// Convert params
 	if len(params) != 0 {
+		logger.Log.Errorf("Error number of params: %v", err)
 		err = dissconectPlayer(player)
 		if err != nil {
 			errorHandeling.PrintError(err)
@@ -635,6 +643,7 @@ func processClientPlayerLogout(player *models.Player, params []constants.Params,
 		panic(err)
 	}
 
+	logger.Log.Errorf("Logout player: %v", player.GetNickname())
 	//disconnect player
 	err = dissconectPlayer(player)
 	if err != nil {
@@ -672,6 +681,7 @@ func __handleErrorMyTurn(player *models.Player, game *models.Game) error {
 func validatePlayerTurn(player *models.Player) (*models.Game, error) {
 	game := models.GetInstanceGameList().GetPlayersGame(player)
 	if game == nil {
+		logger.Log.Errorf("Error getting playersGame")
 		err := dissconectPlayer(player)
 		if err != nil {
 			errorHandeling.PrintError(err)
@@ -687,6 +697,7 @@ func validatePlayerTurn(player *models.Player) (*models.Game, error) {
 	}
 
 	if turnPlayer.GetNickname() != player.GetNickname() {
+		logger.Log.Errorf("Error player is not in turn")
 		err := dissconectPlayer(player)
 		if err != nil {
 			errorHandeling.PrintError(err)
@@ -759,6 +770,7 @@ func processClientRollDice(player *models.Player, params []constants.Params, com
 			return err
 		}
 		if !canFire {
+			logger.Log.Errorf("Cannot fire with trigger: %v", commandTrigger)
 			return __handleErrorMyTurn(player, game)
 		}
 
@@ -802,6 +814,7 @@ func processClientRollDice(player *models.Player, params []constants.Params, com
 		return err
 	}
 	if !canFire {
+		logger.Log.Errorf("Cannot fire with trigger: %v", commandTrigger)
 		return __handleErrorMyTurn(player, game)
 	}
 
@@ -868,6 +881,7 @@ func processClientSelectedCubes(player *models.Player, params []constants.Params
 	//region Fork_next_dice
 	selectedCubesValues, err := parser.ConvertParamClientSelectedCubes(params, command.ParamsNames)
 	if err != nil {
+		logger.Log.Errorf("Error converting params: %v", err)
 		return __handleErrorMyTurn(player, game)
 	}
 
@@ -889,6 +903,7 @@ func processClientSelectedCubes(player *models.Player, params []constants.Params
 			return fmt.Errorf("cannot join game %w", err)
 		}
 		if !canFire {
+			logger.Log.Errorf("Cannot fire with trigger: %v", commandTrigger)
 			return __handleErrorMyTurn(player, game)
 		}
 
@@ -955,6 +970,7 @@ func processClientSelectedCubes(player *models.Player, params []constants.Params
 		return fmt.Errorf("cannot join game %w", err)
 	}
 	if !canFire {
+		logger.Log.Errorf("Cannot fire with trigger: %v", commandTrigger)
 		return __handleErrorMyTurn(player, game)
 	}
 
@@ -994,39 +1010,12 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 		return nil
 	}
 
-	//region CHECK
-	playerFromList, err := models.GetInstancePlayerList().GetItem(player.GetNickname())
-	if err != nil {
-		errorHandeling.PrintError(err)
-		return fmt.Errorf("Error sending response: %w", err)
-	}
-	if playerFromList == nil {
-		return __disconnectPlayer(player)
-	}
+	inner_send_respones_game_list := func(player *models.Player) error {
 
-	responseInfo := models.MessageInfo{
-		ConnectionInfo: player.GetConnectionInfo(),
-		PlayerNickname: player.GetNickname(),
-	}
-
-	//region LOGIC
-	player.SetConnectedByBool(true)
-
-	currentStateName := player.GetCurrentStateName()
-
-	// State: Start -> ClientReconnect -> ...
-	player.ResetStateMachine()
-	err = player.FireStateMachine(command.Trigger)
-	if err != nil {
-		errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
-	}
-	stateMachine := player.GetStateMachine()
-
-	//if game ended go to lobby
-	game := models.GetInstanceGameList().GetPlayersGame(player)
-	if game == nil {
 		//region SendResponseServerGameList
+		logger.Log.Debugf("Processing SendResponseServerGameList: %v", player.GetNickname())
 		commandTrigger := constants.CGCommands.ResponseServerGameList.Trigger
+		stateMachine := player.GetStateMachine()
 
 		canFire, err := stateMachine.CanFire(commandTrigger)
 		if err != nil {
@@ -1052,6 +1041,37 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 		return nil
 	}
 
+	logger.Log.Debugf("Processing client reconnect: %v", player.GetNickname())
+
+	//region CHECK
+	playerFromList, err := models.GetInstancePlayerList().GetItem(player.GetNickname())
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("Error sending response: %w", err)
+	}
+	if playerFromList == nil {
+		logger.Log.Errorf("Player not found in list: %v", player.GetNickname())
+		return __disconnectPlayer(player)
+	}
+
+	responseInfo := models.MessageInfo{
+		ConnectionInfo: player.GetConnectionInfo(),
+		PlayerNickname: player.GetNickname(),
+	}
+
+	//region LOGIC
+	player.SetConnectedByBool(true)
+
+	currentStateName := player.GetCurrentStateName()
+
+	// State: Start -> ClientReconnect -> ...
+	player.ResetStateMachine()
+	err = player.FireStateMachine(command.Trigger)
+	if err != nil {
+		errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
+	}
+	stateMachine := player.GetStateMachine()
+
 	beforeGameAllowedStates := []string{state_machine.StateNameMap.StateGame}
 	runningGameAllowedStates := []string{
 		state_machine.StateNameMap.StateRunningGame,
@@ -1063,6 +1083,18 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 
 	if helpers.Contains(beforeGameAllowedStates, currentStateName) {
 		//region RespondServerReconnectBeforeGame
+		logger.Log.Debugf("Processing RespondServerReconnectBeforeGame: %v", player.GetNickname())
+
+		game := models.GetInstanceGameList().GetPlayersGame(player)
+
+		if game == nil {
+			return inner_send_respones_game_list(player)
+		}
+
+		if game.GetState() != models.Created {
+			return inner_send_respones_game_list(player)
+		}
+
 		commandTrigger := constants.CGCommands.ResponseServerReconnectBeforeGame.Trigger
 		canFire, err := stateMachine.CanFire(commandTrigger)
 		if err != nil {
@@ -1073,7 +1105,7 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 			errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
 		}
 
-		err = network.SendResponseServerReconnectBeforeGame(responseInfo, models.GetInstanceGameList().GetValuesArray())
+		err = network.SendResponseServerReconnectBeforeGame(responseInfo, game)
 		if err != nil {
 			errorHandeling.PrintError(err)
 			return fmt.Errorf("Error sending response: %w", err)
@@ -1097,6 +1129,13 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 
 	if helpers.Contains(runningGameAllowedStates, currentStateName) {
 		//region RespondServerReconnectRunningGame
+		logger.Log.Debugf("Processing RespondServerReconnectRunningGame: %v", player.GetNickname())
+
+		game := models.GetInstanceGameList().GetPlayersGame(player)
+		if game == nil || game.GetState() != models.Running {
+			return inner_send_respones_game_list(player)
+		}
+
 		commandTrigger := constants.CGCommands.ResponseServerReconnectRunningGame.Trigger
 		canFire, err := stateMachine.CanFire(commandTrigger)
 		if err != nil {
@@ -1132,14 +1171,34 @@ func processClientReconnect(player *models.Player, params []constants.Params, co
 			return fmt.Errorf("Error sending response: %w", err)
 		}
 		//endregion
+
+		//region ServerStartTurn - if player is in my turn
+		turnPlayer, err := game.GetTurnPlayer()
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		if turnPlayer.GetNickname() != player.GetNickname() {
+			logger.Log.Debugf("Player %v is not in my turn it is turn Player: %v", player.GetNickname(), turnPlayer.GetNickname())
+			return nil
+		}
+
+		logger.Log.Debugf("Player %v is in my turn it is turn Player: %v", player.GetNickname(), turnPlayer.GetNickname())
+
+		err = ProcessPlayerTurn(game)
+		if err != nil {
+			errorHandeling.PrintError(err)
+			return fmt.Errorf("Error sending response: %w", err)
+		}
+		//endregion
+
 		return nil
 	}
 
-	return __disconnectPlayer(player)
-
 	//endregion
 
 	//endregion
+	return inner_send_respones_game_list(player)
 }
 
 func ProcessSendPingPlayer(player *models.Player) error {
@@ -1157,12 +1216,6 @@ func ProcessSendPingPlayer(player *models.Player) error {
 		err = fmt.Errorf("Error pinging player: %w", err)
 		errorHandeling.PrintError(err)
 		return err
-	}
-
-	//fire
-	err = player.FireStateMachine(commandTrigger)
-	if err != nil {
-		errorHandeling.AssertError(fmt.Errorf("cannot fire state machine"))
 	}
 
 	return nil
@@ -1350,12 +1403,21 @@ func ProcessPlayerTurn(game *models.Game) error {
 		return fmt.Errorf("Error sending response: %w", err)
 	}
 	if isNextPlayerTurn {
+		logger.Log.Errorf("Next player turn")
 		return __handleErrorMyTurn(turnPlayer, game)
 	}
 	//endregion
 
+	//region ServerUpdateGameData
+	err = network.ProcessCommunicationServerUpdateGameData(game)
+	if err != nil {
+		errorHandeling.PrintError(err)
+		return fmt.Errorf("Error sending response: %w", err)
+	}
+	//endregion
+
 	//todo remove
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	//region ServerUpdateGameData
 	err = network.ProcessCommunicationServerUpdateGameData(game)

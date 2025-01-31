@@ -73,12 +73,8 @@ func (p *Player) GetConnectionState() ConnectionStateType {
 
 // GetNickname returns the nickname of the Player
 func (p *Player) GetNickname() string {
-	logger.Log.Debugf("Getting nickname of player ")
-
 	p.lock()
 	defer p.unlock()
-
-	logger.Log.Debugf("Got nickname of player %s", p.nickname)
 
 	return p.nickname
 }
