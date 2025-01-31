@@ -81,6 +81,8 @@ func CreateGame(name string, maxPlayers int) (*Game, error) {
 	}, nil
 }
 
+var switcher = true
+
 func generateCubeValues(count int) []int {
 	//rand.Seed(time.Now().UnixNano())
 	//array := make([]int, count)
@@ -95,12 +97,17 @@ func generateCubeValues(count int) []int {
 	//}
 	//
 	//return array
+	var valueInt int
 
-	valueInt := 5
+	if switcher {
+		valueInt = 5
+	} else {
+		valueInt = 4
+	}
+	switcher = !switcher
+
 	array := make([]int, count)
 	for i := 0; i < count; i++ {
-		//array[i] = rand.Intn(cCubeMaxValue) + cCubeMinValue
-		//todo remove
 		array[i] = valueInt
 	}
 	return array

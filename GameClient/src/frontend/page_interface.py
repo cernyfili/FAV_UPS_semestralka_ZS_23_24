@@ -43,8 +43,9 @@ class UpdateInterface(ABC):
 
     def _show_logout_button(self, tk):
         # Logout button in right upper corner of window
-        logout_button = tk.Button(self, text="Logout", command=lambda: self._button_action_logout())
-        logout_button.place(relx=1.0, rely=0.0, anchor="ne")
+        # logout_button = tk.Button(self, text="Logout", command=lambda: self._button_action_logout())
+        # logout_button.place(relx=1.0, rely=0.0, anchor="ne")
+        pass
 
     def process_error(self, message):
         messagebox.showerror("Error", message)

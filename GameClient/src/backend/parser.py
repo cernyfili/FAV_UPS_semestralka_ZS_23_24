@@ -1,6 +1,7 @@
 from typing import List
 
-from src.shared.constants import CMessagePartsSizes, CMessageConfig, CCommandTypeEnum, Param, NetworkMessage
+from src.shared.constants import CMessagePartsSizes, CMessageConfig, CCommandTypeEnum, Param, NetworkMessage, \
+    MessageFormatError
 
 
 def parse_message(input_str: str) -> NetworkMessage:
@@ -92,9 +93,8 @@ def parse_message(input_str: str) -> NetworkMessage:
         for element in param_array:
             elements_names = [param.name for param in element]
             if elements_names != message_param_list_info.param_names:
-                raise ValueError("Invalid parameter names in array element")
+                raise MessageFormatError("Invalid parameter names in array element")
         converted_data = message_param_list_info.convert_function(param_array)
-        # todo raise error which then closes connection becouse message is not in format that is expected
 
         return [Param(param.name, converted_data)]
 
