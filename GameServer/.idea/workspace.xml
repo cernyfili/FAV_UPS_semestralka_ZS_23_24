@@ -5,7 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6b93c456-3315-43ff-8ffa-1e13493119ac" name="Changes" comment="fixes">
+      <change afterPath="$PROJECT_DIR$/../GameClient/doc/readme.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/.idea/GameClient.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/.idea/GameClient.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/command_processing.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/parser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/backend/server_communication.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/../GameClient/src/frontend/page_interface.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/command_processing/command_processing.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/command_processing/command_processing.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/message_list.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/message_list.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/state_machine/state_machine.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/state_machine/state_machine.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/network/network.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/network/network.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/parser/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/parser/parser.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/server_listen.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/server_listen.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

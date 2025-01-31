@@ -72,24 +72,6 @@ func (pl *MessageList) GetMessagesByPlayer(nickname string) ([]Message, error) {
 	return messages, nil
 }
 
-//func (pl *MessageList) GetItemWithoutLock(nickname string, timestamp string) (Message, error) {
-//	pl.list.mutex.Lock()
-//	defer pl.list.mutex.Unlock()
-//
-//	key := nickname + timestamp
-//	item, err := pl.list.GetItemWithoutLock(key)
-//	if err != nil {
-//		errorHandeling.PrintError(err)
-//		return Message{}, err
-//	}
-//	message, ok := item.(Message)
-//	if !ok {
-//		return Message{}, fmt.Errorf("item is not a message")
-//	}
-//
-//	return message, nil
-//}
-
 // Has Item in list
 func (pl *MessageList) HasValue(player *Player) bool {
 	pl.list.mutex.Lock()

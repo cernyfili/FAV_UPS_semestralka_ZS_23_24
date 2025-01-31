@@ -124,37 +124,6 @@ class UpdateInterface(ABC):
 
         self.controller.show_page(next_page_name, page_data)
 
-    # def _start_listening_for_updates(self):
-    #     state_name = self._get_state_name()
-    #     list_update_function = self._get_update_function()
-    #
-    #     logging.debug(f"Starting to listen for updates in state: {state_name}")
-    #
-    #     def listen_for_updates(state_name, list_update_function):
-    #         current_state = GAME_STATE_MACHINE.get_current_state()
-    #         while current_state == state_name and not self._stop_event.is_set():
-    #             logging.debug("Listening for list updates")
-    #             try:
-    #                 is_connected, received_list = list_update_function()
-    #                 if self._stop_event.is_set():
-    #                     break
-    #                 if not is_connected:
-    #                     process_is_not_connected(self)
-    #                     break
-    #                 if not received_list:
-    #                     continue
-    #                 self.update_data(received_list)
-    #                 continue
-    #             except Exception as e:
-    #                 raise e
-    #                 #todo change
-    #                 messagebox.showerror("Error", str(e))
-    #                 break
-    #
-    #     # Wait for the update thread to finish
-    #     self._set_update_thread(
-    #         threading.Thread(target=listen_for_updates, args=(state_name, list_update_function), daemon=True))
-    #     self._update_thread.start()
 
     def button_action_standard(self, tk, send_function, next_page_name, param_list):
         def run_send_function(send_function, next_page_name, param_list):

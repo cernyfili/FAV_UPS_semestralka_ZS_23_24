@@ -5,10 +5,6 @@ import (
 	"gameserver/pkg/stateless"
 )
 
-/*var (
-	instanceSM *stateless.stateMachine
-	onceSM     sync.Once
-)*/
 
 type StateName struct {
 	StateEnd          string
@@ -49,12 +45,6 @@ var (
 	stateReconnect    = stateless.State(StateNameMap.StateReconnect)
 )
 
-/*func GetInstanceStateMachine() *stateless.stateMachine {
-	onceSM.Do(func() {
-		instanceSM = stateless.NewStateMachine(stateStart)
-	})
-	return instanceSM
-}*/
 
 func CreateStateMachine() *stateless.StateMachine {
 	stateMachine := stateless.NewStateMachine(stateStart)

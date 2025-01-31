@@ -47,14 +47,6 @@ func RunServer() {
 	}
 }
 
-//func getMessagePlayer(message models.Message) (*models.Player, error) {
-//	playerList := models.GetInstancePlayerList()
-//	player, err := playerList.GetItem(message.PlayerNickname)
-//	if err != nil {
-//		return nil, fmt.Errorf("Error getting player: %w", err)
-//	}
-//	return player, nil
-// }
 
 func _tryStartTurn(conn net.Conn) error {
 	player := models.GetInstancePlayerList().GetPlayerByConnection(conn)
@@ -228,27 +220,6 @@ func continuousSendPing(conn net.Conn) {
 	}
 }
 
-//func sendPing(player *models.Player) error {
-//	if player == nil {
-//		return nil
-//	}
-//
-//	if !player.IsTimeForNewPing() {
-//		return nil
-//	}
-//
-//	err := command_processing.ProcessSendPingPlayer(player)
-//	if err != nil {
-//		err = fmt.Errorf("Error sending ping: %w", err)
-//		errorHandeling.PrintError(err)
-//		return err
-//	}
-//
-//	player.SetLastPingCurrentTime()
-//
-//	return nil
-//}
-
 func disconnectPlayer(player *models.Player) error {
 	if player == nil {
 		errorHandeling.AssertError(fmt.Errorf("Error disconnecting player: player is nil"))
@@ -264,45 +235,6 @@ func disconnectPlayer(player *models.Player) error {
 	return nil
 }
 
-//func connectionRead(connection net.Conn) (models.Message, error) {
-//
-//	reader := bufio.NewReader(connection)
-//	var messageStr string
-//
-//	for {
-//
-//		line, err := reader.ReadString(constants.CMessageEndDelimiter)
-//		if err != nil {
-//			errorHandeling.PrintError(err)
-//			return models.Message{}, fmt.Errorf("error reading: %w", err)
-//		}
-//		messageStr += line
-//
-//		// Check if the message ends with a newline character
-//		if len(line) > 0 && line[len(line)-1] == '\n' {
-//			break
-//		}
-//		if len(messageStr) > constants.CMessageMaxSize {
-//			return models.Message{}, fmt.Errorf("message is too long")
-//		}
-//	}
-//
-//	//logger.Log.Info("Received message: " + messageStr)
-//
-//	message, err := parser.ParseMessage(messageStr)
-//	if err != nil {
-//		errorHandeling.PrintError(err)
-//		return models.Message{}, fmt.Errorf("Error parsing message:", err)
-//	}
-//
-//	err = network_utils.GReceivedMessageList.AddItem(message)
-//	if err != nil {
-//		errorHandeling.PrintError(err)
-//		return models.Message{}, err
-//	}
-//
-//	return message, nil
-//}
 
 func checkTimeoutResponseSuccess(player *models.Player) (bool, error) {
 	if player == nil {
